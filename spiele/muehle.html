@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Mühle · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+.mu-stage{display:flex;flex-direction:column;align-items:center;gap:6px}
+.mu-bar{flex:none;width:min(660px,calc(100% - 250px));min-height:72px;padding:8px 16px;border-radius:18px;background:var(--panel);
+  border:2px solid var(--line);display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:12px;row-gap:2px;align-items:center;
+  transition:border-color .3s, background-color .3s, box-shadow .3s}
+.mu-bar.am{border-color:var(--pc);background:rgba(9,32,42,.9);box-shadow:0 0 28px color-mix(in srgb,var(--pc) 35%,transparent)}
+.mu-bar.dreh{transform:rotate(180deg)}
+.mu-bar .nm{font-family:var(--f-disp);font-weight:800;font-size:22px;display:flex;align-items:center;gap:9px;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.mu-bar .nm .k-dot{--pc:inherit}
+.mu-hand{display:flex;gap:4px;flex-wrap:nowrap}
+.mu-hand i{width:15px;height:15px;border-radius:50%;background:var(--pc);box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
+.mu-hand i.leer{background:none;box-shadow:inset 0 0 0 1.5px var(--line-stark)}
+.mu-zaehl{font-size:15px;color:var(--ink2);white-space:nowrap}
+.mu-zaehl b{color:var(--ink)}
+.mu-msg{grid-column:1/-1;font-size:18px;line-height:1.25;min-height:24px;color:var(--ink2)}
+.mu-bar.am .mu-msg{color:var(--ink);font-weight:700}
+.mu-mitte{flex:1;min-height:0;width:100%;display:grid;place-items:center;position:relative}
+.mu-svg{width:100%;height:100%;max-width:100%;display:block;touch-action:none}
+.mu-feld{fill:rgba(7,24,32,.55);stroke:var(--line-stark);stroke-width:2}
+.mu-linie{stroke:#7fa6a8;stroke-width:5;stroke-linecap:round;fill:none}
+.mu-pkt{fill:#7fa6a8}
+.mu-stein{pointer-events:none}
+.mu-stein .k{stroke:rgba(0,0,0,.35);stroke-width:2}
+.mu-stein .ring{fill:none;stroke:rgba(0,0,0,.4);stroke-width:4}
+.mu-stein.neu{animation:mu-pop .32s cubic-bezier(.2,.9,.3,1.3) both;transform-box:fill-box;transform-origin:center}
+.mu-stein.weg{animation:mu-weg .26s ease-in forwards;transform-box:fill-box;transform-origin:center}
+@keyframes mu-pop{from{transform:scale(.2);opacity:0}}
+@keyframes mu-weg{to{transform:scale(.1);opacity:0}}
+.mu-ziel{fill:color-mix(in srgb,var(--akzent) 20%,transparent);stroke:var(--akzent);stroke-width:4;animation:mu-puls 1.4s ease-in-out infinite;pointer-events:none}
+.mu-nehm{fill:rgba(239,125,109,.16);stroke:var(--fehler);stroke-width:5;animation:mu-puls 1.1s ease-in-out infinite;pointer-events:none}
+.mu-wahl{fill:none;stroke:#fff;stroke-width:5;pointer-events:none}
+.mu-mark{fill:none;stroke:var(--warn);stroke-width:4;stroke-dasharray:7 6;pointer-events:none}
+.mu-sperr{fill:none;stroke:rgba(255,255,255,.22);stroke-width:3;pointer-events:none}
+@keyframes mu-puls{0%,100%{opacity:1}50%{opacity:.4}}
+.mu-hit{fill:transparent;cursor:pointer}
+.mu-ende{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);display:flex;gap:10px;z-index:5}
+.mu-chip{display:inline-block;padding:1px 9px;border-radius:99px;background:rgba(255,255,255,.1);font-size:14px;color:var(--ink);margin-left:6px;font-weight:700}
+@media (max-aspect-ratio:1/1){.mu-bar{width:min(660px,calc(100% - 250px))}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="muehle.logik.js"></script>
+<script>
+"use strict";
+const L = window.Muehle;
+const REGELN = `
+<h3>Ziel</h3><p>Bilde mit deinen Steinen Mühlen, also drei Steine in einer Linie, und nimm dem Gegenüber damit Steine weg. Verloren hat, wer nur noch zwei Steine hat oder nicht mehr ziehen kann.</p>
+<h3>1. Setzen</h3><p>Jede Seite hat neun Steine. Ihr setzt abwechselnd je einen Stein auf einen freien Punkt. Gesetzte Steine bleiben zunächst liegen. Erst wenn alle achtzehn Steine gesetzt sind, wird gezogen.</p>
+<h3>2. Ziehen</h3><p>Nun ziehst du in jedem Zug einen Stein auf einen angrenzenden freien Punkt entlang einer Linie.</p>
+<h3>3. Springen</h3><p>Hast du nur noch drei Steine, darfst du mit einem Stein auf jeden freien Punkt springen.</p>
+<h3>Mühle</h3><p>Schließt dein Zug eine Mühle, nimmst du einen Stein des Gegenübers vom Brett. Steine in einer geschlossenen Mühle sind geschützt. Stehen alle gegnerischen Steine in Mühlen, darfst du trotzdem einen davon nehmen. Schließt ein Zug zwei Mühlen gleichzeitig, nimmst du nur einen Stein. Du darfst eine Mühle öffnen und später wieder schließen, jedes Schließen zählt neu.</p>
+<h3>Ende</h3><p>Verloren hat, wer weniger als drei Steine hat (auch die noch nicht gesetzten zählen) oder wer beim Ziehen eingesperrt ist. Remis ist es, wenn dieselbe Stellung mit demselben Spieler am Zug zum dritten Mal entsteht.</p>
+<h3>Bedienung</h3><p>Tippe auf einen leuchtenden Punkt zum Setzen. Zum Ziehen tippst du erst deinen Stein, dann das leuchtende Ziel. Nach einer Mühle leuchten die Steine, die du nehmen darfst.</p>`;
+const SVGNS = 'http://www.w3.org/2000/svg';
+const pos = p => ({x: 60 + L.XY[p][0] * 100, y: 60 + L.XY[p][1] * 100});
+let S = null, namen = ['Spieler 1', 'Spieler 2'], farben = Kern.farben.slice(0, 2), opt = {}, sel = null, busy = false, stage = null, setupZiel = null;
+
+function brettBild(g = 120) {
+  const q = (a, b) => `<rect x="${a}" y="${a}" width="${b}" height="${b}" fill="none" stroke="currentColor" stroke-width="6"/>`;
+  return `<svg width="${g}" height="${g}" viewBox="0 0 120 120" style="color:#7fa6a8">${q(10, 100)}${q(35, 50)}<path d="M60 10v25M60 85v25M10 60h25M85 60h25" stroke="currentColor" stroke-width="6"/>
+    <circle cx="10" cy="10" r="9" fill="#f2c14e"/><circle cx="60" cy="10" r="9" fill="#f2c14e"/><circle cx="110" cy="10" r="9" fill="#f2c14e"/><circle cx="35" cy="85" r="9" fill="#ef7d6d"/><circle cx="60" cy="85" r="9" fill="#ef7d6d"/></svg>`;
+}
+
+function startseite() {
+  if (stage) { stage.remove(); stage = null; }
+  document.querySelectorAll('.k-scroll').forEach(e => e.remove());
+  const gespeichert = Kern.speicher.laden();
+  const ok = gespeichert && gespeichert.S && !gespeichert.S.sieger;
+  const s = Kern.setup({
+    titel: 'Mühle', unter: 'Neun Steine, drei in einer Linie: Wer eine Mühle schließt, nimmt dem Gegenüber einen Stein weg.',
+    bild: brettBild(), fakten: ['2 Personen', 'ca. 15 Minuten'],
+    spieler: {min: 2, max: 2, standard: 2, frage: 'Zwei Personen spielen', namenLabel: 'Namen', platzhalter: i => 'Spieler ' + (i + 1)},
+    optionen: [
+      {id: 'gegenueber', label: 'Sitzt ihr gegenüber?', standard: 'an', werte: [{wert: 'an', text: 'Ja, gegenüber'}, {wert: 'aus', text: 'Nein, nebeneinander'}]},
+      {id: 'start', label: 'Wer beginnt?', standard: '1', werte: [{wert: '1', text: 'Spieler 1'}, {wert: '2', text: 'Spieler 2'}, {wert: 'zufall', text: 'Zufall'}]}
+    ],
+    fortsetzen: ok ? `Zug ${gespeichert.S.zuege + 1} · ${gespeichert.namen.join(' gegen ')}` : null,
+    onFortsetzen: () => { beginnen(gespeichert); },
+    onStart: ({namen: n, farben: f, optionen}) => {
+      const start = optionen.start === 'zufall' ? 1 + Kern.zufall(2) : Number(optionen.start);
+      beginnen({S: L.neu({start}), namen: n, farben: f, opt: optionen});
+    }
+  });
+  setupZiel = s.ziel;
+  const a2 = document.getElementById('k-anzahl-2'); if (a2) a2.parentElement.parentElement.hidden = true; // nur zwei Personen: keine Auswahl nötig
+}
+
+function beginnen(d) {
+  S = d.S; namen = d.namen; farben = d.farben; opt = d.opt; sel = null; busy = false;
+  if (setupZiel) { setupZiel.remove(); setupZiel = null; }
+  Kern.speicher.speichern({S, namen, farben, opt});
+  aufbauen(); zeichne();
+}
+
+/* ---------- Aufbau der Spielfläche ---------- */
+function aufbauen() {
+  if (stage) stage.remove();
+  stage = Kern.el('div', 'k-buehne mu-stage');
+  stage.innerHTML = `<div class="mu-bar" id="mu-b2"></div><div class="mu-mitte" id="mu-mitte"></div><div class="mu-bar" id="mu-b1"></div>`;
+  document.body.appendChild(stage);
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 720 720'); svg.setAttribute('class', 'mu-svg'); svg.id = 'mu-svg';
+  let h = `<rect class="mu-feld" x="8" y="8" width="704" height="704" rx="44"/>`;
+  for (let r = 0; r < 3; r++) { const a = 60 + r * 100, b = 660 - r * 100; h += `<rect class="mu-linie" x="${a}" y="${a}" width="${b - a}" height="${b - a}"/>`; }
+  h += `<path class="mu-linie" d="M360 60V160M360 560V660M60 360H160M560 360H660"/>`;
+  for (let p = 0; p < 24; p++) { const c = pos(p); h += `<circle class="mu-pkt" cx="${c.x}" cy="${c.y}" r="9"/>`; }
+  h += `<g id="mu-mark"></g><g id="mu-ziele"></g><g id="mu-steine"></g><g id="mu-hits"></g>`;
+  svg.innerHTML = h;
+  $('mu-mitte').appendChild(svg);
+  const hits = svg.querySelector('#mu-hits');
+  for (let p = 0; p < 24; p++) {
+    const c = pos(p), k = document.createElementNS(SVGNS, 'circle');
+    k.setAttribute('class', 'mu-hit'); k.setAttribute('cx', c.x); k.setAttribute('cy', c.y); k.setAttribute('r', 46);
+    Kern.tap(k, () => tippe(p)); hits.appendChild(k);
+  }
+  window.addEventListener('resize', () => {});
+}
+const $ = id => document.getElementById(id);
+
+/* ---------- Zeichnen ---------- */
+function steinSvg(p, spieler, extra = '') {
+  const c = pos(p), f = farben[spieler - 1];
+  return `<g class="mu-stein ${extra}" data-p="${p}"><circle class="k" cx="${c.x}" cy="${c.y}" r="35" fill="${f}"/>
+    <circle cx="${c.x}" cy="${c.y}" r="35" fill="url(#mu-glanz)" opacity=".0"/>${spieler === 2 ? `<circle class="ring" cx="${c.x}" cy="${c.y}" r="21"/>` : `<circle cx="${c.x}" cy="${c.y}" r="9" fill="rgba(0,0,0,.2)"/>`}</g>`;
+}
+function ringe(punkte, klasse, r = 44) { return punkte.map(p => { const c = pos(p); return `<circle class="${klasse}" cx="${c.x}" cy="${c.y}" r="${r}"/>`; }).join(''); }
+
+function text() {
+  const p = S.am, ph = L.phase(S, p), n = namen[p - 1];
+  if (S.sieger) return '';
+  if (S.nehmen) {
+    const alle = L.nehmbar(S).length > 0 && L.nehmbar(S).every(i => L.inMuehle(S.b, i, L.gegner(p)));
+    return `Mühle! Nimm einen Stein von ${namen[L.gegner(p) - 1]}${alle ? ' (alle stehen in Mühlen, du darfst trotzdem)' : ''}.`;
+  }
+  if (ph === 'setzen') return `${n}, setze einen Stein auf einen leuchtenden Punkt.`;
+  if (ph === 'springen') return sel == null ? `${n}, du darfst springen: Tippe einen Stein, dann einen freien Punkt.` : 'Tippe irgendeinen leuchtenden Punkt.';
+  return sel == null ? `${n}, ziehe einen Stein auf einen freien Nachbarpunkt.` : 'Tippe einen leuchtenden Punkt.';
+}
+const PHASEN = {setzen: 'Setzen', ziehen: 'Ziehen', springen: 'Springen'};
+function leiste(el, p, unten) {
+  const f = farben[p - 1];
+  const am = !S.sieger && S.am === p;
+  el.className = 'mu-bar' + (am ? ' am' : '') + (!unten && opt.gegenueber === 'an' ? ' dreh' : '');
+  el.style.setProperty('--pc', f);
+  const hand = Array.from({length: 9}, (_, i) => `<i class="${i < S.hand[p] ? '' : 'leer'}"></i>`).join('');
+  el.innerHTML = `<div class="nm"><span class="k-dot" style="--pc:${f}">${Kern.esc(namen[p - 1].charAt(0).toUpperCase())}</span>${Kern.esc(namen[p - 1])}</div>
+    <div class="mu-hand" title="Noch zu setzen">${hand}</div>
+    <div class="mu-zaehl">Brett <b class="k-zahl">${L.imBrett(S, p)}</b>${am ? `<span class="mu-chip">${PHASEN[L.phase(S, p)]}</span>` : ''}</div>
+    <div class="mu-msg">${am ? Kern.esc(text()) : (S.sieger ? (S.sieger === p ? 'Gewonnen!' : '') : '')}</div>`;
+}
+function zeichne() {
+  leiste($('mu-b1'), 1, true); leiste($('mu-b2'), 2, false);
+  const steine = $('mu-steine'), ziele = $('mu-ziele'), mark = $('mu-mark');
+  steine.innerHTML = S.b.map((v, i) => v ? steinSvg(i, v) : '').join('');
+  let zl = '', mk = '';
+  if (!S.sieger) {
+    const p = S.am, ph = L.phase(S, p);
+    if (S.nehmen) {
+      zl += ringe(L.nehmbar(S), 'mu-nehm', 46);
+      L.MUEHLEN.filter(m => m.includes(S.muehle) && m.every(q => S.b[q] === p)).forEach(m => m.forEach(q => { const c = pos(q); mk += `<circle class="mu-mark" cx="${c.x}" cy="${c.y}" r="46"/>`; }));
+    } else if (ph === 'setzen') zl += ringe(S.b.map((v, i) => v === 0 ? i : -1).filter(i => i >= 0), 'mu-ziel', 26);
+    else if (sel == null) zl += ringe(S.b.map((v, i) => v === p && L.zugZiele(S, i).length ? i : -1).filter(i => i >= 0), 'mu-ziel', 46);
+    else { zl += ringe([sel], 'mu-wahl', 46) + ringe(L.zugZiele(S, sel), 'mu-ziel', 26); }
+  }
+  ziele.innerHTML = zl; mark.innerHTML = mk;
+}
+
+/* ---------- Bedienung ---------- */
+function tippe(p) {
+  if (busy || !S || S.sieger) return;
+  const am = S.am, ph = L.phase(S, am);
+  if (S.nehmen) {
+    if (L.nehmbar(S).includes(p)) return tue({art: 'nehmen', an: p});
+    Kern.ton('fehler');
+    return Kern.hinweis(S.b[p] === am ? 'Das ist dein eigener Stein. Nimm einen leuchtenden.' : S.b[p] === 0 ? 'Hier steht kein Stein. Tippe einen leuchtenden.' : 'Dieser Stein steht in einer Mühle und ist geschützt.');
+  }
+  if (ph === 'setzen') {
+    if (S.b[p] === 0) return tue({art: 'setzen', nach: p});
+    Kern.ton('fehler'); return Kern.hinweis('Dieser Punkt ist schon besetzt.');
+  }
+  if (S.b[p] === am) {
+    if (!L.zugZiele(S, p).length) { Kern.ton('fehler'); return Kern.hinweis('Dieser Stein kann nicht ziehen. Er ist eingeklemmt.'); }
+    sel = sel === p ? null : p; Kern.ton('tipp'); return zeichne();
+  }
+  if (sel != null && L.zugZiele(S, sel).includes(p)) return tue({art: 'ziehen', von: sel, nach: p});
+  Kern.ton('fehler');
+  if (S.b[p] !== 0) return Kern.hinweis('Das ist ein Stein von ' + namen[L.gegner(am) - 1] + '.');
+  Kern.hinweis(sel == null ? 'Tippe zuerst einen eigenen Stein an.' : ph === 'springen' ? 'Tippe einen leuchtenden Punkt.' : 'Dorthin geht es nicht. Ziehen darfst du nur entlang der Linien auf einen leuchtenden Nachbarpunkt.');
+}
+
+async function tue(z) {
+  busy = true;
+  const vorher = S, am = S.am;
+  try {
+    if (z.art === 'nehmen') {
+      const e = document.querySelector(`#mu-steine [data-p="${z.an}"]`); if (e) e.classList.add('weg');
+      Kern.ton('legen'); await Kern.warte(260);
+    }
+    S = L.anwenden(S, z); sel = null;
+    Kern.speicher.speichern({S, namen, farben, opt});
+    zeichne();
+    if (z.art === 'setzen') { const e = document.querySelector(`#mu-steine [data-p="${z.nach}"]`); e && e.classList.add('neu'); Kern.ton('stein'); }
+    if (z.art === 'ziehen') {
+      const e = document.querySelector(`#mu-steine [data-p="${z.nach}"]`), a = pos(z.von), b = pos(z.nach);
+      if (e && e.animate) e.animate([{transform: `translate(${a.x - b.x}px,${a.y - b.y}px)`}, {transform: 'none'}], {duration: 240, easing: 'cubic-bezier(.3,.7,.3,1)'});
+      Kern.ton('stein');
+    }
+    if (S.nehmen) { Kern.ton('punkt'); }
+    if (S.sieger) { await Kern.warte(350); ende(); }
+  } finally { busy = false; }
+}
+
+async function ende() {
+  Kern.speicher.loeschen();
+  const text = S.sieger === 'remis' ? ['Remis', 'Dieselbe Stellung ist zum dritten Mal entstanden. Keiner kommt weiter, die Partie endet unentschieden.']
+    : [`${namen[S.sieger - 1]} gewinnt!`, S.grund === 'eingesperrt' ? `${Kern.esc(namen[L.gegner(S.sieger) - 1])} kann keinen Stein mehr ziehen.` : `${Kern.esc(namen[L.gegner(S.sieger) - 1])} hat nur noch zwei Steine.`];
+  if (S.sieger !== 'remis') { Kern.ton('sieg'); Kern.feier(); }
+  zeichne();
+  const w = await dialog(text[0], text[1], [{text: 'Nochmal (Anfang wechselt)', wert: 'nochmal', art: 'gut'}, {text: 'Brett ansehen', wert: 'sehen', art: 'leise'}, {text: 'Neues Spiel', wert: 'neu', art: 'leise'}]);
+  if (w === 'nochmal') return nochmal();
+  if (w === 'neu') return startseite();
+  const leiste = Kern.el('div', 'mu-ende');
+  const a = Kern.el('button', 'k-btn gut', 'Nochmal'), b = Kern.el('button', 'k-btn leise', 'Neues Spiel');
+  a.onclick = nochmal; b.onclick = startseite; leiste.append(a, b); $('mu-mitte').appendChild(leiste);
+}
+function nochmal() { beginnen({S: L.neu({start: L.gegner(S.start || 1)}), namen, farben, opt}); }
+
+
+// Eigene Rückfrage statt Kern.frage: Kern.frage löst beim Schließen zuerst mit null auf, die gewählte Antwort ginge verloren.
+function dialog(titel, text, knoepfe) {
+  return new Promise(res => {
+    const box = Kern.el('div', '', `<h2>${Kern.esc(titel)}</h2><p>${text}</p>`), zeile = Kern.el('div', 'k-knoepfe'); box.appendChild(zeile);
+    const fe = Kern.fenster(box, {schliessbar: false});
+    knoepfe.forEach(b => { const k = Kern.el('button', 'k-btn' + (b.art ? ' ' + b.art : ''), Kern.esc(b.text)); k.onclick = () => { fe.schliessen(); res(b.wert); }; zeile.appendChild(k); });
+  });
+}
+
+Kern.init({id: 'muehle', name: 'Mühle', akzent: '#e0a458', regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+startseite();
+window.__test = {zustand: () => S, laden: s => { S = s; zeichne(); }};
+</script>
+</body>
+</html>

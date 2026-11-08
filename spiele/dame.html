@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Dame · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Dame: Holzbrett links (quer) bzw. mittig (hoch), daneben die Spielerfelder und die Zugliste.
+   --q = Feldgröße, gesetzt von layout(). Alle Klassen mit Präfix .da- */
+.da-buehne{--hell:#ecdcbb;--dunkel:#8a5a37;--q:80px}
+.da-rahmen{position:absolute;border-radius:14px;padding:calc(var(--q)*.12);
+  background:linear-gradient(160deg,#5b3720,#2f1c10);box-shadow:0 18px 50px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.1)}
+.da-brett{position:relative;display:grid;grid-template-columns:repeat(8,var(--q));grid-template-rows:repeat(8,var(--q));
+  border-radius:6px;overflow:hidden;touch-action:none}
+.da-f{position:relative;background:var(--hell)}
+.da-f.d{background:var(--dunkel);background-image:linear-gradient(135deg,rgba(255,255,255,.05),rgba(0,0,0,.08))}
+.da-k{position:absolute;font:700 calc(var(--q)*.15) var(--f-ui);color:var(--dunkel);pointer-events:none;line-height:1}
+.da-f.d .da-k{color:var(--hell)}
+.da-k.l{right:5%;bottom:4%}.da-k.r{left:5%;top:4%}
+.da-f.letzt::before{content:"";position:absolute;inset:0;background:rgba(242,193,78,.36)}
+.da-f.wahl::before{content:"";position:absolute;inset:0;background:rgba(242,193,78,.66)}
+.da-f.ziel::after{content:"";position:absolute;left:50%;top:50%;width:30%;height:30%;transform:translate(-50%,-50%);border-radius:50%;
+  background:rgba(255,236,190,.55);box-shadow:0 0 0 2px rgba(60,30,10,.35);pointer-events:none;z-index:3}
+.da-f.ueber::before{content:"";position:absolute;inset:0;background:rgba(255,255,255,.25)}
+.da-st{position:absolute;inset:0;z-index:2;pointer-events:none;transition:transform .26s cubic-bezier(.3,.7,.25,1)}
+.da-st svg{width:100%;height:100%;display:block}
+.da-st.ohne{transition:none}
+.da-st.zieht{z-index:20;transition:none}
+.da-st.zieht svg{transform:scale(1.12)}
+.da-gegen .da-st.b svg{transform:rotate(180deg)}
+.da-gegen .da-st.b.zieht svg{transform:rotate(180deg) scale(1.12)}
+.da-st.pflicht::before{content:"";position:absolute;inset:6%;border-radius:50%;box-shadow:0 0 0 calc(var(--q)*.055) #ffd25a, 0 0 calc(var(--q)*.22) rgba(255,210,90,.8);animation:da-puls 1.4s ease-in-out infinite}
+@keyframes da-puls{0%,100%{opacity:1}50%{opacity:.35}}
+.da-st.geschlagen{opacity:.45}
+.da-st.geschlagen::after{content:"";position:absolute;inset:22%;background:
+  linear-gradient(45deg,transparent 44%,#d8483c 44% 56%,transparent 56%),linear-gradient(-45deg,transparent 44%,#d8483c 44% 56%,transparent 56%)}
+.da-st.weg{animation:da-weg .32s ease-out forwards}
+@keyframes da-weg{to{opacity:0;transform:scale(.55)}}
+
+/* Spielerfelder */
+.da-sp{position:absolute;display:flex}
+.da-sp-in{flex:1;display:flex;flex-direction:column;gap:8px;justify-content:flex-end;padding:12px 14px;border-radius:18px;
+  background:var(--panel);border:1px solid var(--line);transition:box-shadow .3s, background-color .3s;min-width:0}
+.da-sp.dran .da-sp-in{background:rgba(9,32,42,.9);box-shadow:inset 0 0 0 2px var(--akzent), 0 0 30px color-mix(in srgb,var(--akzent) 25%,transparent)}
+.da-gegen .da-sp.b .da-sp-in{transform:rotate(180deg)}
+.da-kz{display:flex;align-items:center;gap:10px;min-width:0}
+.da-icon{flex:none;width:36px;height:36px}
+.da-icon svg{width:100%;height:100%;display:block}
+.da-name{font:800 22px/1.1 var(--f-disp);letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.da-zahlen{margin-left:auto;flex:none;display:flex;gap:6px}
+.da-satz{font-size:16px;color:var(--ink2);line-height:1.3;min-height:1.3em}
+.da-sp.dran .da-satz{color:var(--ink)}
+.da-satz b{color:var(--akzent)}
+.da-knoepfe{display:flex;gap:8px;flex-wrap:wrap}
+.da-knoepfe .k-btn{flex:1 1 auto;min-height:44px;padding:0 12px}
+.da-zl{position:absolute;display:flex;flex-direction:column;border-radius:18px;background:var(--panel);border:1px solid var(--line);min-height:0}
+.da-zl h3{font:700 13px var(--f-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);margin:12px 16px 6px}
+.da-zl-in{flex:1;overflow-y:auto;touch-action:pan-y;padding:0 10px 10px;min-height:0;-webkit-overflow-scrolling:touch}
+.da-zl table{width:100%;border-collapse:collapse;font-size:16px}
+.da-zl td{padding:3px 6px;white-space:nowrap}
+.da-zl td:first-child{color:var(--ink3);width:2.6em;text-align:right;font-variant-numeric:tabular-nums}
+.da-zl td:nth-child(2),.da-zl td:nth-child(3){width:46%}
+.da-zl td.neu{background:color-mix(in srgb,var(--akzent) 26%,transparent);border-radius:6px}
+.da-zl .da-leer{color:var(--ink3);font-size:15px;padding:4px 6px}
+
+.da-ende{position:absolute;z-index:40;display:grid;place-items:center;pointer-events:none}
+.da-ende-box{pointer-events:auto;background:rgba(8,26,34,.95);border:1px solid var(--line-stark);border-radius:24px;padding:26px 28px;
+  text-align:center;max-width:88%;box-shadow:0 30px 80px rgba(0,0,0,.55);animation:k-hoch .3s cubic-bezier(.2,.8,.3,1)}
+.da-ende-box h2{font-size:clamp(30px,4.4vw,46px)}
+.da-ende-box p{color:var(--ink2);margin:10px 0 0;font-size:18px}
+.da-ende-box .da-sieg{font:800 22px var(--f-disp);color:var(--akzent);margin-top:14px}
+.da-ende-box .k-knoepfe{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;justify-content:center}
+.k-ebene.da-kopf{transform:rotate(180deg)}
+.da-start-bild svg{width:min(230px,40vw);height:auto}
+.k-panel > div:has(> .k-seg > #k-anzahl-2:only-child){display:none}
+@media (prefers-reduced-motion:reduce){.da-st{transition:none}.da-st.pflicht::before{animation:none}}
+</style>
+</head>
+<body class="chart">
+<div class="k-scroll chart" id="da-start"></div>
+<div class="k-buehne da-buehne" id="da-spiel" hidden>
+  <div class="da-rahmen" id="da-rahmen"><div class="da-brett" id="da-brett"></div></div>
+  <div class="da-sp b" id="da-sp-b"></div>
+  <div class="da-zl" id="da-zl"><h3>Züge</h3><div class="da-zl-in" id="da-zl-in"></div></div>
+  <div class="da-sp w" id="da-sp-w"></div>
+  <div class="da-ende" id="da-ende" hidden></div>
+</div>
+<script src="../gemeinsam/kern.js"></script>
+<script src="dame.logik.js"></script>
+<script>
+"use strict";
+const D = window.Dame, K = window.Kern;
+const $ = s => document.querySelector(s);
+
+/* ---------- Steine als eigene Zeichnung ---------- */
+function steinSvg(f, dame) {
+  const w = f === 'w';
+  const grund = w ? '#f4ecdc' : '#26323a', rand = w ? '#b9a98a' : '#0c1317', rille = w ? 'rgba(120,96,60,.45)' : 'rgba(210,225,230,.22)';
+  const glanz = w ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.14)';
+  const krone = dame ? `<g transform="translate(50 50) scale(1.3)"><path d="M-17 9L-20-9L-9-1L0-14L9-1L20-9L17 9Z" fill="#e9b949" stroke="${w ? '#7a4d12' : '#3a2408'}" stroke-width="2.6" stroke-linejoin="round"/>
+    <rect x="-17" y="8" width="34" height="6" rx="2" fill="#e9b949" stroke="${w ? '#7a4d12' : '#3a2408'}" stroke-width="2.6"/></g>` : '';
+  const sockel = dame ? `<ellipse cx="50" cy="58" rx="38" ry="36" fill="${rand}"/><ellipse cx="50" cy="55" rx="38" ry="36" fill="${grund}" stroke="${rand}" stroke-width="2.5"/>` : '';
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="56" rx="38" ry="36" fill="rgba(0,0,0,.35)"/>${sockel}
+    <ellipse cx="50" cy="${dame ? 52 : 54}" rx="38" ry="36" fill="${rand}"/><circle cx="50" cy="${dame ? 48 : 50}" r="37" fill="${grund}" stroke="${rand}" stroke-width="2.5"/>
+    <circle cx="50" cy="${dame ? 48 : 50}" r="27" fill="none" stroke="${rille}" stroke-width="2.5"/><circle cx="50" cy="${dame ? 48 : 50}" r="17" fill="none" stroke="${rille}" stroke-width="2"/>
+    <path d="M24 ${dame ? 34 : 36}A30 30 0 0 1 46 ${dame ? 20 : 22}" fill="none" stroke="${glanz}" stroke-width="3.5" stroke-linecap="round"/>
+    ${dame ? `<g transform="translate(0 -2)">${krone}</g>` : ''}</svg>`;
+}
+
+const REGELN = `
+<h3>Ziel</h3><p>Schlage alle Steine der Gegenseite oder sperre sie ein. Wer am Zug ist und nicht mehr ziehen kann, verliert.</p>
+<h3>Aufbau</h3><p>Gespielt wird nur auf den dunklen Feldern. Jede Seite hat 12 Steine auf den ersten drei Reihen. Weiß beginnt.</p>
+<h3>Ziehen</h3><p>Ein Stein zieht ein Feld schräg vorwärts auf ein freies Feld.</p>
+<h3>Schlagen</h3><ul>
+<li>Steht schräg vor deinem Stein ein gegnerischer Stein und dahinter ist frei, springst du darüber und schlägst ihn.
+Einfache Steine schlagen nur vorwärts.</li>
+<li><b>Schlagpflicht</b>: Kannst du schlagen, musst du schlagen. Die Steine, die schlagen können, leuchten.</li>
+<li><b>Mehrfachschlag</b>: Kannst du nach dem Sprung weiterschlagen, musst du im selben Zug weiterschlagen. Tippe dazu Feld für Feld an.</li>
+<li>Hast du mehrere Schlagmöglichkeiten, darfst du frei wählen – die gewählte musst du aber bis zum Ende ausführen.</li>
+<li>Geschlagene Steine werden erst nach dem ganzen Zug abgeräumt. Bis dahin darfst du sie nicht ein zweites Mal überspringen.</li></ul>
+<h3>Dame</h3><ul>
+<li>Erreicht ein Stein die gegnerische Grundreihe, wird er zur Dame. Geschieht das beim Schlagen, endet der Zug dort.</li>
+<li>Die Dame zieht beliebig weit schräg, vorwärts und rückwärts. Sie schlägt einen einzeln stehenden Stein auch aus der
+Entfernung und landet direkt auf dem Feld dahinter – und schlägt von dort weiter, wenn es geht.</li></ul>
+<h3>Unentschieden</h3><ul>
+<li>wenn dieselbe Stellung zum dritten Mal mit derselben Seite am Zug entsteht,</li>
+<li>wenn 25 Züge je Seite lang weder geschlagen noch eine Dame gebildet wurde,</li>
+<li>oder wenn ihr euch einigt.</li></ul>
+<h3>Varianten</h3><p>Auf der Startseite lassen sich drei verbreitete Abweichungen einschalten: längster Schlag ist Pflicht,
+einfache Steine schlagen auch rückwärts, die Dame landet beliebig weit hinter dem geschlagenen Stein.</p>
+<p>Zug zurücknehmen geht nur, wenn die andere Person zustimmt.</p>`;
+
+/* ---------- Zustand ---------- */
+let G = null;        // {namen, opt, s}
+let alle = [];       // erlaubte Züge der Person am Zug
+let wahl = -1, teil = [], zieh = null, endeGesehen = false, sperre = false;
+const FARBNAME = {w: 'Weiß', b: 'Schwarz'};
+const name = f => G.namen[f === 'w' ? 0 : 1];
+const regelnAus = o => ({mehrheit: o.schlag === 'mehrheit', rueckwaerts: o.rueck === 'ja', weitLanden: o.landen === 'weit'});
+
+function speichern() { if (G && !G.s.erg) K.speicher.speichern({v: 1, namen: G.namen, opt: G.opt, liste: G.s.liste}); }
+function fortsetzText() {
+  const d = K.speicher.laden(); if (!d || !d.liste) return null;
+  return `Zug ${Math.floor(d.liste.length / 2) + 1} · ${d.namen[0]} gegen ${d.namen[1]}`;
+}
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  G = null;
+  $('#da-spiel').hidden = true; $('#da-start').hidden = false; K.kopf(true, 'links');
+  const inner = s => s.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+  K.setup({
+    ziel: $('#da-start'), titel: 'Dame', unter: 'Schräg ziehen, springen, schlagen – nach deutscher Regel mit weitziehender Dame und Schlagpflicht.',
+    bild: `<div class="da-start-bild"><svg viewBox="0 0 230 110"><g transform="translate(0 6)">${inner(steinSvg('w', false))}</g><g transform="translate(66 0)">${inner(steinSvg('b', true))}</g><g transform="translate(132 6)">${inner(steinSvg('w', true))}</g></svg></div>`,
+    fakten: ['2 Personen', 'Deutsche Regel', 'Mehrfachschlag', 'Zugliste'],
+    spieler: {min: 2, max: 2, standard: 2, namenLabel: 'Namen · Weiß und Schwarz', platzhalter: i => ['Weiß', 'Schwarz'][i], farben: ['#f4efe4', '#8796a0']},
+    optionen: [
+      {id: 'schlag', label: 'Bei mehreren Schlägen', werte: [{wert: 'frei', text: 'Freie Wahl (Grundregel)'}, {wert: 'mehrheit', text: 'Längster Schlag ist Pflicht'}], standard: 'frei'},
+      {id: 'rueck', label: 'Einfache Steine schlagen', werte: [{wert: 'nein', text: 'Nur vorwärts (Grundregel)'}, {wert: 'ja', text: 'Auch rückwärts'}], standard: 'nein'},
+      {id: 'landen', label: 'Dame landet nach dem Schlag', werte: [{wert: 'direkt', text: 'Direkt dahinter (Grundregel)'}, {wert: 'weit', text: 'Beliebig weit dahinter'}], standard: 'direkt'},
+      {id: 'gegen', label: 'Sitzordnung', werte: [{wert: false, text: 'Nebeneinander'}, {wert: true, text: 'Gegenüber'}], standard: false}
+    ],
+    fortsetzen: fortsetzText(),
+    onFortsetzen: () => { const d = K.speicher.laden(); try { spielAufbauen(d.namen, d.opt, d.liste); } catch (e) { K.speicher.loeschen(); K.hinweis('Das gespeicherte Spiel ließ sich nicht laden.'); startseite(); } },
+    onStart: ({namen, optionen}) => { K.speicher.loeschen(); spielAufbauen(namen, optionen, []); },
+    startText: 'Partie beginnen'
+  });
+}
+
+/* ---------- Spiel ---------- */
+function spielAufbauen(namen, opt, liste) {
+  G = {namen, opt: {schlag: opt.schlag || 'frei', rueck: opt.rueck || 'nein', landen: opt.landen || 'direkt', gegen: !!opt.gegen}};
+  G.s = D.nachspielen(liste || [], regelnAus(G.opt));
+  alle = D.zuege(G.s); wahl = -1; teil = []; endeGesehen = false; sperre = false;
+  $('#da-start').hidden = true; $('#da-spiel').hidden = false; K.kopf(true, 'rechts');
+  $('#da-spiel').classList.toggle('da-gegen', G.opt.gegen);
+  brettBauen(); layout(); zeichnen(); speichern();
+}
+function brettBauen() {
+  const b = $('#da-brett'); b.innerHTML = '';
+  for (let zeile = 7; zeile >= 0; zeile--) for (let l = 0; l < 8; l++) {
+    const i = zeile * 8 + l, f = K.el('div', 'da-f' + (D.dunkel(i) ? ' d' : ''));
+    f.dataset.i = i;
+    if (zeile === 0) f.appendChild(K.el('span', 'da-k l', 'abcdefgh'[l]));
+    if (l === 0) f.appendChild(K.el('span', 'da-k r', String(zeile + 1)));
+    b.appendChild(f);
+  }
+  ['w', 'b'].forEach(f => {
+    $('#da-sp-' + f).innerHTML = `<div class="da-sp-in"><div class="da-kz"><span class="da-icon">${steinSvg(f, false)}</span><span class="da-name"></span>
+      <span class="da-zahlen"></span></div><div class="da-satz"></div><div class="da-knoepfe"></div></div>`;
+  });
+}
+const feldEl = i => $('#da-brett').children[(7 - Math.floor(i / 8)) * 8 + i % 8];
+
+function layout() {
+  if (!G) return;
+  const W = innerWidth, H = innerHeight, quer = W / H > 1.12, pad = 10, gap = 12;
+  const setz = (el, x, y, w, h) => Object.assign(el.style, {left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px'});
+  let S8, rx, ry;
+  if (quer) {
+    S8 = Math.min(H - 2 * pad, W - 2 * pad - gap - 320);
+    rx = pad; ry = (H - S8) / 2;
+    const sx = rx + S8 + gap, sw = W - sx - pad, hSp = Math.min(200, (H - 2 * pad - 66) / 2.6);
+    setz($('#da-sp-b'), sx, 66, sw, hSp);
+    setz($('#da-sp-w'), sx, H - pad - hSp, sw, hSp);
+    setz($('#da-zl'), sx, 66 + hSp + gap, sw, H - pad - hSp - gap - (66 + hSp + gap));
+  } else {
+    const T = 150;
+    S8 = Math.min(W - 2 * pad, H - 2 * pad - 2 * gap - 2 * T);
+    rx = (W - S8) / 2; ry = pad + T + gap + Math.max(0, (H - 2 * pad - 2 * gap - 2 * T - S8) / 2);
+    setz($('#da-sp-b'), pad, pad, W - 2 * pad - 116, T);
+    const unten = ry + S8 + gap, hU = H - pad - unten, halb = (W - 2 * pad - gap) * .56;
+    setz($('#da-sp-w'), pad, unten, halb, hU);
+    setz($('#da-zl'), pad + halb + gap, unten, W - 2 * pad - gap - halb, hU);
+  }
+  const q = Math.floor(S8 / 8.24), echt = q * 8.24;
+  $('#da-spiel').style.setProperty('--q', q + 'px');
+  setz($('#da-rahmen'), rx + (S8 - echt) / 2, ry + (S8 - echt) / 2, echt, echt);
+  setz($('#da-ende'), rx, ry, S8, S8);
+  $('#da-sp-b .da-sp-in').style.justifyContent = G.opt.gegen ? 'flex-end' : 'flex-start';
+}
+addEventListener('resize', layout);
+
+/* ---------- Zeichnen ---------- */
+/* Anzeige-Brett: während eines Mehrfachschlags steht der Stein schon auf dem letzten Landefeld. */
+function anzeige() {
+  const b = G.s.b.slice(); let geschl = [];
+  if (wahl >= 0 && teil.length) { b[teil[teil.length - 1]] = b[wahl]; b[wahl] = ''; geschl = D.teilGeschlagen(alle, wahl, teil); }
+  return {b, geschl, pos: teil.length ? teil[teil.length - 1] : wahl};
+}
+function zeichnen(anim) {
+  const s = G.s, {b, geschl, pos} = anzeige();
+  const ziele = wahl >= 0 ? D.naechsteFelder(alle, wahl, teil) : [];
+  const schlagPflicht = !s.erg && alle.length && alle[0].geschlagen.length;
+  const beweglich = new Set(alle.map(z => z.von));
+  const letzt = s.letzter && !teil.length ? [s.letzter.von].concat(s.letzter.pfad) : [];
+  for (const f of $('#da-brett').children) {
+    const i = +f.dataset.i, p = b[i];
+    f.classList.toggle('wahl', i === pos && pos >= 0);
+    f.classList.toggle('letzt', letzt.includes(i) && i !== pos);
+    f.classList.toggle('ziel', ziele.includes(i));
+    let st = f.querySelector('.da-st');
+    const soll = p || '';
+    if (!p) { if (st) st.remove(); continue; }
+    if (!st || st.dataset.p !== soll) {
+      if (st) st.remove();
+      st = K.el('div', 'da-st ' + D.farbeVon(p), steinSvg(D.farbeVon(p), D.istDame(p))); st.dataset.p = soll; f.appendChild(st);
+    }
+    st.classList.toggle('pflicht', !!schlagPflicht && wahl < 0 && beweglich.has(i));
+    st.classList.toggle('geschlagen', geschl.includes(i));
+  }
+  if (anim) bewegen(anim.von, anim.nach);
+  spielerZeichnen(); listeZeichnen();
+  if (s.erg && !endeGesehen) endeZeigen();
+}
+function bewegen(a, z) {
+  const st = feldEl(z).querySelector('.da-st'); if (!st) return;
+  const dx = (a % 8) - (z % 8), dy = Math.floor(z / 8) - Math.floor(a / 8);
+  st.classList.add('ohne'); st.style.transform = `translate(${dx * 100}%, ${dy * 100}%)`;
+  void st.offsetWidth; st.classList.remove('ohne'); st.style.transform = '';
+}
+function satzFuer(f) {
+  const s = G.s;
+  if (s.erg) return s.erg.sieger === f ? 'Gewonnen.' : s.erg.sieger ? 'Verloren.' : 'Unentschieden.';
+  if (s.am !== f) return `${K.esc(name(D.gegner(f)))} ist am Zug.`;
+  if (teil.length) return '<b>Weiterschlagen!</b> Tippe das nächste Feld an.';
+  if (alle.length && alle[0].geschlagen.length) return wahl >= 0 ? 'Tippe an, wohin du springst.' : '<b>Schlagpflicht.</b> Tippe einen leuchtenden Stein an.';
+  return wahl >= 0 ? 'Tippe ein markiertes Feld an.' : 'Du bist am Zug. Tippe einen Stein an.';
+}
+function spielerZeichnen() {
+  const s = G.s;
+  ['w', 'b'].forEach(f => {
+    const sp = $('#da-sp-' + f);
+    sp.classList.toggle('dran', !s.erg && s.am === f);
+    sp.querySelector('.da-name').textContent = name(f);
+    const n = D.zaehlen(s, f), dn = s.b.filter(p => p === f.toUpperCase()).length;
+    sp.querySelector('.da-zahlen').innerHTML = `<span class="k-chip leise k-zahl">${n} ${n === 1 ? 'Stein' : 'Steine'}</span>${dn ? `<span class="k-chip k-zahl">${dn} ${dn === 1 ? 'Dame' : 'Damen'}</span>` : ''}`;
+    sp.querySelector('.da-satz').innerHTML = satzFuer(f);
+    const kn = sp.querySelector('.da-knoepfe'); kn.innerHTML = '';
+    const knopf = (text, art, fn, id) => { const b = K.el('button', 'k-btn klein ' + art, text); b.id = id; K.tap(b, fn); kn.appendChild(b); };
+    if (!s.erg) {
+      if (s.am === f && teil.length) knopf('Schlag neu ansetzen', 'leise', () => { teil = []; zeichnen(); }, 'da-neuansetzen-' + f);
+      if (s.liste.length && s.am !== f) knopf('Zug zurück', 'leise', () => zurueckFragen(f), 'da-zurueck-' + f);
+      knopf('Remis bieten', 'leise', () => remisAnbieten(f), 'da-remis-' + f);
+      knopf('Aufgeben', 'leise', () => aufgeben(f), 'da-aufgeben-' + f);
+    } else if ($('#da-ende').hidden && f === 'w') knopf('Ergebnis', '', () => { endeGesehen = false; endeZeigen(); }, 'da-ergebnis');
+  });
+}
+function listeZeichnen() {
+  const zl = G.s.zl, box = $('#da-zl-in');
+  if (!zl.length) { box.innerHTML = '<div class="da-leer">Noch kein Zug. Weiß beginnt.</div>'; return; }
+  let h = '<table>';
+  for (let k = 0; k < zl.length; k += 2) {
+    const neuW = k === zl.length - 1, neuB = k + 1 === zl.length - 1;
+    h += `<tr><td>${k / 2 + 1}.</td><td class="${neuW ? 'neu' : ''}">${K.esc(zl[k])}</td><td class="${neuB ? 'neu' : ''}">${zl[k + 1] ? K.esc(zl[k + 1]) : ''}</td></tr>`;
+  }
+  box.innerHTML = h + '</table>'; box.scrollTop = box.scrollHeight;
+}
+
+/* ---------- Bedienung: antippen oder ziehen, Feld für Feld ---------- */
+function feldUnter(x, y) {
+  const r = $('#da-brett').getBoundingClientRect(), q = r.width / 8;
+  if (x < r.left || y < r.top || x >= r.right || y >= r.bottom) return -1;
+  return (7 - Math.floor((y - r.top) / q)) * 8 + Math.floor((x - r.left) / q);
+}
+const kannZiehen = i => alle.some(z => z.von === i);
+const eigen = i => { const p = G.s.b[i]; return !!p && D.farbeVon(p) === G.s.am; };
+function gesperrt() { return !G || G.s.erg || sperre || document.querySelector('.k-ebene'); }
+$('#da-brett').addEventListener('pointerdown', ev => {
+  if (zieh || gesperrt()) return;
+  const i = feldUnter(ev.clientX, ev.clientY); if (i < 0) return;
+  const pos = teil.length ? teil[teil.length - 1] : wahl;
+  zieh = {id: ev.pointerId, start: i, x: ev.clientX, y: ev.clientY, st: null, warSchon: wahl === i && !teil.length, aktiv: false};
+  if (!teil.length && eigen(i) && kannZiehen(i) && wahl !== i) { wahl = i; K.ton('tipp'); zeichnen(); }
+  if ((!teil.length && eigen(i) && kannZiehen(i)) || (teil.length && i === pos)) zieh.st = feldEl(i).querySelector('.da-st');
+  try { $('#da-brett').setPointerCapture(ev.pointerId); } catch (e) {}
+});
+$('#da-brett').addEventListener('pointermove', ev => {
+  if (!zieh || ev.pointerId !== zieh.id || !zieh.st) return;
+  const dx = ev.clientX - zieh.x, dy = ev.clientY - zieh.y;
+  if (!zieh.aktiv && Math.hypot(dx, dy) > 8) { zieh.aktiv = true; zieh.st.classList.add('zieht'); }
+  if (zieh.aktiv) {
+    zieh.st.style.transform = `translate(${dx}px, ${dy}px)`;
+    const u = feldUnter(ev.clientX, ev.clientY);
+    for (const f of $('#da-brett').children) f.classList.toggle('ueber', +f.dataset.i === u && f.classList.contains('ziel'));
+  }
+});
+function ziehEnde(ev, abbruch) {
+  if (!zieh || ev.pointerId !== zieh.id) return;
+  const z = zieh; zieh = null;
+  for (const f of $('#da-brett').children) f.classList.remove('ueber');
+  const ziele = wahl >= 0 ? D.naechsteFelder(alle, wahl, teil) : [];
+  if (z.aktiv) {
+    z.st.classList.remove('zieht');
+    const ziel = abbruch ? -1 : feldUnter(ev.clientX, ev.clientY);
+    if (ziele.includes(ziel)) { z.st.classList.add('ohne'); z.st.style.transform = ''; schritt(ziel, false); }
+    else z.st.style.transform = '';
+    return;
+  }
+  if (abbruch) return;
+  const i = z.start;
+  if (ziele.includes(i)) { schritt(i, true); return; }
+  if (teil.length) { K.hinweis('Du musst weiterschlagen – tippe ein markiertes Feld an.'); return; }
+  if (eigen(i)) {
+    if (kannZiehen(i)) { if (z.warSchon) { wahl = -1; zeichnen(); } return; }
+    K.hinweis(alle.length && alle[0].geschlagen.length ? 'Schlagpflicht: Du musst mit einem leuchtenden Stein schlagen.' : 'Dieser Stein kann gerade nicht ziehen.');
+    return;
+  }
+  if (wahl >= 0) { wahl = -1; zeichnen(); if (D.dunkel(i)) K.hinweis('Dorthin kann dieser Stein nicht ziehen.'); return; }
+  if (G.s.b[i]) K.hinweis(`${name(G.s.am)} ist am Zug.`);
+}
+$('#da-brett').addEventListener('pointerup', ev => ziehEnde(ev, false));
+$('#da-brett').addEventListener('pointercancel', ev => ziehEnde(ev, true));
+
+function schritt(ziel, anim) {
+  const von = teil.length ? teil[teil.length - 1] : wahl;
+  teil.push(ziel);
+  const fertig = D.vollstaendig(alle, wahl, teil);
+  if (!fertig) { K.ton('stein'); zeichnen(anim ? {von, nach: ziel} : null); return; }
+  // Zug vollständig: kurz zeigen, dann Geschlagene abräumen
+  zeichnen(anim ? {von, nach: ziel} : null);
+  K.ton(fertig.geschlagen.length ? 'stein' : 'legen');
+  sperre = true;
+  const geschl = fertig.geschlagen.map(q => feldEl(q).querySelector('.da-st')).filter(Boolean);
+  geschl.forEach(e => e.classList.add('weg'));
+  setTimeout(() => {
+    sperre = false;
+    G.s = D.ziehen(G.s, fertig);
+    wahl = -1; teil = []; alle = D.zuege(G.s);
+    if (fertig.dame) K.ton('punkt');
+    if (G.s.erg) K.speicher.loeschen(); else speichern();
+    zeichnen();
+  }, geschl.length ? 300 : (anim ? 200 : 0));
+}
+
+/* ---------- Rückfragen ---------- */
+/* Eigene Rückfrage: Kern.frage liefert derzeit immer null (schliessen() löst vor dem Knopfwert mit null auf). */
+function frage({titel = '', text = '', knoepfe = []}) {
+  return new Promise(res => {
+    const box = K.el('div'); box.innerHTML = `${titel ? `<h2>${K.esc(titel)}</h2>` : ''}${text ? `<p>${text}</p>` : ''}`;
+    const k = K.el('div', 'k-knoepfe'); box.appendChild(k);
+    let wert = null;
+    const fe = K.fenster(box, {schliessbar: false, beimSchliessen: () => res(wert)});
+    knoepfe.forEach(b => { const btn = K.el('button', 'k-btn' + (b.art ? ' ' + b.art : ''), K.esc(b.text)); btn.onclick = () => { wert = b.wert; fe.schliessen(); }; k.appendChild(btn); });
+  });
+}
+function frageAn(f, o) {
+  const p = frage(o);
+  if (G && G.opt.gegen && f === 'b') { const e = [...document.querySelectorAll('.k-ebene')].pop(); if (e) e.classList.add('da-kopf'); }
+  return p;
+}
+async function zurueckFragen(f) {
+  const letzt = G.s.zl[G.s.zl.length - 1];
+  const ja = await frageAn(D.gegner(f), {titel: 'Zug zurücknehmen?', text: `${K.esc(name(f))} möchte den letzten Zug <b>${K.esc(letzt)}</b> zurücknehmen. Bist du einverstanden, ${K.esc(name(D.gegner(f)))}?`,
+    knoepfe: [{text: 'Nein', wert: false, art: 'leise'}, {text: 'Ja, zurücknehmen', wert: true}]});
+  if (!ja || !G || G.s.erg) return;
+  G.s = D.nachspielen(G.s.liste.slice(0, -1), regelnAus(G.opt)); alle = D.zuege(G.s); wahl = -1; teil = [];
+  K.ton('ziehen'); speichern(); zeichnen();
+}
+async function remisAnbieten(f) {
+  const ja = await frageAn(D.gegner(f), {titel: 'Unentschieden?', text: `${K.esc(name(f))} bietet Remis an. Nimmst du an, ${K.esc(name(D.gegner(f)))}?`,
+    knoepfe: [{text: 'Ablehnen', wert: false, art: 'leise'}, {text: 'Remis annehmen', wert: true, art: 'gut'}]});
+  if (!G || G.s.erg) return;
+  if (!ja) { K.hinweis('Remis abgelehnt – es geht weiter.'); return; }
+  wahl = -1; teil = []; G.s = D.beenden(G.s, 'einigung'); K.speicher.loeschen(); zeichnen();
+}
+async function aufgeben(f) {
+  const ja = await frageAn(f, {titel: 'Aufgeben?', text: 'Die Partie ist dann sofort zu Ende.', knoepfe: [{text: 'Weiterspielen', wert: false, art: 'leise'}, {text: 'Aufgeben', wert: true, art: 'gefahr'}]});
+  if (!ja || !G || G.s.erg) return;
+  wahl = -1; teil = []; G.s = D.beenden(G.s, 'aufgabe', f); K.speicher.loeschen(); zeichnen();
+}
+
+/* ---------- Spielende ---------- */
+function endeZeigen() {
+  const e = G.s.erg, box = $('#da-ende');
+  const verl = e.sieger ? D.gegner(e.sieger) : null;
+  const grund = e.art === 'keinzug' ? (D.zaehlen(G.s, verl) ? `${name(verl)} kann nicht mehr ziehen.` : `${name(verl)} hat keinen Stein mehr.`)
+    : e.art === 'aufgabe' ? `${name(verl)} hat aufgegeben.` : D.ERGTEXT[e.art];
+  const titel = e.sieger ? `${K.esc(name(e.sieger))} gewinnt` : 'Unentschieden';
+  box.innerHTML = `<div class="da-ende-box"><h2>${titel}</h2><p>${K.esc(grund)}</p>
+    ${e.sieger ? `<div class="da-sieg">Sieg für ${FARBNAME[e.sieger]}</div>` : ''}
+    <p class="k-zahl">${G.s.zl.length} ${G.s.zl.length === 1 ? 'Zug' : 'Züge'} · Weiß ${D.zaehlen(G.s, 'w')}, Schwarz ${D.zaehlen(G.s, 'b')} Steine übrig</p>
+    <div class="k-knoepfe"><button class="k-btn leise" id="da-ansehen">Brett ansehen</button><button class="k-btn leise" id="da-neu">Neues Spiel</button>
+    <button class="k-btn" id="da-nochmal">Nochmal · Farben tauschen</button></div></div>`;
+  box.hidden = false; endeGesehen = true;
+  K.tap($('#da-ansehen'), () => { box.hidden = true; spielerZeichnen(); });
+  K.tap($('#da-neu'), () => { box.hidden = true; startseite(); });
+  K.tap($('#da-nochmal'), () => { box.hidden = true; spielAufbauen([G.namen[1], G.namen[0]], G.opt, []); });
+  if (e.sieger) { K.ton('sieg'); K.feier(); } else K.ton('gong');
+  spielerZeichnen();
+}
+
+K.init({id: 'dame', name: 'Dame', akzent: '#e2a66b', regeln: REGELN, onNeu: () => { K.speicher.loeschen(); startseite(); }});
+startseite();
+
+window.__test = {
+  zustand: () => G && {b: G.s.b.join(','), zl: G.s.zl.slice(), am: G.s.am, erg: G.s.erg, regeln: G.s.regeln, teil: teil.slice(), wahl},
+  feld: n => { const r = feldEl(D.feldIndex(n)).getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; },
+  stellung: (st, am) => { G.s = D.aus(st, am, regelnAus(G.opt)); alle = D.zuege(G.s); wahl = -1; teil = []; endeGesehen = false; $('#da-ende').hidden = true; zeichnen(); },
+  laden: liste => { G.s = D.nachspielen(liste, regelnAus(G.opt)); alle = D.zuege(G.s); wahl = -1; teil = []; endeGesehen = false; $('#da-ende').hidden = true; speichern(); zeichnen(); }
+};
+</script>
+</body>
+</html>

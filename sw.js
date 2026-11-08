@@ -1,20 +1,58 @@
-/* Tiefpunkt - Service Worker. Offline zuerst: jeder Start kommt aus dem Speicher des Geraets.
-   Neue Fassung: Der Browser installiert den neuen Worker, der laedt ALLE Dateien in einen eigenen
-   Speicher und uebernimmt erst, wenn jede Datei angekommen ist. Ein laufendes Spiel wird dabei nicht
-   neu geladen; die neue Fassung gilt ab dem naechsten Start. VERSION setzt Werkzeuge/offline-bauen.py. */
-var VERSION = "70b24dd77f13";
-var CACHE = "tiefpunkt-" + VERSION;
+/* Spieltisch - Service Worker. Offline zuerst: jeder Start kommt aus dem Speicher des Geraets.
+   Eine neue Fassung laedt ALLE Dateien in einen eigenen Speicher und gilt ab dem naechsten Start.
+   Ein laufendes Spiel wird dabei nie neu geladen. VERSION setzt Werkzeuge/bauen.py. */
+var VERSION = "1ae7b338372a";
+var CACHE = "spieltisch-" + VERSION;
 var ASSETS = [
   "./",
-  "./index.html",
-  "./manifest.webmanifest",
   "./fonts/atkinson-400.woff2",
   "./fonts/atkinson-700.woff2",
   "./fonts/bricolage.woff2",
+  "./gemeinsam/kern.css",
+  "./gemeinsam/kern.js",
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icons/icon-maskable-512.png"
+  "./icons/icon-maskable-512.png",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./spiele/dame.html",
+  "./spiele/dame.logik.js",
+  "./spiele/etappen.html",
+  "./spiele/etappen.logik.js",
+  "./spiele/fuenferpasch.html",
+  "./spiele/fuenferpasch.logik.js",
+  "./spiele/funkstille.daten.js",
+  "./spiele/funkstille.html",
+  "./spiele/funkstille.logik.js",
+  "./spiele/halma.html",
+  "./spiele/halma.logik.js",
+  "./spiele/letztekarte.html",
+  "./spiele/letztekarte.logik.js",
+  "./spiele/maexchen.html",
+  "./spiele/maexchen.logik.js",
+  "./spiele/muehle.html",
+  "./spiele/muehle.logik.js",
+  "./spiele/poker.html",
+  "./spiele/poker.logik.js",
+  "./spiele/rheinbaron.html",
+  "./spiele/rheinbaron.logik.js",
+  "./spiele/romme.html",
+  "./spiele/romme.logik.js",
+  "./spiele/schach.html",
+  "./spiele/schach.logik.js",
+  "./spiele/schiffe.html",
+  "./spiele/schiffe.logik.js",
+  "./spiele/stapelei.html",
+  "./spiele/stapelei.logik.js",
+  "./spiele/tiefpunkt.html",
+  "./spiele/vierreihe.html",
+  "./spiele/vierreihe.logik.js",
+  "./spiele/wortverbot.daten.js",
+  "./spiele/wortverbot.html",
+  "./spiele/wortverbot.logik.js",
+  "./spiele/zahlenromme.html",
+  "./spiele/zahlenromme.logik.js"
 ];
 
 self.addEventListener('install', function (e) {
@@ -27,22 +65,21 @@ self.addEventListener('install', function (e) {
     }));
   }).then(function () { return self.skipWaiting(); }));
 });
-
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (keys) {
-    return Promise.all(keys.filter(function (k) { return k.indexOf('tiefpunkt-') === 0 && k !== CACHE; })
+    return Promise.all(keys.filter(function (k) { return (k.indexOf('spieltisch-') === 0 || k.indexOf('tiefpunkt-') === 0) && k !== CACHE; })
       .map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
-
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   var url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(function (c) {
-    var key = e.request.mode === 'navigate' ? './' : e.request;
-    return c.match(key, {ignoreSearch: true}).then(function (hit) {
-      return hit || fetch(e.request);
+    return c.match(e.request, {ignoreSearch: true}).then(function (hit) {
+      if (hit) return hit;
+      if (e.request.mode === 'navigate' && /\/$/.test(url.pathname)) return c.match('./');
+      return fetch(e.request);
     });
   }));
 });

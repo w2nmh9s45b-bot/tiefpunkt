@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Mäxchen · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Mäxchen: Becher und Bierdeckel in der Mitte, Leute oben, Entscheidung unten. Alle Klassen mit Präfix .mx- */
+.mx-buehne{display:grid;grid-template-rows:auto 1fr auto;gap:12px}
+.mx-leute{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 0 0 118px;min-height:56px;align-items:center}
+.mx-person{display:flex;align-items:center;gap:9px;padding:7px 12px 7px 8px;border-radius:14px;background:var(--panel);
+  border:1px solid var(--line);transition:box-shadow .3s, opacity .3s, background-color .3s}
+.mx-person .k-dot{width:28px;height:28px;font-size:14px}
+.mx-person b{font-size:16px;display:block;line-height:1.1;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mx-leben{display:flex;gap:3px;margin-top:4px}
+.mx-leben i{width:10px;height:10px;border-radius:3px;background:var(--pc);display:block}
+.mx-leben i.weg{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28)}
+.mx-person.dran{background:rgba(9,32,42,.92);box-shadow:inset 0 0 0 2px var(--pc), 0 0 22px color-mix(in srgb,var(--pc) 40%,transparent)}
+.mx-person.raus{opacity:.38}
+.mx-person.raus b{text-decoration:line-through}
+.mx-person .mx-marke{font-size:12px;font-weight:700;color:var(--ink2);display:block;margin-top:2px}
+
+.mx-mitte{display:flex;align-items:center;justify-content:center;gap:clamp(18px,4vw,56px);min-height:0;flex-wrap:wrap}
+.mx-tisch{--b:min(30vh,44vw,330px);position:relative;width:calc(var(--b)*1.25);height:calc(var(--b)*1.15);flex:none}
+.mx-deckel{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:calc(var(--b)*1.18);height:calc(var(--b)*.5);border-radius:50%;
+  background:radial-gradient(ellipse at 50% 40%,#f4efe4 0 55%,#e2d8c3 56% 63%,#f4efe4 64%);box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.mx-deckel::after{content:"";position:absolute;inset:14%;border-radius:50%;border:2px dashed rgba(168,50,94,.35)}
+.mx-wurf{position:absolute;left:50%;bottom:calc(var(--b)*.12);transform:translateX(-50%);display:flex;gap:calc(var(--b)*.07);z-index:1}
+.mx-wurf .k-wuerfel{--ww:calc(var(--b)*.3)}
+.mx-wurf.leer .k-wuerfel{visibility:hidden}
+.mx-becher{position:absolute;left:50%;bottom:calc(var(--b)*.05);width:calc(var(--b)*.92);height:calc(var(--b)*.98);transform:translateX(-50%);z-index:2;
+  transition:transform .55s cubic-bezier(.3,.7,.2,1);filter:drop-shadow(0 14px 18px rgba(0,0,0,.45))}
+.mx-becher svg{width:100%;height:100%;display:block}
+.mx-tisch.offen .mx-becher{transform:translate(-100%,-38%) rotate(-22deg)}
+@media (max-aspect-ratio:1/1){.mx-mitte{flex-direction:column;gap:18px}}
+.mx-tisch.schuettelt .mx-becher{animation:mx-schuetteln .6s ease-in-out}
+@keyframes mx-schuetteln{0%,100%{transform:translateX(-50%)}15%{transform:translate(-56%,-6%) rotate(-7deg)}35%{transform:translate(-44%,-10%) rotate(8deg)}
+  55%{transform:translate(-57%,-4%) rotate(-6deg)}75%{transform:translate(-45%,-8%) rotate(6deg)}}
+
+.mx-karte{min-width:min(330px,80vw);max-width:420px;padding:20px 24px;border-radius:22px;background:var(--panel);border:1px solid var(--line);text-align:center}
+.mx-karte small{display:block;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.mx-karte .mx-gross{font-family:var(--f-disp);font-weight:800;font-size:clamp(64px,9vw,110px);line-height:.95;letter-spacing:-.04em;margin:6px 0 4px}
+.mx-karte .mx-name{font-size:19px;font-weight:700;color:var(--akzent);min-height:1.4em}
+.mx-dd{display:flex;gap:6px}
+/* Würfel-Innenabstand fest: der Kern rechnet ihn in Prozent der Umgebung */
+.mx-dd .k-wuerfel,.mx-wurf .k-wuerfel{padding:calc(var(--ww,56px)*.14)}
+.mx-karte .mx-paar{display:flex;justify-content:center;gap:8px;margin-top:10px}
+.mx-kette{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:14px}
+.mx-kette span{font-size:13px;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.07);color:var(--ink2);font-weight:700}
+.mx-kette span b{color:var(--ink)}
+.mx-urteil{margin-top:12px;font-size:18px;line-height:1.35}
+.mx-urteil .mx-minus{display:inline-block;margin-top:8px;font-family:var(--f-disp);font-size:30px;font-weight:800;color:var(--fehler)}
+
+.mx-unten{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.mx-satz{font-size:20px;font-weight:700;text-align:center;text-wrap:balance}
+.mx-satz span{color:var(--akzent)}
+.mx-knoepfe{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.mx-knoepfe .k-btn{min-width:220px}
+.mx-leiste{display:grid;grid-template-columns:repeat(var(--sp,7),minmax(0,1fr));gap:8px;justify-content:center}
+.mx-leiste.wenig{grid-template-columns:repeat(var(--sp,7),minmax(0,170px))}
+.mx-wert{display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;border-radius:13px;border:1px solid var(--line);
+  background:var(--panel-hell);font-weight:800;font-family:var(--f-disp);font-size:22px;padding:4px 6px;position:relative}
+.mx-wert .k-wuerfel{--ww:20px;border-radius:20%}
+.mx-wert .mx-dd{display:flex;gap:3px}
+.mx-wert[aria-pressed="true"]{background:var(--akzent);color:var(--akzent-ink);border-color:transparent;box-shadow:0 0 0 3px rgba(255,255,255,.5)}
+.mx-wert.echt::after{content:"dein Wurf";position:absolute;top:-8px;right:6px;font:700 10px var(--f-ui);letter-spacing:.04em;padding:1px 6px;border-radius:99px;background:var(--gut);color:#0d2416}
+.mx-wert.besonders{font-size:15px}
+@media (max-width:900px){.mx-leiste{gap:6px}.mx-wert{flex-direction:column;gap:2px;font-size:19px;min-height:64px}.mx-wert.besonders{font-size:12px}}
+@media (max-height:760px){.mx-tisch{--b:min(26vh,32vw,240px)}.mx-karte .mx-gross{font-size:64px}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="maexchen.logik.js"></script>
+<script>
+"use strict";
+const M = window.Maexchen;
+const AKZENT = '#ec7fa6';
+const REGELN = `
+<h3>Ziel</h3><p>Bluffen und durchschauen. Wer zuletzt noch Leben hat, gewinnt.</p>
+<h3>Rangfolge</h3><p>Der höhere Würfel ist der Zehner: 3 und 5 sind 53. Aufsteigend: 31, 32, 41, 42, 43, 51 … 54, 61 … 65,
+dann die Pasche 11 bis 66. Am höchsten ist 21, das Mäxchen.</p>
+<h3>Ablauf</h3><ol>
+<li>Wer dran ist, würfelt verdeckt, schaut allein in den Becher und sagt einen Wert an. Lügen ist erlaubt, untertreiben auch.</li>
+<li>Jede Ansage muss höher sein als die vorige. Wer die Runde eröffnet, darf jeden Wert ansagen.</li>
+<li>Die nächste Person entscheidet: <b>Glaube ich</b> – dann würfelt sie selbst neu, ohne in den Becher zu sehen, und muss höher ansagen.
+Oder <b>Aufdecken</b> – der Becher wird für alle gehoben.</li>
+<li>Ist der echte Wurf niedriger als die Ansage, verliert die ansagende Person ein Leben. Sonst verliert, wer aufgedeckt hat.</li>
+<li>Auf ein Mäxchen geht nichts Höheres: Wer es glaubt, muss selbst wieder Mäxchen ansagen.</li>
+<li>Die Person, die verloren hat, beginnt die nächste Runde. Ohne Leben scheidet man aus.</li></ol>
+<h3>Optionen</h3><p><b>Mäxchen kostet doppelt</b> (Vorgabe an): Liegt in der Ansage oder unter dem Becher ein Mäxchen, kostet die Runde zwei Leben.
+<b>Gleich hoch ansagen</b> und <b>ungewürfelt weitergeben</b> sind verbreitete Hausregeln und nur an, wenn ihr sie wählt.</p>`;
+
+let S = null, geschuetzt = false, wahl = null, beschaeftigt = false;
+const TEST = {wuerfe: []};
+const zuf = () => TEST.wuerfe.length ? TEST.wuerfe.shift() : [1 + Kern.zufall(6), 1 + Kern.zufall(6)];
+const speichern = () => Kern.speicher.speichern(S);
+const $ = s => document.querySelector(s);
+const nm = i => Kern.esc(S.spieler[i].name);
+
+Kern.init({id: 'maexchen', name: 'Mäxchen', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+
+let BECHER_NR = 0;
+function becherSvg(attr = 'viewBox="0 0 100 106" aria-hidden="true"') {
+  const id = 'mxl' + (++BECHER_NR); // eigene Verlaufs-ID je Becher (eine ID in einem verborgenen Teil würde den Verlauf löschen)
+  return `<svg ${attr}>
+  <defs><linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="#5c1834"/><stop offset=".38" stop-color="#b13b67"/><stop offset=".62" stop-color="#9c2f58"/><stop offset="1" stop-color="#4a1229"/></linearGradient></defs>
+  <path d="M22 6h56l14 92H8z" fill="url(#${id})"/>
+  <ellipse cx="50" cy="6" rx="28" ry="5" fill="#7a2343"/>
+  <path d="M9 92q41 14 82 0l1 6q-42 14-84 0z" fill="#3b0f22"/>
+  <path d="M17 24q33 7 66 0M12 82q38 10 76 0" stroke="#f4c9d8" stroke-opacity=".55" stroke-width="1.6" fill="none" stroke-dasharray="4 4"/>
+  <path d="M30 14l-8 70" stroke="#fff" stroke-opacity=".16" stroke-width="5" stroke-linecap="round"/></svg>`;
+}
+
+/* ---------- Bausteine ---------- */
+function paar(code, ww) {
+  const d = Kern.el('span', 'mx-dd');
+  M.augen(code).forEach(n => d.appendChild(Kern.wuerfel(n, ww)));
+  return d;
+}
+const lesbar = code => code === '21' ? 'Mäxchen' : code[0] === code[1] ? `${code} · Pasch` : code;
+
+/* ---------- Startseite ---------- */
+let START = null;
+function startseite() {
+  document.querySelectorAll('.mx-buehne').forEach(e => e.remove());
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null;
+  const alt = Kern.speicher.laden();
+  Kern.setup({
+    ziel: START, titel: 'Mäxchen', unter: 'Würfeln, ansagen, bluffen. Wer zweifelt, hebt den Becher.',
+    bild: `<svg viewBox="0 0 120 90" width="150" height="112"><g transform="rotate(-12 40 40)">${becherSvg('x="2" y="0" width="78" height="83" viewBox="0 0 100 106"')}</g>
+      <rect x="74" y="44" width="30" height="30" rx="7" fill="#fbf8f1" transform="rotate(12 89 59)"/><circle cx="83" cy="53" r="3.4" fill="#1e2a30"/><circle cx="95" cy="65" r="3.4" fill="#1e2a30"/>
+      <rect x="58" y="60" width="26" height="26" rx="6" fill="#fbf8f1" transform="rotate(-8 71 73)"/><circle cx="71" cy="73" r="3.2" fill="#1e2a30"/></svg>`,
+    fakten: ['2–8 Personen', 'zwei Würfel, ein Becher', 'ca. 20 Minuten'],
+    spieler: {min: 2, max: 8, standard: 4, frage: 'Wie viele spielen mit?'},
+    optionen: [
+      {id: 'leben', label: 'Leben je Person', werte: [1, 2, 3, 4, 5, 6].map(n => ({wert: n, text: String(n)})), standard: 3},
+      {id: 'doppelt', label: 'Mäxchen kostet doppelt', werte: [{wert: true, text: 'Ja (üblich)'}, {wert: false, text: 'Nein'}], standard: true},
+      {id: 'gleich', label: 'Gleich hoch ansagen', werte: [{wert: false, text: 'Nur höher'}, {wert: true, text: 'Erlaubt (Hausregel)'}], standard: false},
+      {id: 'blind', label: 'Ungewürfelt weitergeben', werte: [{wert: false, text: 'Nein'}, {wert: true, text: 'Erlaubt (Hausregel)'}], standard: false}
+    ],
+    fortsetzen: alt && alt.phase !== 'ende' ? `Runde ${alt.runde} · ${alt.spieler.map(p => p.name).join(', ')}` : null,
+    onFortsetzen: () => { S = alt; spielen(); },
+    onStart: ({namen, farben, optionen}) => {
+      S = M.neu({namen, farben, optionen});
+      S.dran = Kern.zufall(namen.length); // wer anfängt, wird ausgelost
+      speichern(); spielen();
+    }
+  });
+}
+
+/* ---------- Spielfläche ---------- */
+let B = null;
+function spielen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.mx-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne mx-buehne');
+  B.innerHTML = `<div class="mx-leute"></div>
+    <div class="mx-mitte"><div class="mx-tisch"><div class="mx-deckel"></div><div class="mx-wurf leer"></div><div class="mx-becher">${becherSvg()}</div></div>
+      <div class="mx-karte"></div></div>
+    <div class="mx-unten"></div>`;
+  document.body.appendChild(B);
+  const w = B.querySelector('.mx-wurf'); w.append(Kern.wuerfel(1), Kern.wuerfel(1));
+  geschuetzt = false; wahl = null;
+  zeichnen();
+}
+
+function leuteZeichnen() {
+  const l = B.querySelector('.mx-leute'); l.innerHTML = '';
+  S.spieler.forEach((p, i) => {
+    const d = Kern.el('div', 'mx-person' + (p.leben <= 0 ? ' raus' : '') + (i === S.dran && !['aufgedeckt', 'ende'].includes(S.phase) ? ' dran' : ''));
+    d.style.setProperty('--pc', p.farbe); d.id = 'mx-p' + i;
+    const leben = Array.from({length: S.optionen.leben}, (_, k) => `<i class="${k < p.leben ? '' : 'weg'}"></i>`).join('');
+    let marke = '';
+    if (p.leben <= 0) marke = 'ausgeschieden';
+    else if (S.ansage && S.ansage.von === i && S.phase === 'entscheiden') marke = 'hat angesagt';
+    d.innerHTML = `<span class="k-dot">${Kern.esc(p.name.charAt(0).toUpperCase())}</span><span><b>${Kern.esc(p.name)}</b>
+      <span class="mx-leben" aria-label="${p.leben} Leben">${leben}</span>${marke ? `<span class="mx-marke">${marke}</span>` : ''}</span>`;
+    l.appendChild(d);
+  });
+}
+
+function becher(offen, werte) {
+  const t = B.querySelector('.mx-tisch'), w = B.querySelector('.mx-wurf');
+  if (werte) { [...w.children].forEach((d, k) => Kern.wuerfelSetzen(d, werte[k])); w.classList.remove('leer'); }
+  else w.classList.add('leer');
+  t.classList.toggle('offen', !!offen);
+}
+
+function ketteHtml() {
+  const runde = S.verlauf.filter(v => v.runde === S.runde && v.code);
+  if (!runde.length) return '';
+  return `<div class="mx-kette">${runde.slice(-6).map(v => `<span>${Kern.esc(S.spieler[v.von].name)} <b>${v.code === '21' ? 'Mäxchen' : v.code}</b></span>`).join('')}</div>`;
+}
+
+function karteZeichnen(inhalt) {
+  const k = B.querySelector('.mx-karte'); k.innerHTML = '';
+  if (typeof inhalt === 'string') k.innerHTML = inhalt; else k.appendChild(inhalt);
+}
+
+function ansageKarte() {
+  const box = Kern.el('div');
+  if (!S.ansage) {
+    box.innerHTML = `<small>Runde ${S.runde}</small><div class="mx-gross">?</div><div class="mx-name">Noch keine Ansage</div>`;
+    return box;
+  }
+  box.innerHTML = `<small>Ansage von ${nm(S.ansage.von)}</small><div class="mx-gross k-zahl">${S.ansage.code === '21' ? '21' : S.ansage.code}</div>
+    <div class="mx-name">${S.ansage.code === '21' ? 'Mäxchen' : S.ansage.code[0] === S.ansage.code[1] ? 'Pasch' : '&nbsp;'}</div>`;
+  const pz = Kern.el('div', 'mx-paar'); pz.appendChild(paar(S.ansage.code, 44)); box.appendChild(pz);
+  box.insertAdjacentHTML('beforeend', ketteHtml());
+  return box;
+}
+
+async function zeichnen() {
+  if (!S) return;
+  leuteZeichnen();
+  const u = B.querySelector('.mx-unten'); u.innerHTML = '';
+  const p = S.spieler[S.dran];
+  // Verdeckte Lage: erst Sichtschutz für die Person am Zug
+  if (['wuerfeln', 'ansagen', 'entscheiden'].includes(S.phase) && !geschuetzt) {
+    becher(false, null); karteZeichnen(ansageKarte());
+    u.innerHTML = `<div class="mx-satz">Becher geht an <span>${nm(S.dran)}</span></div>`;
+    const text = S.phase === 'entscheiden'
+      ? `${nm(S.ansage.von)} hat ${S.ansage.code === '21' ? 'Mäxchen' : S.ansage.code} angesagt. Du entscheidest: glauben oder aufdecken.`
+      : S.ansage ? 'Nur du schaust gleich in den Becher.' : `Du eröffnest Runde ${S.runde}. Nur du schaust gleich in den Becher.`;
+    await Kern.sichtschutz({name: p.name, farbe: p.farbe, text});
+    geschuetzt = true; return zeichnen();
+  }
+  if (S.phase === 'entscheiden') {
+    becher(false, null); karteZeichnen(ansageKarte());
+    const maex = S.ansage.code === '21';
+    u.innerHTML = `<div class="mx-satz"><span>${nm(S.dran)}</span>, glaubst du ${nm(S.ansage.von)} ${maex ? 'das Mäxchen' : 'die ' + S.ansage.code}?${maex ? '<br><small style="color:var(--ink2);font-weight:400">Wer glaubt, muss selbst wieder Mäxchen ansagen.</small>' : ''}</div>`;
+    const k = Kern.el('div', 'mx-knoepfe');
+    const g = Kern.el('button', 'k-btn gross', 'Glaube ich'); g.id = 'mx-glauben';
+    const a = Kern.el('button', 'k-btn gross gefahr', 'Aufdecken'); a.id = 'mx-aufdecken';
+    g.onclick = () => { if (beschaeftigt) return; M.glauben(S); speichern(); Kern.ton('tipp'); zeichnen(); };
+    a.onclick = aufdecken;
+    k.append(g, a); u.appendChild(k);
+    return;
+  }
+  if (S.phase === 'wuerfeln') {
+    becher(false, null); karteZeichnen(ansageKarte());
+    u.innerHTML = `<div class="mx-satz"><span>${nm(S.dran)}</span>, schüttle den Becher.${S.ansage ? (S.ansage.code === '21' ? ' Danach musst du wieder Mäxchen ansagen.' : ` Danach musst du mehr als ${S.ansage.code} ansagen.`) : ''}</div>`;
+    const k = Kern.el('div', 'mx-knoepfe');
+    const w = Kern.el('button', 'k-btn gross', 'Würfeln'); w.id = 'mx-wuerfeln'; w.onclick = wuerfeln; k.appendChild(w);
+    if (S.optionen.blind && S.ansage) {
+      const b = Kern.el('button', 'k-btn gross leise', 'Ungewürfelt weitergeben'); b.id = 'mx-blind';
+      b.onclick = () => { if (beschaeftigt) return; M.blindWeiter(S); speichern(); wahl = null; zeichnen(); };
+      k.appendChild(b);
+    }
+    u.appendChild(k);
+    return;
+  }
+  if (S.phase === 'ansagen') {
+    becher(S.gesehen, S.gesehen ? S.becher : null);
+    const echt = S.gesehen ? M.wert(S.becher[0], S.becher[1]) : null;
+    const box = Kern.el('div');
+    if (echt) {
+      box.innerHTML = `<small>Dein Wurf – nur für dich</small><div class="mx-gross k-zahl">${echt}</div><div class="mx-name">${echt === '21' ? 'Mäxchen' : echt[0] === echt[1] ? 'Pasch' : '&nbsp;'}</div>`;
+    } else box.innerHTML = `<small>Ungewürfelt</small><div class="mx-gross">?</div><div class="mx-name">Du kennst den Becher nicht</div>`;
+    if (S.ansage) box.insertAdjacentHTML('beforeend', `<div class="mx-kette"><span>zu überbieten: <b>${S.ansage.code === '21' ? 'Mäxchen' : S.ansage.code}</b></span></div>`);
+    karteZeichnen(box);
+    const erlaubt = M.erlaubteAnsagen(S);
+    if (wahl && !erlaubt.includes(wahl)) wahl = null;
+    u.innerHTML = `<div class="mx-satz">Was sagst du an, <span>${nm(S.dran)}</span>? Lügen ist erlaubt.</div>`;
+    const l = Kern.el('div', 'mx-leiste' + (erlaubt.length < 7 ? ' wenig' : '')); l.style.setProperty('--sp', Math.min(7, erlaubt.length)); u.appendChild(l);
+    erlaubt.forEach(code => {
+      const b = Kern.el('button', 'mx-wert' + (code === echt ? ' echt' : '') + (code === '21' ? ' besonders' : ''));
+      b.dataset.code = code; b.setAttribute('aria-pressed', code === wahl);
+      b.setAttribute('aria-label', code === '21' ? 'Mäxchen' : code);
+      b.appendChild(paar(code, 20));
+      b.insertAdjacentHTML('beforeend', `<span>${code === '21' ? 'Mäxchen' : code}</span>`);
+      b.onclick = () => { wahl = code; Kern.ton('tipp'); [...l.children].forEach(x => x.setAttribute('aria-pressed', x.dataset.code === wahl)); knopf(); };
+      l.appendChild(b);
+    });
+    const k = Kern.el('div', 'mx-knoepfe');
+    const go = Kern.el('button', 'k-btn gross', ''); go.id = 'mx-ansagen'; k.appendChild(go); u.appendChild(k);
+    function knopf() { go.disabled = !wahl; go.textContent = wahl ? `${wahl === '21' ? 'Mäxchen' : wahl} ansagen und weitergeben` : 'Wert antippen'; }
+    knopf();
+    go.onclick = ansagen;
+    return;
+  }
+  if (S.phase === 'aufgedeckt' || S.phase === 'ende') {
+    const a = S.aufdeckung;
+    becher(true, a.becher);
+    const box = Kern.el('div');
+    const verl = Kern.esc(S.spieler[a.verlierer].name);
+    box.innerHTML = `<small>Angesagt ${a.angesagt === '21' ? 'Mäxchen' : a.angesagt} · aufgedeckt von ${nm(a.aufdecker)}</small>
+      <div class="mx-gross k-zahl">${a.echt}</div><div class="mx-name">${a.echt === '21' ? 'Mäxchen' : a.echt[0] === a.echt[1] ? 'Pasch' : 'echter Wurf'}</div>
+      <div class="mx-urteil">${a.gelogen ? `${nm(a.ansager)} hat zu hoch angesagt.` : `${nm(a.ansager)} hat ${M.rang(a.echt) > M.rang(a.angesagt) ? 'untertrieben' : 'die Wahrheit gesagt'}.`}<br>
+      <b>${verl}</b> verliert ${a.verlust === 2 ? 'zwei Leben' : 'ein Leben'}${a.maex && S.optionen.doppelt && a.verlust === 2 ? ' (Mäxchen zählt doppelt)' : ''}.${a.raus ? `<br>${verl} scheidet aus.` : ''}
+      <br><span class="mx-minus">−${a.verlust}</span></div>`;
+    karteZeichnen(box);
+    if (S.phase === 'ende') {
+      u.innerHTML = `<div class="mx-satz"><span>${nm(S.sieger)}</span> gewinnt!</div>`;
+      const k = Kern.el('div', 'mx-knoepfe');
+      const n = Kern.el('button', 'k-btn gross', 'Nochmal'); n.id = 'mx-nochmal'; n.onclick = nochmal;
+      const s = Kern.el('button', 'k-btn gross leise', 'Neues Spiel'); s.onclick = () => { Kern.speicher.loeschen(); startseite(); };
+      k.append(n, s); u.appendChild(k);
+      return;
+    }
+    const naechst = S.spieler[a.verlierer].leben > 0 ? a.verlierer : M.naechster(S, a.verlierer);
+    u.innerHTML = `<div class="mx-satz">Runde ${S.runde} ist vorbei. <span>${nm(naechst)}</span> beginnt die nächste.</div>`;
+    const k = Kern.el('div', 'mx-knoepfe');
+    const n = Kern.el('button', 'k-btn gross', 'Nächste Runde'); n.id = 'mx-weiter';
+    n.onclick = () => { M.naechsteRunde(S); speichern(); geschuetzt = false; wahl = null; Kern.ton('runde'); zeichnen(); };
+    k.appendChild(n); u.appendChild(k);
+  }
+}
+
+async function wuerfeln() {
+  if (beschaeftigt) return; beschaeftigt = true;
+  const [a, b] = zuf();
+  M.wuerfeln(S, a, b); speichern(); // sofort festhalten: Neuladen würfelt nicht neu
+  const t = B.querySelector('.mx-tisch');
+  t.classList.remove('schuettelt'); void t.offsetWidth; t.classList.add('schuettelt'); Kern.ton('wuerfel');
+  B.querySelector('#mx-wuerfeln').disabled = true;
+  await Kern.warte(650); t.classList.remove('schuettelt');
+  beschaeftigt = false; wahl = null; zeichnen();
+}
+
+async function ansagen() {
+  if (beschaeftigt || !wahl) return; beschaeftigt = true;
+  const code = wahl;
+  becher(false, null); // Becher sofort zu, bevor weitergegeben wird
+  M.ansagen(S, code); speichern(); Kern.ton('legen');
+  wahl = null; geschuetzt = false;
+  await Kern.warte(450);
+  beschaeftigt = false; zeichnen();
+}
+
+async function aufdecken() {
+  if (beschaeftigt) return; beschaeftigt = true;
+  const a = M.aufdecken(S);
+  if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
+  Kern.ton('karte');
+  // Becher heben, dann Urteil
+  becher(true, a.becher); leuteZeichnen();
+  await Kern.warte(700);
+  Kern.ton(a.gelogen ? 'punkt' : 'fehler');
+  beschaeftigt = false; zeichnen();
+  if (S.phase === 'ende') {
+    await Kern.warte(500); Kern.ton('sieg'); Kern.feier();
+    const reihe = S.spieler.map((p, i) => ({p, i})).sort((x, y) => y.p.leben - x.p.leben);
+    Kern.frage({titel: `${S.spieler[S.sieger].name} gewinnt!`,
+      text: `Nach ${S.runde} Runden ist nur noch ${Kern.esc(S.spieler[S.sieger].name)} im Spiel – mit ${S.spieler[S.sieger].leben === 1 ? 'einem Leben' : S.spieler[S.sieger].leben + ' Leben'}.`,
+      knoepfe: [{text: 'Nochmal', wert: 'nochmal'}, {text: 'Neues Spiel', wert: 'neu', art: 'leise'}, {text: 'Ansehen', wert: null, art: 'leise'}]})
+      .then(w => { if (w === 'nochmal') nochmal(); else if (w === 'neu') startseite(); });
+  }
+}
+
+function nochmal() {
+  const alt = S; S = M.neu({namen: alt.spieler.map(p => p.name), farben: alt.spieler.map(p => p.farbe), optionen: alt.optionen});
+  S.dran = Kern.zufall(S.spieler.length); speichern(); spielen();
+}
+
+window.__test = {zustand: () => S, wuerfe: (...w) => { TEST.wuerfe.push(...w); }};
+startseite();
+</script>
+</body>
+</html>

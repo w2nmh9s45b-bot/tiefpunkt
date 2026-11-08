@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Letzte Karte · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Letzte Karte: eigene Kartengestaltung – Farbfelder mit Höhenlinien aus der Ecke, Sonderkarten mit eigenen Zeichen
+   (Pause = Aussetzen, Kreispfeile = Richtungswechsel, Kompassrose = Farbwahl). */
+.lk-buehne{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px}
+.lk-oben{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding-left:118px;padding-right:118px;min-height:56px;align-content:flex-start}
+.lk-platz{display:flex;align-items:center;gap:9px;min-width:0;padding:6px 12px 6px 7px;border-radius:14px;background:var(--panel);border:1px solid var(--line);
+  transition:box-shadow .3s, background-color .3s;position:relative}
+.lk-platz.dran{background:rgba(9,32,42,.92);box-shadow:inset 0 0 0 2px var(--pc), 0 0 22px color-mix(in srgb,var(--pc) 35%,transparent)}
+.lk-platz .k-dot{width:30px;height:30px;font-size:14px}
+.lk-platz b{display:block;font-size:15px;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lk-platz small{display:flex;gap:10px;color:var(--ink2);font-size:13px;white-space:nowrap}
+.lk-platz small i{font-style:normal;color:var(--ink);font-weight:700}
+.lk-mini{display:inline-block;width:10px;height:14px;border-radius:2px;background:#e8f1ee;opacity:.8;vertical-align:-2px;margin-right:3px;box-shadow:3px -2px 0 -1px rgba(232,241,238,.45)}
+.lk-platz .lk-eins{position:absolute;right:-6px;top:-7px;background:var(--warn);color:#2a1f05;font:800 12px var(--f-ui);border-radius:99px;padding:1px 7px}
+.lk-platz .lk-naechst{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);font:700 10px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;
+  background:var(--sea);border:1px solid var(--line);color:var(--ink2);border-radius:99px;padding:0 6px;white-space:nowrap}
+
+.lk-mitte{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--pw)*.15 + 6px);min-height:0}
+.lk-infos{margin-top:calc(var(--pw)*.06)!important}
+.lk-tisch{display:flex;align-items:center;gap:calc(var(--pw)*.45)}
+.lk-stapel,.lk-ablage{position:relative;width:var(--pw);height:calc(var(--pw)*1.48);--w:var(--pw)}
+.lk-stapel{border-radius:calc(var(--pw)*.13);cursor:pointer}
+.lk-stapel .lk-k{position:absolute;left:0;top:0}
+.lk-stapel .lk-k:nth-child(1){transform:translate(6px,6px)}.lk-stapel .lk-k:nth-child(2){transform:translate(3px,3px)}
+.lk-stapel.ziel::after,.lk-ablage.ziel::after{content:"";position:absolute;inset:-7px;border-radius:calc(var(--pw)*.17);box-shadow:0 0 0 3px var(--akzent);
+  animation:lk-puls 1.5s ease-in-out infinite;pointer-events:none}
+.lk-ablage.ueber::after{content:"";position:absolute;inset:-9px;border-radius:calc(var(--pw)*.18);box-shadow:0 0 0 5px var(--akzent);pointer-events:none}
+@keyframes lk-puls{0%,100%{opacity:1}50%{opacity:.35}}
+.lk-ablage .lk-k{position:absolute;left:0;top:0}
+.lk-ablage .lk-k.alt1{transform:rotate(-9deg) translate(-6%,2%)}
+.lk-ablage .lk-k.alt2{transform:rotate(7deg) translate(5%,1%)}
+.lk-ablage .lk-k.neu{animation:lk-ein .38s cubic-bezier(.2,.8,.3,1)}
+@keyframes lk-ein{from{transform:translateY(40%) scale(.85) rotate(-6deg);opacity:0}}
+.lk-ring{position:absolute;inset:calc(var(--pw)*-.14);border-radius:calc(var(--pw)*.24);border:calc(var(--pw)*.045) solid var(--fc,transparent);opacity:.9;pointer-events:none}
+.lk-cap{position:absolute;left:50%;top:calc(100% + 12px);transform:translateX(-50%);white-space:nowrap;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.lk-cnt{position:absolute;right:-10px;top:-10px;z-index:3;min-width:30px;height:30px;padding:0 7px;border-radius:99px;background:#e8f1ee;color:#132f4a;
+  font:700 14px var(--f-ui);display:grid;place-items:center}
+.lk-infos{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.lk-infos .k-chip{font-size:14px;padding:.3em .8em}
+.lk-satz{font-size:clamp(17px,2vw,21px);text-align:center;line-height:1.3;max-width:min(760px,96vw);text-wrap:balance;min-height:1.3em}
+.lk-satz b{color:var(--pc,var(--akzent));font-family:var(--f-disp);font-weight:800}
+.lk-log{font-size:15px;color:var(--ink2);text-align:center;min-height:1.2em;max-width:min(760px,96vw)}
+.lk-wahl{display:flex;flex-direction:column;align-items:center;gap:12px;background:rgba(6,21,28,.92);border:1px solid var(--line);border-radius:20px;padding:18px 22px;max-width:620px}
+.lk-wahl p{margin:0;text-align:center;color:#d2e2e0;max-width:56ch}
+.lk-leiste .lk-wahl{padding:12px 18px;gap:8px}
+.lk-leiste .lk-farben button{min-height:56px}
+.lk-wahl .k-knoepfe{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+.lk-unten{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.lk-leiste{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;min-height:52px}
+.lk-hand{position:relative;height:calc(var(--hw)*1.48 + 22px);--w:var(--hw)}
+.lk-hand .lk-k{position:absolute;top:18px;transition:transform .18s, opacity .25s, filter .25s, left .3s cubic-bezier(.3,.7,.3,1);touch-action:none}
+.lk-hand .lk-k.ja{cursor:pointer}
+.lk-hand .lk-k.ja:hover{transform:translateY(-8px)}
+.lk-hand .lk-k.nein{filter:brightness(.52) saturate(.85)}
+.lk-hand .lk-k.frisch{transform:translateY(-14px);outline:3px solid var(--akzent);outline-offset:2px}
+.lk-hand .lk-k.weg{opacity:.25}
+.lk-hand .lk-k.neuhand{animation:lk-hand .4s cubic-bezier(.2,.8,.3,1) both}
+@keyframes lk-hand{from{transform:translateY(-60%);opacity:0}}
+.lk-hand.zu .lk-k{cursor:default}
+.lk-handleer{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink2);font-size:16px}
+.lk-geist{position:fixed;left:0;top:0;z-index:120;pointer-events:none;transform-origin:50% 50%;--w:var(--hw)}
+#lk-ruf.an{background:var(--warn);color:#2a1f05}
+
+/* ---------- Karte ---------- */
+.lk-k{position:relative;width:var(--w);height:calc(var(--w)*1.48);border-radius:calc(var(--w)*.13);background:var(--fc,#22303a);flex:none;overflow:hidden;
+  color:#fff;font-family:var(--f-disp);font-weight:800;box-shadow:inset 0 0 0 calc(var(--w)*.05) rgba(255,255,255,.93),0 calc(var(--w)*.03) calc(var(--w)*.09) rgba(0,0,0,.38)}
+.lk-k::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-radial-gradient(circle at 104% -4%, transparent 0 calc(var(--w)*.13), rgba(255,255,255,.13) calc(var(--w)*.13) calc(var(--w)*.15)),
+    linear-gradient(165deg,rgba(255,255,255,.12),rgba(0,0,0,.14))}
+.lk-k .ix{position:absolute;left:calc(var(--w)*.11);top:calc(var(--w)*.09);font-size:calc(var(--w)*.24);line-height:1;letter-spacing:-.04em;text-shadow:0 1px 0 rgba(0,0,0,.25)}
+.lk-k .ix.ul{text-decoration:underline;text-decoration-thickness:calc(var(--w)*.025);text-underline-offset:calc(var(--w)*.03)}
+.lk-k .ix.u{left:auto;top:auto;right:calc(var(--w)*.11);bottom:calc(var(--w)*.09);transform:rotate(180deg)}
+.lk-k .ix svg{width:calc(var(--w)*.24);height:calc(var(--w)*.24);display:block}
+.lk-k .mi{position:absolute;inset:0;display:grid;place-items:center}
+.lk-k .mi span{font-size:calc(var(--w)*.7);line-height:1;letter-spacing:-.06em;text-shadow:0 calc(var(--w)*.025) 0 rgba(0,0,0,.28)}
+.lk-k .mi span.ul{text-decoration:underline;text-decoration-thickness:calc(var(--w)*.05);text-underline-offset:calc(var(--w)*.06)}
+.lk-k .mi svg{width:calc(var(--w)*.62);height:calc(var(--w)*.62);filter:drop-shadow(0 calc(var(--w)*.02) 0 rgba(0,0,0,.25))}
+.lk-k .mi .plus{font-size:calc(var(--w)*.5)}
+.lk-k.z4 .mi{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--w)*.02)}
+.lk-k.z4 .mi svg{width:calc(var(--w)*.42);height:calc(var(--w)*.42)}
+.lk-k.z4 .mi .plus{font-size:calc(var(--w)*.38)}
+.lk-k.zu{background:#132d3a}
+.lk-k.zu::before{background:repeating-radial-gradient(circle at 50% 50%, transparent 0 calc(var(--w)*.1), color-mix(in srgb,var(--akzent) 22%,transparent) calc(var(--w)*.1) calc(var(--w)*.115)),
+  linear-gradient(160deg,#1c4357,#0f2430)}
+.lk-k.zu > *{display:none}
+.lk-k.zu::after{content:"";position:absolute;left:50%;top:50%;width:calc(var(--w)*.46);height:calc(var(--w)*.46);transform:translate(-50%,-50%) rotate(45deg);
+  background:var(--akzent);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);opacity:.85}
+
+/* ---------- Fenster ---------- */
+.lk-farben{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.lk-farben button{min-height:84px;border-radius:18px;border:0;color:#fff;font:800 22px var(--f-disp);box-shadow:inset 0 0 0 3px rgba(255,255,255,.75)}
+.lk-tab{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:16px}
+.lk-tab td,.lk-tab th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.lk-tab th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.lk-tab .r{text-align:right;font-variant-numeric:tabular-nums}
+.lk-tab .sieg td{color:var(--akzent);font-weight:700}
+.lk-reste{display:flex;gap:3px;flex-wrap:wrap;--w:28px}
+.lk-reste .lk-k{box-shadow:inset 0 0 0 2px rgba(255,255,255,.85)}
+.lk-reste .lk-k .ix{display:none}
+.lk-handzeig{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0;--w:58px}
+.lk-meldung{position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:300;pointer-events:none;background:#f4efe4;color:#14262b;font-weight:700;
+  padding:11px 20px;border-radius:99px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100% - 40px);text-align:center;animation:k-hoch .25s cubic-bezier(.2,.8,.3,1)}
+.lk-fang{position:fixed;left:50%;bottom:max(26px,calc(var(--sicher-u) + 18px));transform:translateX(-50%);z-index:170;display:flex;align-items:center;gap:14px;
+  background:rgba(7,24,32,.94);border:1px solid var(--line-stark);border-radius:18px;padding:10px 12px 10px 18px;max-width:calc(100% - 32px);
+  box-shadow:0 14px 40px rgba(0,0,0,.45);animation:k-hoch .25s ease-out}
+.lk-fang span{color:var(--ink2);font-size:16px}
+.lk-fang span b{color:var(--ink)}
+.lk-start{display:flex;gap:0}
+.lk-start .lk-k{--w:74px}
+@media (prefers-reduced-motion:reduce){.lk-hand .lk-k,.lk-ablage .lk-k{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="letztekarte.logik.js"></script>
+<script>
+"use strict";
+(() => {
+const L = window.LetzteKarte;
+const AKZENT = '#f08a6e';
+const FC = {rot: '#d9483b', gelb: '#e1a91f', gruen: '#33935a', blau: '#2f6fc2'};
+const esc = Kern.esc;
+const TEST = {rnd: null};
+const R = n => TEST.rnd ? TEST.rnd(n) : Kern.zufall(n);
+const EINST = Kern.einst.laden({sort: 'farbe'});
+let S = null, OFFEN = null, BUSY = false, WEITERGEBEN = false, FRISCH = new Set(), START = null, B = null, ZULETZT_OBEN = null;
+
+const REGELN = `
+<p>Werde als Erste oder Erster alle Handkarten los. Wer das schafft, bekommt die Punkte aller Karten, die die anderen noch halten.</p>
+<h3>Karten</h3>
+<p>108 Karten in vier Farben (Rot, Gelb, Grün, Blau): je Farbe eine 0, zweimal 1 bis 9, zweimal <b>+2</b>, zweimal <b>Richtungswechsel</b> (Kreispfeile) und zweimal <b>Aussetzen</b> (Pausezeichen). Dazu vier <b>Farbwahl</b>-Karten (Kompassrose) und vier <b>Farbwahl +4</b>.</p>
+<h3>Ablauf</h3>
+<p>Alle bekommen 7 Karten, eine Karte liegt offen in der Mitte. Gespielt wird reihum in der Reihenfolge der Namen. Lege eine Karte, die in <b>Farbe, Zahl oder Zeichen</b> zur obersten Karte passt, oder eine Farbwahl. Kannst oder willst du nicht legen, ziehst du eine Karte. Passt sie, darfst du genau diese sofort legen – eine andere Handkarte dann nicht mehr.</p>
+<h3>Sonderkarten</h3>
+<ul>
+<li><b>+2:</b> Die nächste Person zieht 2 Karten und setzt aus.</li>
+<li><b>Richtungswechsel:</b> Die Reihenfolge dreht sich um. Zu zweit wirkt die Karte wie Aussetzen.</li>
+<li><b>Aussetzen:</b> Die nächste Person ist übersprungen. Zu zweit bist du gleich noch einmal dran.</li>
+<li><b>Farbwahl:</b> Passt immer. Du bestimmst die Farbe, mit der es weitergeht.</li>
+<li><b>Farbwahl +4:</b> Du bestimmst die Farbe, die nächste Person zieht 4 Karten und setzt aus. Erlaubt ist sie nur, wenn du <b>keine Karte in der Farbe</b> hast, die gerade gilt (passende Zahlen oder Zeichen sind kein Hindernis).</li>
+</ul>
+<h3>Zweifeln</h3>
+<p>Wer ein +4 abbekommt, darf zweifeln. Dann sieht nur diese Person die Hand der legenden Person. War das +4 nicht erlaubt, zieht die legende Person die 4 Karten, und die zweifelnde Person spielt ganz normal ihren Zug. War es erlaubt, zieht die zweifelnde Person 6 Karten und setzt aus.</p>
+<h3>Letzte Karte!</h3>
+<p>Wer seine vorletzte Karte legt, muss vorher <b>„Letzte Karte!“</b> rufen – tippe dazu den Knopf, solange du zwei Karten hältst, und lege dann. Der Ruf ist am Tisch zu hören und zu sehen. Hat jemand nur noch eine Karte, erscheint auf dem Übergabebild für alle der Knopf <b>„Erwischt!“</b>, bis die nächste Person ihren Zug beginnt. Wer ihn antippt, prüft: Wurde nicht gerufen, zieht die Person 2 Strafkarten. Wurde gerufen, passiert nichts. Fängt die nächste Person einfach an, bleibt ein vergessener Ruf straffrei – du musst also aufpassen.</p>
+<h3>Erste Karte</h3>
+<p>+2: Die Person nach dem Geber zieht 2 und setzt aus. Aussetzen: Sie setzt aus. Richtungswechsel: Der Geber beginnt, und es geht andersherum. Farbwahl: Die Person nach dem Geber wählt die Farbe. Farbwahl +4: kommt zurück in den Stapel, eine neue Karte wird aufgedeckt.</p>
+<h3>Wertung</h3>
+<p>Zahlenkarten zählen ihren Wert, +2, Richtungswechsel und Aussetzen je 20, Farbwahl und Farbwahl +4 je 50. War die letzte Karte ein +2 oder +4, zieht die nächste Person die Karten noch – sie zählen mit. Wer zuerst 500 Punkte hat, gewinnt (oder du spielst nur eine Runde). Der Geber wechselt jede Runde nach links. Ist der Stapel leer, wird die Ablage bis auf die oberste Karte gemischt.</p>`;
+
+Kern.init({id: 'letztekarte', name: 'Letzte Karte', akzent: AKZENT, regeln: REGELN,
+  onNeu: () => { Kern.speicher.loeschen(); startseite(); }, menue: [{text: 'Punktestand', aktion: () => punkteFenster()}]});
+
+/* ---------- Karten zeichnen ---------- */
+const SYM = {
+  aus: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="5" height="16" rx="1.6" fill="currentColor"/><rect x="14" y="4" width="5" height="16" rx="1.6" fill="currentColor"/></svg>',
+  rw: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11a7 7 0 0 0-12.2-4.4"/><path d="M5 13a7 7 0 0 0 12.2 4.4"/><path d="M6.2 2.8v4.1h4.1"/><path d="M17.8 21.2v-4.1h-4.1"/></svg>',
+  rose: '<svg viewBox="0 0 24 24"><path d="M12 1.5l2.6 9.4L12 12l-2.6-1.1z" fill="#d9483b"/><path d="M22.5 12l-9.4 2.6L12 12l1.1-2.6z" fill="#e1a91f"/><path d="M12 22.5l-2.6-9.4L12 12l2.6 1.1z" fill="#33935a"/><path d="M1.5 12l9.4-2.6L12 12l-1.1 2.6z" fill="#2f6fc2"/><circle cx="12" cy="12" r="2.1" fill="#fff"/><circle cx="12" cy="12" r="9.2" fill="none" stroke="#fff" stroke-width=".9" opacity=".7"/></svg>'
+};
+function karteHtml(k, cls = '', extra = '') {
+  if (!k) return '';
+  const fc = k.f ? FC[k.f] : '#22303a';
+  let mi, ix;
+  if (/^\d$/.test(k.w)) { mi = `<span class="${k.w === '6' || k.w === '9' ? 'ul' : ''}">${k.w}</span>`; ix = k.w; }
+  else if (k.w === 'z2') { mi = '<span class="plus">+2</span>'; ix = '+2'; }
+  else if (k.w === 'aus' || k.w === 'rw') { mi = SYM[k.w]; ix = SYM[k.w]; }
+  else if (k.w === 'fw') { mi = SYM.rose; ix = SYM.rose; }
+  else { mi = SYM.rose + '<span class="plus">+4</span>'; ix = '+4'; }
+  return `<div class="lk-k${L.istWild(k) ? ' wild' : ''}${k.w === 'z4' ? ' z4' : ''} ${cls}" style="--fc:${fc}" data-id="${k.id}" aria-label="${esc(L.name(k))}" ${extra}>
+    <div class="ix${k.w === '6' || k.w === '9' ? ' ul' : ''}">${ix}</div><div class="mi">${mi}</div><div class="ix u${k.w === '6' || k.w === '9' ? ' ul' : ''}">${ix}</div></div>`;
+}
+const rueckHtml = (cls = '') => `<div class="lk-k zu ${cls}"></div>`;
+/* Rückfrage mit Knöpfen. (Eigene Fassung: Kern.frage liefert beim Klick auf einen Knopf null, weil das Schließen
+   des Fensters die Zusage schon mit null erfüllt – siehe Abschlussbericht.) */
+function frage({titel = '', text = '', knoepfe = []}) {
+  return new Promise(res => {
+    const box = Kern.el('div'); box.innerHTML = `<h2>${esc(titel)}</h2><p>${text}</p><div class="k-knoepfe"></div>`;
+    let wert = null; const fe = Kern.fenster(box, {schliessbar: false, beimSchliessen: () => res(wert)});
+    knoepfe.forEach(b => { const k = Kern.el('button', 'k-btn ' + (b.art || ''), esc(b.text)); k.onclick = () => { wert = b.wert; fe.schliessen(); }; box.querySelector('.k-knoepfe').appendChild(k); });
+  });
+}
+/* Kurzer Hinweis über der Hand (der Kern-Hinweis läge unten auf den Handkarten und finge Tipper ab). */
+function hinweis(text, ms = 2600) {
+  document.querySelectorAll('.lk-meldung').forEach(e => e.remove());
+  const m = Kern.el('div', 'lk-meldung', esc(text)); document.body.appendChild(m);
+  const h = B && B.querySelector('.lk-leiste'); if (h) m.style.top = Math.max(70, h.getBoundingClientRect().top - 64) + 'px';
+  setTimeout(() => m.remove(), ms);
+}
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  document.querySelectorAll('.lk-buehne,.lk-fang').forEach(e => e.remove());
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null; OFFEN = null;
+  const alt = Kern.speicher.laden(), lauf = alt && alt.s && alt.s.phase !== 'spielende' ? alt.s : null;
+  const bsp = [{f: 'blau', w: '7'}, {f: 'gruen', w: 'rw'}, {f: null, w: 'fw'}, {f: 'gelb', w: 'z2'}, {f: 'rot', w: '1'}];
+  Kern.setup({
+    ziel: START, titel: 'Letzte Karte', unter: 'Farbe auf Farbe, Zahl auf Zahl – und wer fast fertig ist, muss es laut sagen.',
+    bild: `<div class="lk-start" style="--akzent:${AKZENT}">${bsp.map((k, i) => `<div style="transform:translateY(${Math.abs(i - 2) * 9}px) rotate(${(i - 2) * 8}deg);margin-left:${i ? -26 : 0}px">${karteHtml(k)}</div>`).join('')}</div>`,
+    fakten: ['2–8 Personen', '108 Karten', 'ca. 30 Minuten'],
+    spieler: {min: 2, max: 8, standard: 4},
+    optionen: [{id: 'ziel', label: 'Spieldauer', werte: [{wert: 500, text: 'Bis 500 Punkte'}, {wert: 0, text: 'Eine Runde'}], standard: 500}],
+    fortsetzen: lauf ? `Runde ${lauf.runde} · ${lauf.namen.join(', ')}` : null,
+    onFortsetzen: () => { S = lauf; spielen(); },
+    onStart: ({namen, farben, optionen}) => { neuesSpiel(namen, farben, optionen.ziel); }
+  });
+}
+function neuesSpiel(namen, farben, ziel) {
+  S = L.neu({namen, ziel}, R); S.farben = farben; speichern(); spielen();
+}
+const speichern = () => Kern.speicher.speichern({s: S});
+
+/* ---------- Spielfläche ---------- */
+function spielen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.lk-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne lk-buehne');
+  B.innerHTML = `<div class="lk-oben"></div><div class="lk-mitte"></div><div class="lk-unten"><div class="lk-leiste"></div><div class="lk-hand"></div></div>`;
+  document.body.appendChild(B);
+  OFFEN = null; ZULETZT_OBEN = L.oben(S).id;
+  masse(); zeichnen(); weiterAn();
+}
+function masse() {
+  if (!B) return;
+  const W = innerWidth, H = innerHeight, hoch = H > W * 1.05;
+  const hw = Math.round(Math.max(56, Math.min(hoch ? 128 : 124, W / (hoch ? 6.6 : 9.6), H * (hoch ? 0.13 : 0.165))));
+  const pw = Math.round(Math.max(60, Math.min(hoch ? 190 : 160, H * (hoch ? 0.165 : 0.19), W / (hoch ? 4.5 : 7.5))));
+  B.style.setProperty('--hw', hw + 'px'); B.style.setProperty('--pw', pw + 'px');
+}
+addEventListener('resize', () => { if (B && S) zeichnen(); });
+
+const nm = i => esc(S.namen[i]);
+const farbe = i => S.farben[i];
+function zeichnen() {
+  if (!B || !S) return;
+  masse();
+  const offen = OFFEN !== null && (OFFEN === S.dran || WEITERGEBEN) && !['rundenende', 'spielende'].includes(S.phase);
+  // Plätze
+  const naechst = L.weiter(S, S.dran);
+  B.querySelector('.lk-oben').innerHTML = S.namen.map((n, i) => `<div class="lk-platz${i === S.dran ? ' dran' : ''}" style="--pc:${farbe(i)}" id="lk-platz-${i}">
+    <span class="k-dot">${esc(n.charAt(0).toUpperCase())}</span><span><b>${esc(n)}</b><small><span><span class="lk-mini"></span><i class="k-zahl">${S.haende[i].length}</i></span><span><i class="k-zahl">${S.punkte[i]}</i> P</span></small></span>
+    ${S.haende[i].length === 1 ? '<span class="lk-eins">1</span>' : ''}${i === naechst && i !== S.dran && S.phase !== 'spielende' && S.phase !== 'rundenende' ? '<span class="lk-naechst">danach</span>' : ''}</div>`).join('');
+  // Mitte
+  const top = L.oben(S), alt = S.ablage.slice(-3, -1);
+  const darfZiehen = offen && S.phase === 'zug' && !WEITERGEBEN;
+  if (WEITERGEBEN) B.querySelectorAll('.lk-platz').forEach((p, i) => p.classList.toggle('dran', i === OFFEN));
+  const ablageZiel = offen && (S.phase === 'zug' || S.phase === 'gezogen') && !WEITERGEBEN;
+  const m = B.querySelector('.lk-mitte');
+  m.innerHTML = `<div class="lk-satz">${satz(offen)}</div>
+    <div class="lk-tisch">
+      <div class="lk-stapel${darfZiehen ? ' ziel' : ''}" id="lk-stapel" data-ziel="stapel" role="button" aria-label="Karte ziehen">${rueckHtml()}${rueckHtml()}${rueckHtml()}<span class="lk-cnt k-zahl">${S.stapel.length}</span><span class="lk-cap">Stapel</span></div>
+      <div class="lk-ablage" id="lk-ablage" data-ziel="ablage" style="--fc:${S.farbe ? FC[S.farbe] : 'transparent'}"><div class="lk-ring"></div>
+        ${alt.map((k, i) => karteHtml(k, 'alt' + (alt.length - i))).join('')}${karteHtml(top, top.id !== ZULETZT_OBEN ? 'neu' : '')}<span class="lk-cap">Ablage</span></div>
+    </div>
+    <div class="lk-infos">${S.farbe ? `<span class="k-chip" style="--pc:${FC[S.farbe]};color:#fff">Farbe: ${L.FARBNAME[S.farbe]}</span>` : '<span class="k-chip leise">Farbe wird gewählt</span>'}
+      <span class="k-chip leise">${S.richtung === 1 ? 'Reihenfolge ↻ vorwärts' : 'Reihenfolge ↺ rückwärts'}</span>
+      <span class="k-chip leise">Runde ${S.runde}${S.ziel ? ' · bis ' + S.ziel : ''}</span></div>
+    <div class="lk-log">${esc(S.log.slice(-2).join(' '))}</div>`;
+  ZULETZT_OBEN = top.id;
+  if (ablageZiel && S.haende[S.dran].some(k => L.kannLegen(S, k.id))) m.querySelector('#lk-ablage').classList.add('ziel');
+  Kern.tap(m.querySelector('#lk-stapel'), () => ziehen());
+  // Leiste
+  const lst = B.querySelector('.lk-leiste'); lst.innerHTML = '';
+  if (offen && !WEITERGEBEN && S.phase === 'farbeStart') lst.appendChild(farbStartPanel());
+  else if (offen && !WEITERGEBEN && S.phase === 'zweifel') lst.appendChild(zweifelPanel());
+  else if (offen) {
+    const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + (art || ''), t); b.id = id; b.onclick = fn; lst.appendChild(b); return b; };
+    if (WEITERGEBEN) knopf('Fertig – weitergeben', 'lk-fertig', '', () => { WEITERGEBEN = false; nachZug(); });
+    else if (S.phase === 'zug' || S.phase === 'gezogen') {
+      if (S.phase === 'zug') knopf('Karte ziehen', 'lk-ziehen', L.legbare(S).length ? 'leise' : '', () => ziehen());
+      if (S.phase === 'gezogen') knopf('Behalten – Zug beenden', 'lk-behalten', L.kannLegen(S, S.gezogen) ? 'leise' : '', () => behalten());
+      const r = knopf('Letzte Karte!', 'lk-ruf', 'leise', () => rufen()); if (S.ruf) r.classList.add('an');
+    }
+    knopf(EINST.sort === 'farbe' ? 'Nach Zahl sortieren' : 'Nach Farbe sortieren', 'lk-sort', 'leise klein', () => {
+      EINST.sort = EINST.sort === 'farbe' ? 'zahl' : 'farbe'; Kern.einst.speichern(EINST); zeichnen(); });
+  }
+  handZeichnen(offen);
+  einpassen();
+}
+/* Mitte zu hoch (z. B. mit Entscheidungsfeld)? Dann die Stapel kleiner zeichnen. */
+function einpassen() {
+  const m = B.querySelector('.lk-mitte'); let pw = parseFloat(B.style.getPropertyValue('--pw'));
+  for (let i = 0; i < 8 && m.scrollHeight > m.clientHeight + 1 && pw > 54; i++) { pw = Math.round(pw * .88); B.style.setProperty('--pw', pw + 'px'); }
+}
+function satz(offen) {
+  const d = WEITERGEBEN && OFFEN !== null ? OFFEN : S.dran, wer = `<b style="--pc:${farbe(d)}">${nm(d)}</b>`;
+  if (S.phase === 'rundenende' || S.phase === 'spielende') return 'Die Runde ist vorbei.';
+  if (!offen) return `Gleich ist ${wer} dran.`;
+  if (WEITERGEBEN) return `${wer}, dein Zug ist vorbei. Gib das iPad weiter.`;
+  if (S.phase === 'farbeStart') return `${wer}, wähle die Farbe, mit der es losgeht.`;
+  if (S.phase === 'zweifel') return `${wer}, du bekommst ein +4.`;
+  if (S.phase === 'gezogen') return L.kannLegen(S, S.gezogen) ? `${wer}, die gezogene Karte passt. Lege sie – oder behalte sie.` : `${wer}, die gezogene Karte passt nicht. Behalte sie.`;
+  return L.legbare(S).length ? `${wer}, lege eine passende Karte oder ziehe eine.` : `${wer}, keine Karte passt. Ziehe eine Karte.`;
+}
+function sortiert(h) {
+  const fo = {rot: 0, gelb: 1, gruen: 2, blau: 3}, wo = w => /^\d$/.test(w) ? +w : {aus: 10, rw: 11, z2: 12, fw: 13, z4: 14}[w];
+  return h.slice().sort((a, b) => EINST.sort === 'farbe'
+    ? ((a.f ? fo[a.f] : 9) - (b.f ? fo[b.f] : 9)) || wo(a.w) - wo(b.w)
+    : wo(a.w) - wo(b.w) || ((a.f ? fo[a.f] : 9) - (b.f ? fo[b.f] : 9)));
+}
+function handZeichnen(offen) {
+  const el = B.querySelector('.lk-hand'), sp = OFFEN !== null ? OFFEN : S.dran;
+  el.classList.toggle('zu', !offen);
+  const hw = parseFloat(getComputedStyle(B).getPropertyValue('--hw')) || 90;
+  if (!offen) {
+    const n = Math.min(S.haende[S.dran].length, 12);
+    el.innerHTML = Array.from({length: n}, () => rueckHtml()).join('');
+    legeAus(el, hw);
+    return;
+  }
+  const h = sortiert(S.haende[sp]);
+  el.innerHTML = h.map(k => {
+    const ja = !WEITERGEBEN && L.kannLegen(S, k.id);
+    const cls = (ja ? 'ja' : (S.phase === 'zug' || S.phase === 'gezogen') && !WEITERGEBEN ? 'nein' : '') + (k.id === S.gezogen ? ' frisch' : '') + (FRISCH.has(k.id) ? ' neuhand' : '');
+    return karteHtml(k, cls);
+  }).join('');
+  FRISCH.clear();
+  legeAus(el, hw);
+  el.querySelectorAll('.lk-k').forEach(c => ziehbar(c, +c.dataset.id));
+}
+function legeAus(el, hw) {
+  const ks = [...el.querySelectorAll('.lk-k')], n = ks.length, A = el.clientWidth;
+  const step = n > 1 ? Math.min(hw * 1.06, (A - hw) / (n - 1)) : 0, breite = hw + step * (n - 1), x0 = (A - breite) / 2;
+  ks.forEach((c, i) => { c.style.left = (x0 + i * step) + 'px'; c.style.zIndex = i + 1; });
+}
+
+/* Ziehen-und-Ablegen zusätzlich zum Antippen */
+function ziehbar(c, id) {
+  let st = null, geist = null;
+  c.addEventListener('pointerdown', e => {
+    if (st || BUSY) return; st = {p: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), zieht: false};
+    try { c.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  c.addEventListener('pointermove', e => {
+    if (!st || e.pointerId !== st.p) return;
+    const d = Math.hypot(e.clientX - st.x, e.clientY - st.y);
+    if (!st.zieht && d > 16 && L.kannLegen(S, id)) {
+      st.zieht = true; geist = c.cloneNode(true); geist.className = 'lk-k lk-geist' + (c.classList.contains('wild') ? ' wild' : '');
+      geist.style.cssText = c.getAttribute('style'); geist.style.left = '0px'; geist.style.top = '0px';
+      B.appendChild(geist); c.classList.add('weg');
+    }
+    if (st.zieht) {
+      geist.style.transform = `translate(${e.clientX - geist.offsetWidth / 2}px,${e.clientY - geist.offsetHeight * .6}px) rotate(-4deg)`;
+      const ab = B.querySelector('#lk-ablage'), r = ab.getBoundingClientRect();
+      ab.classList.toggle('ueber', e.clientX > r.left - 30 && e.clientX < r.right + 30 && e.clientY > r.top - 30 && e.clientY < r.bottom + 30);
+    }
+  });
+  const ende = (e, abbruch) => {
+    if (!st || e.pointerId !== st.p) return;
+    const s = st; st = null;
+    if (s.zieht) {
+      const ab = B.querySelector('#lk-ablage'), treffer = !abbruch && ab.classList.contains('ueber');
+      geist && geist.remove(); geist = null; c.classList.remove('weg'); ab.classList.remove('ueber');
+      if (treffer) spieleKarte(id);
+      return;
+    }
+    if (!abbruch && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 28 && performance.now() - s.t < 900) spieleKarte(id);
+  };
+  c.addEventListener('pointerup', e => ende(e, false));
+  c.addEventListener('pointercancel', e => ende(e, true));
+}
+
+/* ---------- Züge ---------- */
+async function spieleKarte(id) {
+  if (BUSY || WEITERGEBEN || OFFEN !== S.dran) return;
+  const k = S.haende[S.dran].find(c => c.id === id); if (!k) return;
+  if (!L.kannLegen(S, id)) {
+    Kern.ton('fehler');
+    if (S.phase === 'gezogen') hinweis('Nach dem Ziehen darfst du nur die gezogene Karte legen.');
+    else if (S.phase === 'zug') hinweis(`Passt nicht. Lege ${L.FARBNAME[S.farbe]}${L.istWild(L.oben(S)) ? '' : ' oder ' + (/^\d$/.test(L.oben(S).w) ? 'eine ' + L.oben(S).w : 'ein ' + L.WNAME[L.oben(S).w])} – oder eine Farbwahl.`);
+    return;
+  }
+  let f = null;
+  if (k.w === 'z4' && !L.z4Ehrlich(S, S.dran, id)) {
+    const ok = await frage({titel: 'Wirklich +4?', text: `Du hast noch eine Karte in ${L.FARBNAME[S.farbe]}. Dann ist das +4 nicht erlaubt – zweifelt die nächste Person, ziehst du selbst 4 Karten.`,
+      knoepfe: [{text: 'Zurück', wert: false, art: 'leise'}, {text: 'Trotzdem legen', wert: true, art: 'gefahr'}]});
+    if (!ok) return;
+  }
+  if (L.istWild(k)) { f = await farbeWaehlen(k.w === 'z4' ? 'Farbwahl +4' : 'Farbwahl'); if (!f) return; }
+  BUSY = true;
+  const r = L.legen(S, id, f, R);
+  BUSY = false;
+  if (!r.ok) { hinweis(r.grund || 'Geht nicht.'); return; }
+  Kern.ton('legen');
+  if (r.opfer !== null && r.opfer !== undefined) setTimeout(() => Kern.ton(k.w === 'z2' || k.w === 'z4' ? 'ziehen' : 'warn'), 260);
+  nachZug(r);
+}
+function farbeWaehlen(titel) {
+  return new Promise(res => {
+    const box = Kern.el('div'); let gewaehlt = null;
+    box.innerHTML = `<h2>${esc(titel)}</h2><p>Mit welcher Farbe geht es weiter?</p><div class="lk-farben"></div>`;
+    const fe = Kern.fenster(box, {beimSchliessen: () => res(gewaehlt)});
+    L.FARBEN.forEach(f => {
+      const b = Kern.el('button', '', L.FARBNAME[f]); b.style.background = FC[f]; b.id = 'lk-farbe-' + f;
+      b.onclick = () => { gewaehlt = f; Kern.ton('tipp'); fe.schliessen(); };
+      box.querySelector('.lk-farben').appendChild(b);
+    });
+  });
+}
+function ziehen() {
+  if (BUSY || WEITERGEBEN || OFFEN !== S.dran || S.phase !== 'zug') return;
+  const r = L.ziehen(S, R); if (!r.ok) return;
+  Kern.ton('ziehen');
+  if (!r.karte) { hinweis('Der Stapel ist leer – du passt.'); nachZug(); return; }
+  FRISCH.add(r.karte.id); speichern(); zeichnen();
+}
+function behalten() { if (S.phase !== 'gezogen') return; L.behalten(S); Kern.ton('tipp'); nachZug(); }
+function rufen() {
+  const r = L.rufen(S);
+  if (!r.ok) { Kern.ton('fehler'); hinweis(r.grund); return; }
+  Kern.ton('warn'); speichern(); zeichnen();
+  hinweis('Letzte Karte!', 1500); const m = document.querySelector('.lk-meldung'); if (m) m.style.font = '800 34px var(--f-disp)';
+}
+function farbStartPanel() {
+  const p = Kern.el('div', 'lk-wahl');
+  p.innerHTML = `<p>Oben liegt eine Farbwahl. Du bestimmst die Startfarbe und spielst dann ganz normal.</p><div class="lk-farben" style="grid-template-columns:repeat(4,1fr);width:min(520px,80vw);margin:0"></div>`;
+  p.classList.add('quer');
+  L.FARBEN.forEach(f => {
+    const b = Kern.el('button', '', L.FARBNAME[f]); b.style.background = FC[f]; b.id = 'lk-start-' + f; b.style.minHeight = '64px';
+    b.onclick = () => { L.farbeStart(S, f); Kern.ton('tipp'); speichern(); zeichnen(); };
+    p.querySelector('.lk-farben').appendChild(b);
+  });
+  return p;
+}
+function zweifelPanel() {
+  const p = Kern.el('div', 'lk-wahl'), von = S.z4.von;
+  p.innerHTML = `<p><b>${nm(von)}</b> hat dir ein <b>Farbwahl +4</b> gegeben (Farbe ${L.FARBNAME[S.farbe]}). War es erlaubt? Zweifelst du, siehst du die Hand von ${nm(von)}.</p>
+    <p style="font-size:15px;color:var(--ink2)">Nicht erlaubt: ${nm(von)} zieht 4 und du spielst normal. Erlaubt: du ziehst 6 und setzt aus.</p><div class="k-knoepfe"></div>`;
+  const kn = p.querySelector('.k-knoepfe');
+  const a = Kern.el('button', 'k-btn leise', '4 Karten nehmen'); a.id = 'lk-annehmen';
+  const z = Kern.el('button', 'k-btn gefahr', 'Zweifeln'); z.id = 'lk-zweifeln';
+  a.onclick = () => zweifeln(false); z.onclick = () => zweifeln(true);
+  kn.append(a, z);
+  return p;
+}
+async function zweifeln(ja) {
+  if (BUSY || S.phase !== 'zweifel') return;
+  BUSY = true;
+  const vorher = new Set(S.haende[S.dran].map(k => k.id)), r = L.zweifel(S, ja, R);
+  BUSY = false; speichern();
+  S.haende[OFFEN].forEach(k => { if (!vorher.has(k.id)) FRISCH.add(k.id); });
+  if (r.gezweifelt) {
+    const box = Kern.el('div');
+    box.innerHTML = `<h2>${r.schuldig ? 'Erwischt!' : 'Das war erlaubt.'}</h2>
+      <p>Die Hand von ${nm(r.von)} – nur du siehst sie:</p><div class="lk-handzeig">${r.hand.map(k => karteHtml(k)).join('')}</div>
+      <p>${r.schuldig ? `${nm(r.von)} hatte noch eine passende Farbe und zieht 4 Karten. Du spielst jetzt deinen Zug.` : `${nm(r.von)} hatte keine passende Farbe. Du ziehst 6 Karten und setzt aus.`}</p>
+      <div class="k-knoepfe"><button class="k-btn" id="lk-zw-ok">Verstanden</button></div>`;
+    Kern.ton(r.schuldig ? 'punkt' : 'fehler');
+    await new Promise(res => { const fe = Kern.fenster(box, {schliessbar: false}); box.querySelector('#lk-zw-ok').onclick = () => { fe.schliessen(); res(); }; });
+  } else Kern.ton('ziehen');
+  if (r.gezweifelt && r.schuldig) { zeichnen(); return; }
+  WEITERGEBEN = true; zeichnen();
+}
+
+/* Zug beendet: Hand zudecken, dann an die nächste Person übergeben. */
+async function nachZug() {
+  speichern();
+  if (S.phase === 'rundenende' || S.phase === 'spielende') { OFFEN = null; zeichnen(); await Kern.warte(800); wertung(); return; }
+  if (S.dran === OFFEN && S.phase !== 'zweifel') { L.zugBeginnt(S); speichern(); zeichnen(); hinweis('Du bist gleich noch einmal dran.'); return; }
+  OFFEN = null; zeichnen();
+  await Kern.warte(700);
+  weiterAn();
+}
+async function weiterAn() {
+  if (S.phase === 'rundenende' || S.phase === 'spielende') { wertung(); return; }
+  OFFEN = null; WEITERGEBEN = false; zeichnen();
+  const sp = S.dran, fang = S.einKarte ? fangLeiste() : null;
+  const was = S.log.slice(-2).join(' ');
+  await Kern.sichtschutz({name: S.namen[sp], farbe: farbe(sp), text: (was ? esc(was) + '<br>' : '') + 'Nur du schaust jetzt auf deine Karten.'});
+  if (fang) fang.remove();
+  L.zugBeginnt(S); speichern();
+  OFFEN = sp; zeichnen();
+}
+function fangLeiste() {
+  const e = S.einKarte, f = Kern.el('div', 'lk-fang');
+  f.innerHTML = `<span><b>${nm(e.sp)}</b> hat nur noch eine Karte. Nicht „Letzte Karte!“ gerufen?</span>`;
+  const b = Kern.el('button', 'k-btn gefahr', 'Erwischt!'); b.id = 'lk-erwischt';
+  b.onclick = () => {
+    const r = L.erwischen(S, R); f.remove(); speichern();
+    if (r.strafe) { Kern.ton('fehler'); hinweis(`Erwischt! ${S.namen[r.sp]} zieht 2 Strafkarten.`, 3000); }
+    else { Kern.ton('tipp'); hinweis(`${S.namen[r.sp]} hat rechtzeitig gerufen – keine Strafe.`, 3000); }
+    zeichnen();
+  };
+  f.appendChild(b); document.body.appendChild(f);
+  return f;
+}
+
+/* ---------- Wertung ---------- */
+function tabelle(mitRunde) {
+  const e = S.ergebnis;
+  const zeilen = S.namen.map((n, i) => ({i, n})).sort((a, b) => S.punkte[b.i] - S.punkte[a.i]);
+  return `<table class="lk-tab"><tr><th>Name</th>${mitRunde ? '<th>Restkarten</th><th class="r">Wert</th>' : ''}<th class="r">Gesamt</th></tr>
+    ${zeilen.map(({i, n}) => `<tr class="${e && e.spielSieger === i ? 'sieg' : ''}"><td><span class="k-dot" style="--pc:${farbe(i)};display:inline-grid;margin-right:8px;vertical-align:-5px">${esc(n.charAt(0))}</span>${esc(n)}</td>
+      ${mitRunde ? `<td>${i === e.sieger ? '<span style="color:var(--akzent)">alle Karten los</span>' : `<div class="lk-reste">${S.haende[i].map(k => karteHtml(k)).join('')}</div>`}</td>
+      <td class="r">${i === e.sieger ? '–' : e.einzel[i].wert}</td>` : ''}<td class="r"><b>${S.punkte[i]}</b></td></tr>`).join('')}</table>`;
+}
+function wertung() {
+  document.querySelectorAll('.lk-meldung').forEach(m => m.remove());
+  const e = S.ergebnis, ende = S.phase === 'spielende', box = Kern.el('div');
+  const rechen = e.einzel.filter(x => x.sp !== e.sieger).map(x => x.wert).join(' + ');
+  box.innerHTML = `<h2>${ende ? `${nm(e.sieger)} gewinnt!` : `${nm(e.sieger)} gewinnt Runde ${S.runde}`}</h2>
+    <p>${nm(e.sieger)} bekommt ${rechen || '0'} = <b>${e.summe} Punkte</b>.${ende && S.ziel ? ` Damit sind es ${S.punkte[e.sieger]} – das Ziel von ${S.ziel} ist erreicht.` : ''}</p>
+    ${tabelle(true)}<div class="k-knoepfe"></div>`;
+  const fe = Kern.fenster(box, {breit: true, schliessbar: false}), kn = box.querySelector('.k-knoepfe');
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { fe.schliessen(); fn(); }; kn.appendChild(b); };
+  if (ende) {
+    Kern.speicher.loeschen(); Kern.ton('sieg'); Kern.feier();
+    knopf('Neues Spiel', 'lk-neu', 'leise', () => startseite());
+    knopf('Nochmal', 'lk-nochmal', '', () => neuesSpiel(S.namen, S.farben, S.ziel));
+  } else {
+    Kern.ton('runde');
+    knopf('Nächste Runde', 'lk-weiter', '', () => { L.naechsteRunde(S, R); speichern(); ZULETZT_OBEN = L.oben(S).id; weiterAn(); });
+  }
+}
+function punkteFenster() {
+  if (!S) return;
+  Kern.fenster(`<h2>Punktestand</h2><p>Runde ${S.runde}${S.ziel ? ` · Ziel ${S.ziel} Punkte` : ' · eine Runde'}</p>${tabelle(false)}`);
+}
+
+/* ---------- Test-Zugang ---------- */
+window.__test = {
+  S: () => S, offen: () => OFFEN, logik: L,
+  zufall(seed) { let s = seed >>> 0; TEST.rnd = n => { s = (s * 1664525 + 1013904223) >>> 0; return s % n; }; },
+  setze(fn) { fn(S); speichern(); zeichnen(); }
+};
+
+startseite();
+})();
+</script>
+</body>
+</html>

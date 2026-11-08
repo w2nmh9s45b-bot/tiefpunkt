@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Fünferpasch · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Fünferpasch: links die Würfelschale, rechts der Wertungsblock. Alle Klassen mit Präfix .fp- */
+.fp-buehne{display:grid;grid-template-columns:minmax(380px,.82fr) 1.18fr;gap:16px}
+@media (max-aspect-ratio:1/1){.fp-buehne{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+.fp-links{display:flex;flex-direction:column;gap:14px;padding-top:62px;min-height:0}
+@media (max-aspect-ratio:1/1){.fp-links{padding-top:0}.fp-kopf{padding-left:118px;min-height:52px}}
+.fp-kopf{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fp-kopf .k-dot{width:36px;height:36px;font-size:17px}
+.fp-kopf h2{font-size:clamp(26px,3vw,34px)}
+.fp-kopf .fp-runde{margin-left:auto;font-size:14px;color:var(--ink2);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.fp-schale{position:relative;flex:1 1 auto;min-height:200px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:18px;
+  background:radial-gradient(ellipse at 50% 35%,#1d5546,#0f3127 78%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.07), inset 0 18px 40px rgba(0,0,0,.35)}
+@media (max-aspect-ratio:1/1){.fp-schale{min-height:230px;flex:none}}
+.fp-schale{container-type:inline-size}
+.fp-wuerfel{display:flex;gap:min(16px,3cqi);--ww:min(80px,15.5cqi)}
+/* Würfel-Innenabstand fest in px: der Kern rechnet ihn in Prozent der Umgebung, das bläht Würfel in breiten Zeilen auf */
+.fp-buehne .k-wuerfel,.fp-reihe .k-wuerfel{padding:calc(var(--ww,56px)*.14)}
+.fp-w{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;padding:0;transition:transform .25s cubic-bezier(.3,.7,.3,1)}
+.fp-w small{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--akzent);visibility:hidden}
+.fp-w.gehalten{transform:translateY(-10px)}
+.fp-w.gehalten small{visibility:visible}
+.fp-w:disabled{cursor:default}
+.fp-schale.leer .k-wuerfel{opacity:.25}
+.fp-wurfzahl{display:flex;gap:7px;align-items:center;color:var(--ink2);font-size:14px;font-weight:700}
+.fp-wurfzahl i{width:12px;height:12px;border-radius:50%;background:var(--akzent);display:block}
+.fp-wurfzahl i.weg{background:transparent;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+.fp-satz{font-size:18px;text-align:center;color:var(--ink);font-weight:700;text-wrap:balance;max-width:34ch}
+.fp-satz.leise{color:var(--ink2);font-weight:400;font-size:16px}
+.fp-knoepfe{display:flex;gap:10px}
+.fp-knoepfe .k-btn{flex:1}
+.fp-zusatz{font-size:14px;color:#ffe7b0;background:rgba(234,185,76,.16);border:1px solid rgba(234,185,76,.4);padding:8px 12px;border-radius:12px;text-align:center}
+
+/* Wertungsblock */
+.fp-block{min-height:0;border-radius:22px;background:var(--papier);color:var(--papier-ink);padding:10px 12px 12px;display:grid;
+  grid-template-columns:minmax(150px,1.5fr) repeat(var(--n),minmax(0,1fr));grid-template-rows:auto repeat(17,minmax(26px,1fr));
+  box-shadow:0 18px 40px rgba(0,0,0,.4);overflow:hidden;font-variant-numeric:tabular-nums}
+.fp-z{display:flex;align-items:center;border-bottom:1px solid rgba(27,42,47,.1);min-width:0;padding:0 6px}
+.fp-lab{flex-direction:column;align-items:flex-start;justify-content:center;line-height:1.05;gap:1px}
+.fp-lab b{font-size:clamp(14px,1.45vw,17px)}
+.fp-lab small{font-size:11px;color:#6a7a7c}
+.fp-kopfz{justify-content:center;flex-direction:column;gap:2px;padding:4px 2px 8px;border-bottom:2px solid rgba(27,42,47,.22)}
+.fp-kopfz .k-dot{width:24px;height:24px;font-size:12px}
+.fp-kopfz span.nm{font-weight:700;font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fp-wert{justify-content:center;font-family:var(--f-disp);font-weight:800;font-size:clamp(16px,1.7vw,21px)}
+.fp-spalte-dran{background:color-mix(in srgb,var(--pc) 22%,transparent)}
+.fp-summe{background:rgba(27,42,47,.06);border-bottom:2px solid rgba(27,42,47,.18)}
+.fp-summe.fp-lab b{font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.fp-gesamt{background:#1b2a2f;color:#f4efe4;border-bottom:0}
+.fp-gesamt.fp-wert{font-size:clamp(18px,2vw,24px)}
+.fp-gesamt.fp-lab small{color:#a8b8b6}
+.fp-null{color:#9aa6a4}
+.fp-moeglich{cursor:pointer;padding:3px}
+.fp-moeglich span{display:grid;place-items:center;width:100%;height:100%;min-height:26px;border-radius:9px;border:2px dashed color-mix(in srgb,var(--akzent) 70%,#7d1f1a);
+  color:#b13b2b;font-size:.92em;background:rgba(240,138,108,.08)}
+.fp-moeglich.streichen span{border-color:#b8c1bf;color:#8a9694;font-size:.8em;font-family:var(--f-ui);font-weight:700}
+.fp-moeglich.wahl span{background:var(--akzent);border:2px solid #7d1f1a;color:#2a0d08;animation:fp-puls 1.2s ease-in-out infinite}
+@keyframes fp-puls{50%{box-shadow:0 0 0 4px rgba(240,138,108,.35)}}
+.fp-bonusoffen{font-family:var(--f-ui);font-weight:700;font-size:11px;color:#8a9694}
+@media (max-aspect-ratio:1/1){.fp-block{grid-template-rows:auto repeat(17,minmax(30px,1fr))}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="fuenferpasch.logik.js"></script>
+<script>
+"use strict";
+const F = window.Fuenferpasch;
+const AKZENT = '#f08a6c';
+const REGELN = `
+<h3>Ziel</h3><p>Mit fünf Würfeln in 13 Runden die meisten Punkte sammeln. Allein spielen geht auch – dann jagst du deinen eigenen Rekord.</p>
+<h3>Dein Zug</h3><ol>
+<li>Du würfelst bis zu dreimal. Beim ersten Wurf alle fünf, danach nur die Würfel, die du nicht behältst. Tippe einen Würfel an, um ihn zu behalten oder wieder freizugeben.</li>
+<li>Spätestens nach dem dritten Wurf trägst du in genau ein freies Feld ein. Die möglichen Punkte siehst du gestrichelt im Block.</li>
+<li>Passt dein Wurf zu keinem freien Feld, musst du ein Feld streichen (0 Punkte).</li></ol>
+<h3>Oben</h3><p>Einser bis Sechser: Summe der Würfel mit dieser Zahl. Kommst du oben auf mindestens 63, gibt es 35 Bonuspunkte.</p>
+<h3>Unten</h3><ul><li>Dreierpasch / Viererpasch: mindestens drei bzw. vier gleiche – Summe aller Augen.</li>
+<li>Full House: drei gleiche und zwei gleiche andere – 25.</li><li>Kleine Straße: vier in Folge – 30. Große Straße: fünf in Folge – 40.</li>
+<li>Fünferpasch: fünf gleiche – 50.</li><li>Chance: Summe aller Augen.</li></ul>
+<h3>Weitere Fünferpasche</h3><p>Steht schon 50 im Fünferpasch-Feld, bringt jeder weitere 50 Zusatzpunkte. Außerdem darfst du ihn in ein beliebiges freies Feld
+mit dessen Höchstpunktzahl eintragen (z. B. Full House 25, große Straße 40), egal mit welcher Zahl er gewürfelt wurde. Ist das Feld gestrichen, gibt es das nicht.</p>
+<h3>Wer beginnt</h3><p>Alle würfeln einmal mit einem Würfel, die höchste Zahl beginnt.</p>
+<h3>Variante Meisterschaft</h3><p>Streichen ist jederzeit erlaubt. Ein weiterer Fünferpasch bringt 50 Zusatzpunkte und kommt in ein weiteres passendes Feld:
+oben bei seiner Zahl oder in Dreierpasch, Viererpasch oder Chance. Ist keins frei, wird gestrichen.</p>`;
+
+const BESCHR = {einser: 'nur Einsen', zweier: 'nur Zweien', dreier: 'nur Dreien', vierer: 'nur Vieren', fuenfer: 'nur Fünfen', sechser: 'nur Sechsen',
+  dreierpasch: '3 gleiche · alle Augen', viererpasch: '4 gleiche · alle Augen', fullhouse: '3 + 2 gleiche · 25', kleine: '4 in Folge · 30',
+  grosse: '5 in Folge · 40', fuenferpasch: '5 gleiche · 50', chance: 'alle Augen'};
+
+let S = null, wahl = null, beschaeftigt = false;
+const TEST = {wuerfe: []};
+const w6 = () => TEST.wuerfe.length ? TEST.wuerfe.shift() : 1 + Kern.zufall(6);
+const speichern = () => Kern.speicher.speichern(S);
+const nm = i => Kern.esc(S.spieler[i].name);
+
+Kern.init({id: 'fuenferpasch', name: 'Fünferpasch', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+
+/* ---------- Startseite ---------- */
+let START = null;
+function startseite() {
+  document.querySelectorAll('.fp-buehne').forEach(e => e.remove());
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null;
+  const alt = Kern.speicher.laden();
+  const W = (x, y, r, augen) => `<g transform="rotate(${r} ${x + 13} ${y + 13})"><rect x="${x}" y="${y}" width="26" height="26" rx="6" fill="#fbf8f1"/>${augen.map(([a, b]) => `<circle cx="${x + a}" cy="${y + b}" r="2.6" fill="#1e2a30"/>`).join('')}</g>`;
+  const fuenf = [[7, 7], [19, 7], [13, 13], [7, 19], [19, 19]];
+  Kern.setup({
+    ziel: START, titel: 'Fünferpasch', unter: 'Fünf Würfel, drei Würfe, dreizehn Felder. Behalten, nochmal würfeln, klug eintragen.',
+    bild: `<svg viewBox="0 0 150 70" width="190" height="88">${W(4, 30, -10, fuenf)}${W(34, 22, 6, fuenf)}${W(64, 34, -4, fuenf)}${W(94, 20, 12, fuenf)}${W(122, 32, -8, fuenf)}</svg>`,
+    fakten: ['1–6 Personen', 'allein spielbar', '13 Runden'],
+    spieler: {min: 1, max: 6, standard: 2, frage: 'Wie viele spielen mit?'},
+    optionen: [{id: 'regel', label: 'Regelwerk', werte: [{wert: 'grund', text: 'Grundregel'}, {wert: 'meister', text: 'Meisterschaft'}], standard: 'grund'}],
+    fortsetzen: alt && alt.phase !== 'ende' ? `Runde ${Math.min(alt.runde, 13)} von 13 · ${alt.spieler.map(p => p.name).join(', ')}` : null,
+    onFortsetzen: () => { S = alt; spielen(); },
+    onStart: async ({namen, farben, optionen}) => {
+      const beginner = namen.length > 1 ? await werBeginnt(namen, farben) : 0;
+      S = F.neu({namen, farben, optionen, beginner}); speichern(); spielen();
+    }
+  });
+}
+
+async function werBeginnt(namen, farben) {
+  const r = F.werBeginnt(namen.length, w6);
+  const box = Kern.el('div');
+  box.innerHTML = `<h2>Wer beginnt?</h2><p>Alle würfeln einmal. Die höchste Zahl fängt an.</p>`;
+  const liste = Kern.el('div'); liste.style.cssText = 'display:grid;gap:10px;margin-top:14px'; box.appendChild(liste);
+  const zeilen = namen.map((n, i) => {
+    const z = Kern.el('div', 'fp-reihe'); z.style.cssText = 'display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.05)';
+    z.innerHTML = `<span class="k-dot" style="--pc:${farben[i]}">${i + 1}</span><b style="flex:1">${Kern.esc(n)}</b>`;
+    const w = Kern.wuerfel(1, 44); w.style.visibility = 'hidden'; z.appendChild(w); liste.appendChild(z); return {z, w};
+  });
+  const k = Kern.el('div', 'k-knoepfe'); const los = Kern.el('button', 'k-btn', 'Los geht’s'); los.id = 'fp-los'; los.disabled = true; k.appendChild(los); box.appendChild(k);
+  const fe = Kern.fenster(box, {schliessbar: false});
+  for (const runde of r.runden) {
+    runde.forEach(x => zeilen[x.i].w.style.visibility = 'visible');
+    Kern.ton('wuerfel');
+    await Promise.all(runde.map(x => Kern.wuerfelRollen(zeilen[x.i].w, x.wert)));
+    await Kern.warte(450);
+    const hoch = Math.max(...runde.map(x => x.wert));
+    zeilen.forEach((z, i) => z.z.style.opacity = runde.some(x => x.i === i && x.wert === hoch) ? '1' : '.45');
+    if (runde.filter(x => x.wert === hoch).length > 1) { Kern.hinweis('Gleichstand – nochmal würfeln'); await Kern.warte(900); }
+  }
+  zeilen[r.beginner].z.style.boxShadow = `inset 0 0 0 2px ${farben[r.beginner]}`;
+  los.textContent = `${namen[r.beginner]} beginnt`; los.disabled = false; Kern.ton('punkt');
+  await new Promise(ok => los.onclick = ok);
+  fe.schliessen();
+  return r.beginner;
+}
+
+/* ---------- Spielfläche ---------- */
+let B = null, WE = [];
+function spielen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.fp-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne fp-buehne');
+  B.innerHTML = `<div class="fp-links"><div class="fp-kopf"></div><div class="fp-schale"><div class="fp-wuerfel"></div><div class="fp-wurfzahl"></div><div class="fp-satz"></div></div>
+    <div class="fp-zusatzbox"></div><div class="fp-knoepfe"></div></div><div class="fp-block"></div>`;
+  document.body.appendChild(B);
+  const reihe = B.querySelector('.fp-wuerfel'); WE = [];
+  for (let i = 0; i < 5; i++) {
+    const b = Kern.el('button', 'fp-w'); b.id = 'fp-w' + i; b.setAttribute('aria-label', 'Würfel ' + (i + 1));
+    const w = Kern.wuerfel(S.wuerfel[i]); b.appendChild(w); b.insertAdjacentHTML('beforeend', '<small>behalten</small>');
+    b.onclick = () => halten(i); reihe.appendChild(b); WE.push({b, w});
+  }
+  wahl = null; zeichnen();
+  if (S.phase === 'ende') ende();
+}
+
+function zeichnen() {
+  const p = S.spieler[S.dran], ende = S.phase === 'ende';
+  const kopf = B.querySelector('.fp-kopf');
+  kopf.innerHTML = ende ? `<h2>Spiel vorbei</h2>` : `<span class="k-dot" style="--pc:${p.farbe}">${Kern.esc(p.name.charAt(0).toUpperCase())}</span><h2>${nm(S.dran)}</h2>
+    <span class="fp-runde k-zahl">Runde ${S.runde} von 13</span>`;
+  // Würfel
+  const schale = B.querySelector('.fp-schale');
+  schale.classList.toggle('leer', S.wurf === 0 || ende);
+  WE.forEach(({b, w}, i) => {
+    Kern.wuerfelSetzen(w, S.wuerfel[i]);
+    const kannHalten = !ende && S.wurf > 0 && S.wurf < 3;
+    b.disabled = !kannHalten;
+    b.classList.toggle('gehalten', S.wurf > 0 && S.halten[i]);
+    w.classList.toggle('halten', S.wurf > 0 && S.halten[i]);
+    b.setAttribute('aria-pressed', S.wurf > 0 && S.halten[i]);
+  });
+  B.querySelector('.fp-wurfzahl').innerHTML = ende ? '' : `${[0, 1, 2].map(k => `<i class="${k < 3 - S.wurf ? '' : 'weg'}"></i>`).join('')}<span>${3 - S.wurf === 1 ? 'noch 1 Wurf' : `noch ${3 - S.wurf} Würfe`}</span>`;
+  const m = ende ? {} : F.moeglich(S);
+  const satz = B.querySelector('.fp-satz');
+  satz.className = 'fp-satz';
+  if (ende) satz.textContent = 'Alle Felder sind voll.';
+  else if (S.wurf === 0) satz.innerHTML = `${S.spieler.length > 1 ? `<span style="color:var(--akzent)">${nm(S.dran)}</span> ist dran. ` : ''}Würfle mit allen fünf.`;
+  else if (wahl) satz.innerHTML = `${m[wahl].art === 'streichen' ? `${F.TITEL[wahl]} streichen (0 Punkte)` : `${m[wahl].punkte} Punkte für ${F.TITEL[wahl]} eintragen`}?`;
+  else if (S.wurf < 3) { satz.className = 'fp-satz leise'; satz.textContent = 'Tippe Würfel an, die du behalten willst – oder trag im Block ein.'; }
+  else { satz.className = 'fp-satz leise'; satz.textContent = Object.values(m).every(x => x.art === 'streichen') ? 'Nichts passt – streiche ein Feld im Block.' : 'Trag deinen Wurf im Block ein.'; }
+  // Zusatzhinweis bei weiterem Fünferpasch
+  const zb = B.querySelector('.fp-zusatzbox');
+  zb.innerHTML = !ende && m.zusatz ? `<div class="fp-zusatz">Weiterer Fünferpasch: +50 Zusatzpunkte. ${S.regel === 'grund' ? 'Du darfst jedes freie Feld mit seiner Höchstpunktzahl füllen.' : 'Trag ihn in ein passendes Feld ein.'}</div>` : '';
+  // Knöpfe
+  const k = B.querySelector('.fp-knoepfe'); k.innerHTML = '';
+  if (ende) {
+    const n = Kern.el('button', 'k-btn gross', 'Ergebnis'); n.onclick = () => ende_fenster(); k.appendChild(n);
+  } else {
+    const r = Kern.el('button', 'k-btn gross' + (wahl ? ' leise' : ''), S.wurf === 0 ? 'Würfeln' : 'Nochmal würfeln'); r.id = 'fp-wuerfeln';
+    r.disabled = S.wurf >= 3 || (S.wurf > 0 && S.halten.every(Boolean)); r.onclick = wuerfeln; k.appendChild(r);
+    if (wahl) { const e = Kern.el('button', 'k-btn gross', 'Eintragen'); e.id = 'fp-eintragen'; e.onclick = () => eintragen(wahl); k.appendChild(e); }
+  }
+  blockZeichnen(m);
+}
+function ende_fenster() { ende(); }
+
+function blockZeichnen(m) {
+  const bl = B.querySelector('.fp-block'); bl.innerHTML = ''; bl.style.setProperty('--n', S.spieler.length);
+  const zelle = (kl, html, extra) => { const z = Kern.el('div', 'fp-z ' + kl, html); if (extra) extra(z); bl.appendChild(z); return z; };
+  const dranSp = (z, i) => { z.style.setProperty('--pc', S.spieler[i].farbe); if (i === S.dran && S.phase !== 'ende') z.classList.add('fp-spalte-dran'); };
+  zelle('fp-lab fp-kopfz', '<b style="align-self:flex-start;font-family:var(--f-disp);font-size:20px">Wertung</b>');
+  S.spieler.forEach((p, i) => zelle('fp-kopfz', `<span class="k-dot" style="--pc:${p.farbe}">${Kern.esc(p.name.charAt(0).toUpperCase())}</span><span class="nm">${Kern.esc(p.name)}</span>`, z => dranSp(z, i)));
+  const feldZeile = f => {
+    zelle('fp-lab', `<b>${F.TITEL[f]}</b><small>${BESCHR[f]}</small>`);
+    S.spieler.forEach((p, i) => {
+      const v = p.block[f];
+      if (i === S.dran && v == null && m[f]) {
+        const z = zelle('fp-wert fp-moeglich' + (m[f].art === 'streichen' ? ' streichen' : '') + (wahl === f ? ' wahl' : ''),
+          `<span>${m[f].art === 'streichen' ? 'streichen' : m[f].punkte}</span>`, z => dranSp(z, i));
+        z.dataset.feld = f; z.setAttribute('role', 'button'); z.setAttribute('aria-label', `${F.TITEL[f]}: ${m[f].punkte}`);
+        Kern.tap(z, () => waehlen(f));
+      } else zelle('fp-wert' + (v === 0 ? ' fp-null' : ''), v == null ? '' : v === 0 ? '–' : v, z => dranSp(z, i));
+    });
+  };
+  F.OBEN.forEach(feldZeile);
+  zelle('fp-lab fp-summe', '<b>Oben</b><small>Bonus ab 63</small>');
+  S.spieler.forEach((p, i) => zelle('fp-wert fp-summe', F.wertung(p).oben, z => dranSp(z, i)));
+  zelle('fp-lab fp-summe', '<b>Bonus</b><small>+35</small>');
+  S.spieler.forEach((p, i) => { const w = F.wertung(p), fertig = F.OBEN.every(f => p.block[f] != null);
+    zelle('fp-wert fp-summe', w.bonus ? '35' : fertig ? '–' : `<span class="fp-bonusoffen">noch ${w.fehltBonus}</span>`, z => dranSp(z, i)); });
+  F.UNTEN.forEach(feldZeile);
+  zelle('fp-lab fp-summe', '<b>Zusatz</b><small>je weiterer Fünferpasch 50</small>');
+  S.spieler.forEach((p, i) => zelle('fp-wert fp-summe', p.zusatz ? p.zusatz * 50 : '', z => dranSp(z, i)));
+  zelle('fp-lab fp-gesamt', '<b style="font-family:var(--f-disp);font-size:18px">Gesamt</b>');
+  S.spieler.forEach((p, i) => zelle('fp-wert fp-gesamt', F.wertung(p).gesamt));
+}
+
+/* ---------- Aktionen ---------- */
+function halten(i) {
+  if (beschaeftigt || S.phase !== 'zug' || S.wurf === 0 || S.wurf >= 3) return;
+  F.halten(S, i); speichern(); Kern.ton('tipp'); zeichnen();
+}
+function waehlen(f) {
+  if (beschaeftigt) return;
+  if (wahl === f) { eintragen(f); return; } // zweites Antippen trägt ein
+  wahl = f; Kern.ton('tipp'); zeichnen();
+}
+async function wuerfeln() {
+  if (beschaeftigt || S.phase !== 'zug' || S.wurf >= 3) return;
+  if (S.wurf > 0 && S.halten.every(Boolean)) { Kern.hinweis('Alle Würfel behalten – tippe einen an, um ihn freizugeben.'); return; }
+  beschaeftigt = true; wahl = null;
+  const frei = S.wurf === 0 ? [0, 1, 2, 3, 4] : S.halten.map((h, i) => h ? -1 : i).filter(i => i >= 0);
+  const neue = frei.map(() => w6());
+  F.wuerfeln(S, neue); speichern();
+  B.querySelector('.fp-schale').classList.remove('leer');
+  B.querySelector('#fp-wuerfeln').disabled = true;
+  Kern.ton('wuerfel');
+  await Promise.all(frei.map((i, k) => Kern.wuerfelRollen(WE[i].w, neue[k])));
+  beschaeftigt = false;
+  if (F.istFuenferpasch(S.wuerfel)) { Kern.ton('sieg'); Kern.hinweis('Fünferpasch!'); }
+  zeichnen();
+}
+async function eintragen(f) {
+  if (beschaeftigt) return;
+  const r = F.eintragen(S, f); wahl = null;
+  if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
+  Kern.ton(r.punkte > 0 ? 'punkt' : 'legen');
+  Kern.hinweis(`${S.spieler[r.spieler].name}: ${r.art === 'streichen' ? F.TITEL[f] + ' gestrichen' : `${r.punkte} Punkte für ${F.TITEL[f]}`}${r.zusatz ? ' · +50 Zusatz' : ''}`, 1800);
+  zeichnen();
+  if (S.phase === 'ende') { await Kern.warte(700); ende(); }
+}
+
+function ende() {
+  const r = F.rangliste(S), bester = r[0].gesamt;
+  Kern.ton('sieg'); Kern.feier();
+  const box = Kern.el('div');
+  const titel = S.spieler.length === 1 ? `${Kern.esc(r[0].name)}: ${bester} Punkte` :
+    S.sieger.length > 1 ? `Gleichstand: ${S.sieger.map(i => Kern.esc(S.spieler[i].name)).join(' und ')}` : `${Kern.esc(r[0].name)} gewinnt!`;
+  box.innerHTML = `<h2>${titel}</h2><p>So setzen sich die Punkte zusammen:</p>
+    <div style="overflow-x:auto"><table class="fp-tab" style="width:100%;border-collapse:collapse;font-size:16px;margin-top:6px">
+    <tr style="color:var(--ink2);font-size:13px;text-transform:uppercase;letter-spacing:.06em"><td></td><td>Oben</td><td>Bonus</td><td>Unten</td><td>Zusatz</td><td><b>Gesamt</b></td></tr>
+    ${r.map((x, k) => `<tr style="border-top:1px solid var(--line)"><td style="padding:8px 4px"><span class="k-dot" style="--pc:${x.farbe};display:inline-grid;vertical-align:middle;margin-right:8px">${k + 1}</span><b>${Kern.esc(x.name)}</b></td>
+      <td class="k-zahl">${x.oben}</td><td class="k-zahl">${x.bonus ? '+35' : '–'}</td><td class="k-zahl">${x.unten}</td><td class="k-zahl">${x.zusatz ? '+' + x.zusatz : '–'}</td>
+      <td class="k-zahl" style="font-family:var(--f-disp);font-weight:800;font-size:22px">${x.gesamt}</td></tr>`).join('')}</table></div>`;
+  const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
+  const fe = Kern.fenster(box, {schliessbar: true, breit: true});
+  const b1 = Kern.el('button', 'k-btn', 'Nochmal'); b1.id = 'fp-nochmal';
+  b1.onclick = async () => { fe.schliessen(); const alt = S; const namen = alt.spieler.map(p => p.name), farben = alt.spieler.map(p => p.farbe);
+    const beginner = namen.length > 1 ? await werBeginnt(namen, farben) : 0; S = F.neu({namen, farben, optionen: {regel: alt.regel}, beginner}); speichern(); spielen(); };
+  const b2 = Kern.el('button', 'k-btn leise', 'Neues Spiel'); b2.onclick = () => { fe.schliessen(); startseite(); };
+  const b3 = Kern.el('button', 'k-btn leise', 'Block ansehen'); b3.onclick = () => fe.schliessen();
+  k.append(b1, b2, b3);
+}
+
+window.__test = {zustand: () => S, wuerfe: (...w) => { TEST.wuerfe.push(...w); }, setze: f => { f(S); speichern(); if (B) zeichnen(); }};
+startseite();
+</script>
+</body>
+</html>

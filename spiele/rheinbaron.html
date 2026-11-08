@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Rheinbaron · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Rheinbaron: helles Brett (Papier) als Ring auf dem Seekarten-Tisch, in der Mitte ein dunkles Kartenfenster mit
+   Rhein und Lahn, dort stehen Würfel, wer dran ist, Kontostände und die nächsten Schritte.
+   Felder an den Seiten sind zu ihrer Tischseite gedreht wie bei einem echten Brett. Präfix: .rb- */
+.rb-buehne{padding:0}
+#rb-brett{position:absolute;width:var(--B);height:var(--B);border-radius:calc(var(--c)*.1);background:#efe7d6;
+  box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 2px #1b2a2f;overflow:hidden;--fs:max(9px,calc(var(--w)*.155))}
+.rb-feld{position:absolute;box-sizing:border-box;color:#1b2a2f;background:#f6f0e3;box-shadow:inset 0 0 0 .6px rgba(27,42,47,.45);overflow:hidden;
+  cursor:pointer}
+.rb-feld:active{filter:brightness(.95)}
+.rb-in{position:absolute;display:flex;flex-direction:column;align-items:center;text-align:center;box-sizing:border-box}
+.rb-bar{flex:none;width:100%;height:22%;background:var(--gc);display:flex;align-items:center;justify-content:center;gap:5%;
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.35)}
+.rb-name{font:700 var(--fs)/1.06 var(--f-ui);padding:7% 4% 0;letter-spacing:-.01em;max-width:100%;overflow-wrap:break-word;-webkit-hyphens:manual;hyphens:manual}
+.rb-sub{font-size:calc(var(--fs)*.82);color:#5b6a6e;margin-top:2%;font-weight:700;letter-spacing:.02em}
+.rb-preis{margin-top:auto;margin-bottom:calc(var(--c)*.155);font:700 calc(var(--fs)*.95) var(--f-ui);font-variant-numeric:tabular-nums}
+.rb-ico{width:52%;height:auto;margin-top:6%;flex:none}
+.rb-band{position:absolute;left:0;right:0;bottom:0;height:14%;background:var(--oc);display:none;place-items:center;
+  font:800 calc(var(--fs)*.9) var(--f-ui);color:#0f2229;box-shadow:inset 0 1px 0 rgba(0,0,0,.35)}
+.rb-feld.besessen .rb-band{display:grid}
+.rb-feld.hy .rb-in::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(27,42,47,.20) 0 3px,transparent 3px 8px);pointer-events:none}
+.rb-feld.hy .rb-band{background:repeating-linear-gradient(135deg,var(--oc) 0 5px,#fff 5px 8px)}
+.rb-haus{width:16%;aspect-ratio:1/1;background:#fff;clip-path:polygon(50% 0,100% 42%,100% 100%,0 100%,0 42%);filter:drop-shadow(0 0 .6px #000)}
+.rb-hotel{width:50%;height:62%;background:#fff;border-radius:2px;box-shadow:0 0 0 1px #1b2a2f;background-image:repeating-linear-gradient(90deg,transparent 0 18%,#1b2a2f 18% 28%);background-size:100% 40%;background-repeat:no-repeat;background-position:0 55%}
+.rb-feld.ziel{z-index:3;animation:rb-puls 1.3s ease-in-out infinite;box-shadow:inset 0 0 0 3px var(--akzent),0 0 18px rgba(92,196,138,.9)}
+@keyframes rb-puls{50%{box-shadow:inset 0 0 0 3px var(--akzent),0 0 4px rgba(92,196,138,.4)}}
+.rb-feld.ecke .rb-in{justify-content:flex-start;padding:9% 6% 0;gap:3%}
+.rb-ecke-t{font:800 calc(var(--fs)*1.35)/1 var(--f-disp);letter-spacing:-.02em}
+.rb-ecke-s{font:700 calc(var(--fs)*.9)/1.15 var(--f-ui);color:#4e5e62}
+/* Hexenturm-Ecke */
+.rb-zelle{position:absolute;right:0;top:0;width:64%;height:64%;background:#3d4a52;box-shadow:inset 0 0 0 2px #1b2a2f;display:grid;place-items:center}
+.rb-zelle svg{width:62%;opacity:.95}
+.rb-besuch{position:absolute;font:800 calc(var(--fs)*.85) var(--f-ui);letter-spacing:.05em;color:#4e5e62;white-space:nowrap}
+/* Figuren */
+.rb-figur{position:absolute;width:var(--fg);height:var(--fg);margin:calc(var(--fg)*-.5) 0 0 calc(var(--fg)*-.5);z-index:6;pointer-events:none;
+  transition:left .1s linear,top .1s linear;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+.rb-figur.weit{transition:left .45s cubic-bezier(.4,.1,.2,1),top .45s cubic-bezier(.4,.1,.2,1)}
+.rb-figur.dran{z-index:7;filter:drop-shadow(0 0 4px #fff) drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+.rb-figur svg{width:100%;height:100%;display:block}
+/* Mitte */
+#rb-mitte{position:absolute;left:var(--c);top:var(--c);width:var(--M);height:var(--M);box-sizing:border-box;
+  background:radial-gradient(ellipse at 50% 45%,#174353,#0b2531 75%);box-shadow:inset 0 0 0 2px #1b2a2f,inset 0 10px 40px rgba(0,0,0,.35);
+  padding:calc(var(--M)*.035);display:flex;flex-direction:column;gap:calc(var(--M)*.022);font-size:var(--mf);overflow:hidden}
+#rb-fluss{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.9}
+#rb-mitte > *:not(#rb-fluss){position:relative}
+.rb-titel{text-align:center;font:800 calc(var(--mf)*.78) var(--f-disp);letter-spacing:.42em;color:rgba(232,241,238,.38);margin-bottom:-.3em}
+.rb-status{display:flex;align-items:center;gap:.7em;min-height:3.1em}
+.rb-status .rb-fg{width:2.6em;height:2.6em;flex:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+.rb-wer{display:block;font:800 1.3em/1.05 var(--f-disp);color:var(--pc);letter-spacing:-.02em}
+.rb-satz{display:block;color:var(--ink);font-size:1.02em;line-height:1.25;text-wrap:balance}
+.rb-aktion{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--M)*.028)}
+.rb-wuerfel{display:flex;gap:calc(var(--M)*.03)}
+.rb-knoepfe{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.rb-knoepfe .k-btn{font-size:max(15px,calc(var(--mf)*1.05))}
+.rb-leise{color:var(--ink2);font-size:.9em;text-align:center;line-height:1.3;max-width:34em;text-wrap:balance}
+.rb-leiste{display:flex;gap:8px;justify-content:center}
+.rb-leiste .k-btn{min-height:44px;font-size:max(14px,calc(var(--mf)*.92))}
+.rb-spieler{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(var(--M)*.014)}
+.rb-sk{position:relative;display:flex;align-items:center;gap:.5em;padding:.45em .6em;border-radius:12px;background:rgba(255,255,255,.06);
+  box-shadow:inset 0 0 0 1px var(--line);min-width:0;text-align:left;border:0;color:var(--ink);font:inherit;min-height:46px}
+.rb-sk.dran{background:color-mix(in srgb,var(--pc) 20%,rgba(7,24,32,.6));box-shadow:inset 0 0 0 2px var(--pc)}
+.rb-sk.raus{opacity:.4}
+.rb-sk svg{width:2em;height:2em;flex:none}
+.rb-sk .rb-skn{font-weight:700;font-size:.92em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.rb-sk .rb-skg{font:800 1.12em var(--f-disp);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.rb-sk .rb-skx{font-size:.74em;color:var(--ink2);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-delta{position:absolute;right:.4em;top:-.6em;font:800 .82em var(--f-ui);padding:.1em .45em;border-radius:99px;background:var(--gut);color:#0d2416;
+  animation:rb-delta 1.8s ease-out forwards;pointer-events:none}
+.rb-delta.minus{background:var(--fehler);color:#2a0b07}
+@keyframes rb-delta{0%{opacity:0;transform:translateY(6px)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
+/* Karten im Mittelfeld */
+.rb-karte{width:min(100%,24em);background:#fbf8f1;color:#1b2a2f;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.45);overflow:hidden;
+  animation:rb-karte .45s cubic-bezier(.2,.8,.3,1)}
+@keyframes rb-karte{from{transform:rotateY(80deg) scale(.9);opacity:0}}
+.rb-karte header{padding:.5em .9em;font:800 .85em var(--f-ui);letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--kc)}
+.rb-karte p{margin:0;padding:.9em 1em 1.1em;font-size:1.05em;line-height:1.38}
+.rb-urkunde{width:min(100%,22em);background:#fbf8f1;color:#1b2a2f;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);font-size:.9em}
+.rb-urkunde header{background:var(--gc);color:var(--gi);padding:.45em .8em;text-align:center}
+.rb-urkunde header small{display:block;font-size:.72em;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.85}
+.rb-urkunde header b{display:block;font:800 1.25em/1.1 var(--f-disp);letter-spacing:-.02em}
+.rb-urkunde .rb-zeilen{padding:.5em .9em .7em;display:grid;grid-template-columns:1fr auto;gap:.12em 1em;font-variant-numeric:tabular-nums}
+.rb-urkunde .rb-zeilen .t{grid-column:1/-1;border-top:1px solid #d9d0bf;margin:.25em 0}
+.rb-urkunde .rb-zeilen b{text-align:right}
+.rb-urkunde .rb-zeilen .an{background:rgba(92,196,138,.25);border-radius:4px}
+.rb-urkunde .rb-ort{padding:0 .9em .7em;font-size:.86em;color:#5b6a6e;font-style:italic}
+.rb-betrag{font:800 2.2em/1 var(--f-disp);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+/* Versteigerung */
+.rb-auk{width:100%;display:flex;flex-direction:column;gap:6px}
+.rb-auk-kopf{display:flex;align-items:baseline;justify-content:center;gap:.6em;flex-wrap:wrap;text-align:center}
+.rb-auk-kopf b{font:800 1.9em var(--f-disp);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.rb-auk-z{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:12px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px var(--line)}
+.rb-auk-z.hoch{box-shadow:inset 0 0 0 2px var(--pc);background:color-mix(in srgb,var(--pc) 18%,rgba(7,24,32,.6))}
+.rb-auk-z.raus{opacity:.38}
+.rb-auk-z svg{width:30px;height:30px;flex:none}
+.rb-auk-z .n{flex:1;min-width:0;line-height:1.1}
+.rb-auk-z .n b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-auk-z .n small{color:var(--ink2)}
+.rb-auk-z .k-btn{min-height:44px;padding:0 12px;font-size:15px;min-width:64px}
+/* Seitenleiste */
+.rb-seite{position:absolute;display:flex;flex-direction:column;gap:12px;color:var(--ink2);font-size:14px;overflow:hidden}
+.rb-seite h3{font:700 12px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin:0 0 6px}
+.rb-seite .rb-log{display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.rb-seite .rb-log div{line-height:1.3;color:#c7d8d6}
+.rb-seite .rb-log div:first-child{color:var(--ink)}
+.rb-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.rb-bank{display:flex;gap:6px 14px;max-width:16em;align-items:center;flex-wrap:wrap;font-variant-numeric:tabular-nums;color:var(--ink)}
+.rb-bank span{display:flex;align-items:center;gap:6px}
+.rb-bank i{display:inline-block;width:14px;height:13px;background:#fff;clip-path:polygon(50% 0,100% 42%,100% 100%,0 100%,0 42%)}
+.rb-bank i.h{width:22px;height:13px;clip-path:none;border-radius:2px;background:#fff repeating-linear-gradient(90deg,transparent 0 18%,#1b2a2f 18% 28%) 0 55%/100% 40% no-repeat}
+.rb-bank span{white-space:nowrap}
+/* Fenster: Verwalten, Handeln, Wertung */
+.rb-fwahl{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
+.rb-fwahl button{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel-hell);font-weight:700}
+.rb-fwahl button[aria-pressed="true"]{background:color-mix(in srgb,var(--pc) 28%,transparent);border-color:var(--pc)}
+.rb-fwahl svg{width:24px;height:24px}
+.rb-info{color:var(--ink2);margin:0 0 10px}
+.rb-schuld{background:color-mix(in srgb,var(--fehler) 18%,transparent);border:1px solid var(--fehler);border-radius:12px;padding:10px 12px;margin-bottom:12px;color:var(--ink)}
+.rb-gruppe{border-left:6px solid var(--gc);padding:2px 0 2px 10px;margin:10px 0}
+.rb-gruppe h4{margin:0 0 4px;font:700 13px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.rb-zeile{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line)}
+.rb-zeile:last-child{border-bottom:0}
+.rb-zeile .nm{flex:1 1 9em;min-width:0;font-weight:700}
+.rb-zeile .nm small{display:block;font-weight:400;color:var(--ink2)}
+.rb-zeile .k-btn{min-height:44px;font-size:15px;padding:0 12px}
+.rb-leer{color:var(--ink2);font-style:italic}
+.rb-handel{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.rb-handel{grid-template-columns:1fr}}
+.rb-seiteh{background:var(--panel-hell);border:1px solid var(--line);border-radius:14px;padding:10px}
+.rb-seiteh h4{margin:0 0 8px;font:800 18px var(--f-disp);color:var(--pc)}
+.rb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.rb-chips button{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:15px}
+.rb-chips button i{width:12px;height:12px;border-radius:3px;background:var(--gc);flex:none}
+.rb-chips button[aria-pressed="true"]{background:var(--akzent);color:var(--akzent-ink);border-color:transparent;font-weight:700}
+.rb-chips button:disabled{opacity:.45}
+.rb-geld{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rb-geld input{width:5.5em;height:44px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);text-align:center;font-size:18px;font-weight:700}
+.rb-geld button{min-width:46px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel-hell);font-weight:700}
+.rb-ok{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.rb-ok .k-btn{flex:1 1 12em}
+.rb-ok .k-btn[aria-pressed="true"]{background:var(--gut);color:#0d2416}
+.rb-wert{display:grid;grid-template-columns:auto auto 1fr auto auto auto auto;gap:6px 12px;align-items:center;font-variant-numeric:tabular-nums;margin:12px 0}
+.rb-wert svg{width:28px;height:28px}
+.rb-wert .k{color:var(--ink2);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.rb-wert b{font-family:var(--f-disp)}
+@media (prefers-reduced-motion:reduce){.rb-figur{transition:none}.rb-feld.ziel{animation:none}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="rheinbaron.logik.js"></script>
+<script>
+"use strict";
+const R = window.Rheinbaron, F = R.FELDER, G = R.GRUPPEN, E = Kern.esc, euro = R.euro;
+const AKZENT = '#5cc48a';
+const REGELN = `
+<p>Zieht um das Brett zwischen Taunus, Lahn und Rhein, kauft Orte, baut Häuser und kassiert Miete. Wer am Ende als Einzige oder Einziger nicht pleite ist, gewinnt.</p>
+<h3>Ablauf</h3>
+<p>Alle starten mit 1.500 € auf „Leinen los“. Wer am höchsten würfelt, beginnt. Würfle und zieh. Bei einem Pasch würfelst du nach deinem Zug noch einmal – beim dritten Pasch in Folge geht es sofort in den Hexenturm. Wer über „Leinen los“ zieht oder darauf landet, bekommt 200 €.</p>
+<h3>Freie Grundstücke</h3>
+<p>Kaufe zum Preis auf dem Feld – oder lass versteigern. Dann bieten alle, auch du, ab 10 € in Schritten von 1 €. Wer am meisten bietet, zahlt an die Bank. Bietet niemand, bleibt das Feld frei.</p>
+<h3>Miete</h3>
+<ul><li>Straßen: Miete laut Karte, doppelt, wenn dir die ganze Farbgruppe gehört und noch nicht gebaut ist.</li>
+<li>Bahnhöfe: 25, 50, 100 oder 200 € – je nachdem, wie viele Bahnhöfe der Besitzer hat.</li>
+<li>Werke: würfle; die Augen mal 4 (ein Werk) oder mal 10 (beide Werke).</li>
+<li>Für Grundstücke mit Hypothek gibt es keine Miete.</li></ul>
+<h3>Bauen</h3>
+<p>Gehört dir eine ganze Farbgruppe, darfst du jederzeit Häuser kaufen – gleichmäßig verteilt, höchstens 4 je Straße, danach ein Hotel (die 4 Häuser gehen zurück). Die Bank hat nur 32 Häuser und 12 Hotels; wollen mehrere das letzte, wird es versteigert. Gebäude verkaufst du zum halben Preis an die Bank.</p>
+<h3>Hypothek</h3>
+<p>Ohne Gebäude in der Farbgruppe kannst du ein Grundstück beleihen: Die Bank zahlt den halben Kaufpreis. Ablösen kostet diesen Betrag plus 10 %.</p>
+<h3>Hexenturm</h3>
+<p>Wer hinein muss, zieht nicht über „Leinen los“. Raus kommst du zu Beginn deines Zuges: 50 € zahlen und normal würfeln, einen Turmschlüssel nutzen, oder einen Pasch würfeln (dann ziehst du damit, ohne Extrawurf). Nach dem dritten Fehlversuch zahlst du 50 € und ziehst. Auch im Turm darfst du Miete kassieren, bauen, bieten und handeln.</p>
+<h3>Ereignis und Gemeinschaft</h3>
+<p>Ziehe eine Karte und führe sie sofort aus; sie kommt unter den Stapel. Turmschlüssel darfst du behalten oder verkaufen.</p>
+<h3>Handeln</h3>
+<p>Jederzeit zu zweit: Grundstücke (ohne Gebäude in der Farbgruppe), Geld und Turmschlüssel – beide müssen zustimmen. Wer ein belastetes Grundstück bekommt, löst es sofort ab oder zahlt sofort 10 % Zinsen.</p>
+<h3>Pleite</h3>
+<p>Kannst du nicht zahlen, verkaufe Gebäude und nimm Hypotheken auf. Reicht es dann noch nicht, scheidest du aus. Schulden bei einer Person: Sie bekommt alles, was dir gehört. Schulden bei der Bank: Deine Grundstücke werden einzeln versteigert.</p>
+<p>Auf der „Uferpause“ passiert nichts.</p>
+<h3>Variante Zeitlimit</h3>
+<p>Auf Wunsch endet das Spiel nach einer festen Zeit. Dann zählt das Vermögen: Bargeld, Grundstücke zum Kaufpreis (belastete zum Hypothekenwert) und Gebäude zum Kaufpreis.</p>`;
+
+/* ---------- Figuren (eigene, schlichte Formen) ---------- */
+const FIGUR_NAMEN = ['Boot', 'Burg', 'Traube', 'Anker', 'Fisch', 'Weinglas'];
+function figurSvg(nr, farbe) {
+  const st = `fill="${farbe}" stroke="#0f2229" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"`;
+  const k = [
+    `<path ${st} d="M5 25h30l-6 9H11z"/><path ${st} d="M20 4v20"/><path ${st} d="M21 6l11 15H21z"/><path ${st} d="M19 9l-9 12h9z"/>`,
+    `<path ${st} d="M9 35V15h4v-5h4v5h6v-5h4v5h4v20z"/><path fill="#0f2229" d="M17 35v-7a3 3 0 0 1 6 0v7z"/>`,
+    `<path ${st} d="M22 7c4-4 9-2 10 0-3 2-7 3-10 0z"/><g ${st}><circle cx="14" cy="15" r="5"/><circle cx="24" cy="15" r="5"/><circle cx="19" cy="22" r="5"/><circle cx="11" cy="23" r="4.4"/><circle cx="27" cy="23" r="4.4"/><circle cx="19" cy="31" r="5"/></g>`,
+    `<g ${st} fill="none"><circle cx="20" cy="8" r="3.5" fill="${farbe}"/><path d="M20 11.5V34"/><path d="M12 17h16"/><path d="M7 24c1 7 7 10 13 10s12-3 13-10"/></g><path ${st} d="M4 25l4-4 3 5zM36 25l-4-4-3 5z"/>`,
+    `<path ${st} d="M4 20c6-9 18-10 25 0-7 10-19 9-25 0z"/><path ${st} d="M28 20l8-7v14z"/><circle cx="11" cy="18" r="2" fill="#0f2229"/>`,
+    `<path ${st} d="M10 5h20c0 11-4 16-10 16S10 16 10 5z"/><path ${st} d="M20 21v10"/><path ${st} d="M12 35h16"/><path fill="#0f2229" opacity=".35" d="M12 10h16c-1 5-4 8-8 8s-7-3-8-8z"/>`
+  ];
+  return `<svg viewBox="0 0 40 40" aria-label="${FIGUR_NAMEN[nr % 6]}">${k[nr % 6]}</svg>`;
+}
+
+/* ---------- Anzeigenamen mit Trennstellen ---------- */
+const TRENN = {1: 'Frücht', 3: 'Fried­richs­segen', 4: 'Einkommen­steuer', 5: 'Nieder­lahn­stein', 6: 'Miehlen', 8: 'Nastätten',
+  9: 'Eschbach', 11: 'Dausenau', 12: 'Stadt­werke', 13: 'Nassau', 14: 'Bad Ems', 15: 'Bad Ems', 16: 'Salhof­platz', 18: 'Hoch­straße',
+  19: 'Burg Lahn­eck', 21: 'Braubach', 23: 'Schloss Stolzen­fels', 24: 'Marks­burg', 25: 'Braubach', 26: 'Ehren­breit­stein',
+  27: 'Rhein­seil­bahn', 28: 'Wasser­werk', 29: 'Festung Ehren­breit­stein', 31: 'Löhr­straße', 32: 'Görres­platz',
+  34: 'Jesuiten­platz', 35: 'Koblenz Haupt­bahn­hof', 37: 'Kurfürst­liches Schloss', 38: 'Zusatz­steuer', 39: 'Deutsches Eck',
+  2: 'Gemein­schaft', 17: 'Gemein­schaft', 33: 'Gemein­schaft', 7: 'Ereignis', 22: 'Ereignis', 36: 'Ereignis'};
+const ICON = {
+  bahn: '<svg viewBox="0 0 40 30"><rect x="9" y="3" width="22" height="19" rx="5" fill="#1b2a2f"/><rect x="12" y="6" width="16" height="7" rx="2" fill="#f6f0e3"/><circle cx="14" cy="18" r="2" fill="#f6f0e3"/><circle cx="26" cy="18" r="2" fill="#f6f0e3"/><path d="M12 22l-4 6M28 22l4 6" stroke="#1b2a2f" stroke-width="2.4" stroke-linecap="round"/></svg>',
+  strom: '<svg viewBox="0 0 40 30"><path d="M23 2L11 17h8l-3 11 13-16h-8z" fill="#e8b92e" stroke="#1b2a2f" stroke-width="2" stroke-linejoin="round"/></svg>',
+  wasser: '<svg viewBox="0 0 40 30"><path d="M20 2c6 9 9 13 9 17a9 9 0 0 1-18 0c0-4 3-8 9-17z" fill="#4b9bd4" stroke="#1b2a2f" stroke-width="2"/></svg>',
+  ereignis: '<svg viewBox="0 0 40 30"><path d="M20 2l3.5 8.5L32 12l-6.5 6 2 9-7.5-4.5L12.5 27l2-9L8 12l8.5-1.5z" fill="#ef8a2e" stroke="#1b2a2f" stroke-width="2" stroke-linejoin="round"/></svg>',
+  gemeinschaft: '<svg viewBox="0 0 40 30"><g fill="none" stroke="#1b2a2f" stroke-width="2.4"><circle cx="15" cy="15" r="8" stroke="#2f9a5a" stroke-width="3.2"/><circle cx="25" cy="15" r="8" stroke="#2c5bb8" stroke-width="3.2"/></g></svg>',
+  steuer: '<svg viewBox="0 0 40 30"><rect x="8" y="4" width="24" height="22" rx="3" fill="#fbf8f1" stroke="#1b2a2f" stroke-width="2"/><path d="M13 11h14M13 16h14M13 21h8" stroke="#1b2a2f" stroke-width="2" stroke-linecap="round"/></svg>',
+  turm: '<svg viewBox="0 0 40 46"><path d="M8 44V14h3V8h4v6h4V8h4v6h4V8h4v6h3v30z" fill="#c9b99a" stroke="#1b2a2f" stroke-width="2"/><path d="M15 44v-9a5 5 0 0 1 10 0v9z" fill="#1b2a2f"/><rect x="17" y="19" width="6" height="8" rx="3" fill="#1b2a2f"/><path d="M19.5 19v8M17 23h6" stroke="#c9b99a" stroke-width="1.2"/></svg>'
+};
+const gruppeFarbe = f => F[f].g ? G[F[f].g].farbe : '#9aa';
+const hellGruppe = g => ['hellblau', 'gelb'].includes(g);
+
+/* ---------- Zustand und Speicher ---------- */
+let S = null, BUSY = false, FEST = [], ANZEIGE = [], LETZT_TICK = 0, ZEIT_SPEICHERN = 0;
+const MAN = {fenster: null, sp: null}; // offenes Verwalten-Fenster
+const speichern = () => { if (!S) return; if (S.ende) Kern.speicher.loeschen(); else Kern.speicher.speichern(S); };
+function wurf() { return FEST.length ? FEST.shift() : [1 + Kern.zufall(6), 1 + Kern.zufall(6)]; }
+window.__test = {zustand: () => S, laden(s) { S = s; ANZEIGE = []; aufbauen(); zeichnen(); speichern(); }, wuerfel(...p) { FEST.push(...p); }, R, busy: () => BUSY};
+
+/* ---------- Startseite ---------- */
+let SETUP = null;
+function startseite() {
+  document.querySelectorAll('.rb-buehne').forEach(x => x.remove());
+  if (SETUP) SETUP.ziel.remove();
+  Kern.kopf(true);
+  const gesp = Kern.speicher.laden();
+  SETUP = Kern.setup({
+    titel: 'Rheinbaron', unter: 'Kaufen, bauen, kassieren – von Frücht bis zum Deutschen Eck.',
+    bild: bildSvg(), fakten: ['2–6 Personen', 'ab 90 Minuten', 'Würfeln · Kaufen · Handeln'],
+    spieler: {min: 2, max: 6, standard: 3},
+    optionen: [{id: 'zeit', label: 'Spielende', werte: [{wert: 0, text: 'Ohne Zeitlimit'}, {wert: 60, text: '60 Min.'}, {wert: 90, text: '90 Min.'}, {wert: 120, text: '120 Min.'}], standard: 0}],
+    extra: '<p class="rb-leise" style="text-align:left;margin:0">Zeitlimit ist eine Variante: Nach Ablauf zählt das Vermögen. Ohne Zeitlimit gilt die Grundregel.</p>',
+    fortsetzen: gesp && !gesp.ende ? `Zug ${gesp.zug} · ${gesp.spieler.filter(p => !p.raus).map(p => p.name).join(', ')}` : null,
+    onFortsetzen: () => { S = gesp; spielZeigen(); },
+    onStart: cfg => neuesSpiel(cfg.namen, cfg.farben, cfg.optionen)
+  });
+}
+function bildSvg() {
+  return `<svg width="124" height="124" viewBox="0 0 96 96"><rect x="2" y="2" width="92" height="92" rx="8" fill="#efe7d6" stroke="#1b2a2f" stroke-width="3"/>
+  <rect x="20" y="20" width="56" height="56" fill="#123a49"/><path d="M38 20c6 12-8 22 0 34s-4 16 0 22" stroke="#6cc7d8" stroke-width="7" fill="none" opacity=".75"/>
+  <path d="M76 44c-12 0-18 4-28 6" stroke="#6cc7d8" stroke-width="4" fill="none" opacity=".75"/>
+  ${['#8a5a3c', '#8ccbe8', '#d65a9a', '#ef8a2e'].map((c, i) => `<rect x="${22 + i * 13}" y="78" width="11" height="5" fill="${c}"/>`).join('')}
+  ${['#d8483c', '#f2c94c', '#2f9a5a', '#2c5bb8'].map((c, i) => `<rect x="${22 + i * 13}" y="13" width="11" height="5" fill="${c}"/>`).join('')}
+  <g transform="translate(52 50) scale(.62)">${figurSvg(1, '#f2c14e').replace(/<\/?svg[^>]*>/g, '')}</g><g transform="translate(24 52) scale(.55)">${figurSvg(0, '#ef7d6d').replace(/<\/?svg[^>]*>/g, '')}</g></svg>`;
+}
+function neuesSpiel(namen, farben, optionen) {
+  Kern.speicher.loeschen();
+  S = R.neu({namen, farben, figuren: namen.map((n, i) => i), optionen: {zeit: optionen.zeit}, zufall: Kern.zufall});
+  speichern(); spielZeigen();
+  if (S.startwurf.length) {
+    const r = S.startwurf.map((runde, k) => `<p>${k ? 'Stechen: ' : ''}${runde.map(x => `${E(S.spieler[x.sp].name)} ${x.w[0]}+${x.w[1]}`).join(' · ')}</p>`).join('');
+    Kern.fenster(`<h2>${E(S.spieler[S.dran].name)} beginnt</h2><p>Alle haben gewürfelt, die höchste Summe fängt an.</p>${r}`);
+  }
+  Kern.ton('runde');
+}
+
+/* ---------- Spielfläche aufbauen ---------- */
+let BUEHNE, BRETT, MITTE, SEITE, FELDEL = [], FIGEL = [], WUERFEL = [];
+function spielZeigen() {
+  if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
+  ANZEIGE = []; aufbauen(); zeichnen();
+}
+function aufbauen() {
+  document.querySelectorAll('.rb-buehne').forEach(x => x.remove());
+  BUEHNE = Kern.el('div', 'k-buehne rb-buehne');
+  BRETT = Kern.el('div'); BRETT.id = 'rb-brett';
+  SEITE = Kern.el('div', 'rb-seite');
+  BUEHNE.append(BRETT, SEITE); document.body.appendChild(BUEHNE);
+  FELDEL = F.map((f, i) => {
+    const e = Kern.el('div', 'rb-feld'); e.dataset.feld = i; e.setAttribute('role', 'button'); e.setAttribute('aria-label', f.n); e.tabIndex = 0;
+    e.innerHTML = feldInnen(i); BRETT.appendChild(e);
+    Kern.tap(e, () => feldTippen(i));
+    return e;
+  });
+  MITTE = Kern.el('div'); MITTE.id = 'rb-mitte'; BRETT.appendChild(MITTE);
+  if (!WUERFEL.length) WUERFEL = [Kern.wuerfel(3), Kern.wuerfel(4)];
+  FIGEL = S.spieler.map((p, i) => { const e = Kern.el('div', 'rb-figur', figurSvg(p.figur, p.farbe)); BRETT.appendChild(e); return e; });
+  layout();
+}
+function feldInnen(i) {
+  const f = F[i];
+  if (i === 0) return `<div class="rb-in"><div class="rb-ecke-t">Leinen los</div><div class="rb-ecke-s">+200 € bei jeder Runde</div><svg viewBox="0 0 60 24" style="width:58%;margin-top:4%"><path d="M56 12H10M19 3L7 12l12 9" fill="none" stroke="#d8483c" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
+  if (i === 10) return `<div class="rb-zelle">${ICON.turm}</div><span class="rb-besuch" style="left:6%;top:72%;font-size:calc(var(--fs)*.8)">NUR ZU</span><span class="rb-besuch" style="left:6%;top:84%;font-size:calc(var(--fs)*.8)">BESUCH</span><span class="rb-besuch" style="left:6%;top:6%;writing-mode:vertical-rl;transform:rotate(180deg);font-size:calc(var(--fs)*.78)">HEXENTURM</span>`;
+  if (i === 20) return `<div class="rb-in"><div class="rb-ecke-t">Uferpause</div><div class="rb-ecke-s">Hier passiert nichts</div><svg viewBox="0 0 60 36" style="width:50%;margin-top:4%"><path d="M8 18h44M10 18v12M50 18v12M12 10h36" stroke="#1b2a2f" stroke-width="4" stroke-linecap="round"/><path d="M4 32c8-4 14 4 22 0s14 4 22 0 8 2 10 0" stroke="#4b9bd4" stroke-width="3" fill="none"/></svg></div>`;
+  if (i === 30) return `<div class="rb-in"><div class="rb-ecke-t" style="font-size:calc(var(--fs)*1.12)">Ab in den Hexenturm</div><div style="width:30%;margin-top:3%">${ICON.turm}</div></div>`;
+  let h = '';
+  if (f.t === 'strasse') h = `<div class="rb-bar" style="--gc:${G[f.g].farbe}"></div><div class="rb-name">${TRENN[i] || E(f.n)}</div><div class="rb-preis">${euro(f.p)}</div>`;
+  else if (f.t === 'bahnhof') h = `<div class="rb-ico">${ICON.bahn}</div><div class="rb-name">${TRENN[i]}</div>${i !== 35 ? '<div class="rb-sub">Bahnhof</div>' : ''}<div class="rb-preis">${euro(f.p)}</div>`;
+  else if (f.t === 'werk') h = `<div class="rb-ico">${ICON[f.art]}</div><div class="rb-name">${TRENN[i]}</div><div class="rb-preis">${euro(f.p)}</div>`;
+  else if (f.t === 'steuer') h = `<div class="rb-ico">${ICON.steuer}</div><div class="rb-name">${TRENN[i]}</div><div class="rb-preis">${euro(f.betrag)}</div>`;
+  else h = `<div class="rb-ico" style="width:58%;margin-top:16%">${ICON[f.t]}</div><div class="rb-name">${TRENN[i]}</div>`;
+  return `<div class="rb-in">${h}<div class="rb-band"></div></div>`;
+}
+
+/* Geometrie: Ecke c, Feldbreite w; Seiten u (unten, 1–9), l (links, 11–19), o (oben, 21–29), r (rechts, 31–39) */
+let GEO = null;
+function layout() {
+  if (!BRETT) return;
+  const W = innerWidth, H = innerHeight, rand = 10;
+  const B = Math.floor(Math.min(W, H) - 2 * rand), c = Math.round(B * .13), w = (B - 2 * c) / 9, M = B - 2 * c;
+  const x0 = Math.round((W - B) / 2), y0 = Math.round((H - B) / 2);
+  GEO = {B, c, w, M, x0, y0};
+  Object.assign(BRETT.style, {left: x0 + 'px', top: y0 + 'px'});
+  BRETT.style.setProperty('--B', B + 'px'); BRETT.style.setProperty('--c', c + 'px'); BRETT.style.setProperty('--w', w + 'px');
+  BRETT.style.setProperty('--M', M + 'px'); BRETT.style.setProperty('--mf', Math.max(13, Math.min(18, M * .028)) + 'px');
+  BRETT.style.setProperty('--fg', Math.round(Math.min(w * .5, 40)) + 'px');
+  FELDEL.forEach((e, i) => {
+    const r = feldRect(i), inn = e.querySelector('.rb-in');
+    Object.assign(e.style, {left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px'});
+    e.classList.toggle('ecke', i % 10 === 0);
+    if (!inn) return;
+    let iw = w, ih = c, rot = 0;
+    if (i % 10 === 0) rot = {0: 0, 20: 180, 30: 180}[i];
+    else rot = i < 10 ? 0 : i < 20 ? 90 : i < 30 ? 180 : -90;
+    if (i % 10 === 0) { inn.style.width = c * .96 + 'px'; inn.style.height = c * .96 + 'px'; inn.style.left = c * .02 + 'px'; inn.style.top = c * .02 + 'px'; inn.style.transform = `rotate(${rot}deg)`; return; }
+    Object.assign(inn.style, {width: iw + 'px', height: ih + 'px', left: (r.w - iw) / 2 + 'px', top: (r.h - ih) / 2 + 'px', transform: `rotate(${rot}deg)`});
+  });
+  // Seitenleiste in den freien Raum
+  const frei = Math.max(W - B - 2 * rand, H - B - 2 * rand) / 2;
+  if (frei >= 170) {
+    SEITE.hidden = false;
+    if (W > H) Object.assign(SEITE.style, {left: (x0 + B + 14) + 'px', top: '16px', width: (W - x0 - B - 30) + 'px', height: (H - 32) + 'px'});
+    else Object.assign(SEITE.style, {left: '16px', top: (y0 + B + 14) + 'px', width: (W - 32) + 'px', height: (H - y0 - B - 30) + 'px'});
+  } else SEITE.hidden = true;
+  figurenSetzen(true);
+}
+function feldRect(i) {
+  const {B, c, w} = GEO;
+  if (i === 0) return {x: B - c, y: B - c, w: c, h: c};
+  if (i === 10) return {x: 0, y: B - c, w: c, h: c};
+  if (i === 20) return {x: 0, y: 0, w: c, h: c};
+  if (i === 30) return {x: B - c, y: 0, w: c, h: c};
+  if (i < 10) return {x: B - c - i * w, y: B - c, w, h: c};
+  if (i < 20) return {x: 0, y: B - c - (i - 10) * w, w: c, h: w};
+  if (i < 30) return {x: c + (i - 21) * w, y: 0, w, h: c};
+  return {x: B - c, y: c + (i - 31) * w, w: c, h: w};
+}
+// Platz einer Figur auf einem Feld (k = laufende Nummer der Figuren dort)
+function figurPunkt(feld, k, anzahl, turm) {
+  const r = feldRect(feld), fg = Math.min(GEO.w * .5, 40);
+  if (feld === 10) {
+    if (turm) { // in der Zelle (rechts oben in der Ecke)
+      const cols = Math.min(anzahl, 2), rows = Math.ceil(anzahl / 2);
+      return {x: r.x + r.w * (.36 + .64 * ((k % cols) + .5) / cols), y: r.y + r.h * .64 * (Math.floor(k / cols) + .5) / rows};
+    }
+    const pts = [[.14, .36], [.14, .56], [.36, .9], [.58, .9], [.8, .9], [.14, .16]];
+    const p = pts[k % 6]; return {x: r.x + r.w * p[0], y: r.y + r.h * p[1]};
+  }
+  if (feld % 10 === 0) { // Ecken: Figuren am äußeren Rand, die Schrift bleibt frei
+    const x = r.x + r.w * (.2 + .3 * (k % 3)), unten = feld === 0, reihe = Math.floor(k / 3);
+    return {x, y: r.y + r.h * (unten ? .8 - reihe * .2 : .2 + reihe * .2)};
+  }
+  const cols = 2, rows = Math.ceil(Math.max(anzahl, 1) / cols);
+  const lang = r.h > r.w, gx = lang ? cols : rows, gy = lang ? rows : cols;
+  const ix = lang ? k % cols : Math.floor(k / cols), iy = lang ? Math.floor(k / cols) : k % cols;
+  const sx = Math.min(r.w / gx, fg * .9), sy = Math.min(r.h / gy, fg * .9);
+  return {x: r.x + r.w / 2 + (ix - (gx - 1) / 2) * sx, y: r.y + r.h / 2 + (iy - (gy - 1) / 2) * sy};
+}
+function anzeigePos(i) { return ANZEIGE[i] != null ? ANZEIGE[i] : S.spieler[i].pos; }
+function figurenSetzen(sofort) {
+  if (!S || !GEO) return;
+  const proFeld = {};
+  S.spieler.forEach((p, i) => { if (p.raus) return; const f = anzeigePos(i), key = f + (f === 10 && p.turm && ANZEIGE[i] == null ? 't' : ''); (proFeld[key] = proFeld[key] || []).push(i); });
+  Object.entries(proFeld).forEach(([key, liste]) => liste.forEach((i, k) => {
+    const turm = key.endsWith('t'), pt = figurPunkt(parseInt(key, 10), k, liste.length, turm), e = FIGEL[i];
+    if (sofort) e.style.transition = 'none';
+    e.style.left = pt.x + 'px'; e.style.top = pt.y + 'px';
+    if (sofort) { void e.offsetWidth; e.style.transition = ''; }
+  }));
+  S.spieler.forEach((p, i) => { FIGEL[i].hidden = p.raus; FIGEL[i].classList.toggle('dran', i === S.dran && !S.ende); });
+}
+addEventListener('resize', () => { if (S && BRETT) { layout(); zeichnen(); } });
+
+/* ---------- Zeichnen ---------- */
+function handelnde() {
+  const a = S.akt; if (!a) return S.dran;
+  if (a.t === 'zahlen') return a.von;
+  if (a.t === 'uebernahme' || a.t === 'gutschein' || a.t === 'kauf' || a.t === 'werk' || a.t === 'karte') return a.sp;
+  return S.dran;
+}
+function zeichnen() {
+  if (!S || !BRETT) return;
+  const ziele = new Set();
+  if (S.akt && S.akt.t === 'kauf') ziele.add(S.akt.feld);
+  if (S.akt && S.akt.t === 'auktion' && S.akt.art === 'feld') ziele.add(S.akt.feld);
+  if (S.akt && S.akt.t === 'uebernahme') ziele.add(S.akt.feld);
+  R.gutscheinFelder(S).forEach(f => ziele.add(f));
+  F.forEach((f, i) => {
+    const e = FELDEL[i]; e.classList.toggle('ziel', ziele.has(i));
+    if (!f.p) return;
+    const b = S.besitz[i], o = b.von != null ? S.spieler[b.von] : null;
+    e.classList.toggle('besessen', !!o); e.classList.toggle('hy', !!b.hy);
+    const band = e.querySelector('.rb-band');
+    if (o) { band.style.setProperty('--oc', o.farbe); band.textContent = b.hy ? 'Hypothek' : o.name; }
+    const bar = e.querySelector('.rb-bar');
+    if (bar) bar.innerHTML = b.h === 5 ? '<i class="rb-hotel"></i>' : '<i class="rb-haus"></i>'.repeat(b.h);
+    e.setAttribute('aria-label', `${f.n}${o ? ', gehört ' + o.name : ''}${b.h ? ', ' + (b.h === 5 ? 'Hotel' : b.h + ' Häuser') : ''}${b.hy ? ', Hypothek' : ''}`);
+  });
+  mitteZeichnen(); seiteZeichnen(); figurenSetzen(false);
+  if (MAN.fenster) verwaltenFuellen();
+}
+const sp = i => S.spieler[i];
+function geldText(n) { return `<span class="k-zahl">${euro(n)}</span>`; }
+
+function mitteZeichnen() {
+  const a = S.akt, wer = handelnde(), P = sp(wer);
+  const satz = statusSatz();
+  MITTE.innerHTML = `${flussSvg()}<div class="rb-titel">RHEINBARON</div>
+    <div class="rb-status" style="--pc:${P.farbe}"><div class="rb-fg">${figurSvg(P.figur, P.farbe)}</div><div><b class="rb-wer">${S.ende ? 'Spiel vorbei' : E(P.name)}</b><span class="rb-satz" id="rb-satz">${satz}</span></div></div>
+    <div class="rb-aktion" id="rb-aktion"></div>
+    ${S.ende || (a && (a.t === 'auktion' || a.t === 'karte')) ? '' : `<div class="rb-leiste"><button class="k-btn leise klein" id="rb-verwalten">Grundstücke</button><button class="k-btn leise klein" id="rb-handeln">Handeln</button></div>`}
+    ${a && a.t === 'auktion' ? '' : `<div class="rb-spieler" id="rb-spieler"></div>`}`;
+  const akt = MITTE.querySelector('#rb-aktion');
+  aktionBauen(akt);
+  const v = MITTE.querySelector('#rb-verwalten'), h = MITTE.querySelector('#rb-handeln');
+  if (v) v.onclick = () => verwalten(wer);
+  if (h) h.onclick = () => handelFenster(wer);
+  const liste = MITTE.querySelector('#rb-spieler');
+  if (liste) S.spieler.forEach((p, i) => {
+    const n = R.felderVon(S, i).length;
+    const x = [p.raus ? 'pleite' : null, p.turm && !p.raus ? 'im Hexenturm' : null, n ? `${n} Grundst.` : null, p.karten.length ? `${p.karten.length} Schlüssel` : null].filter(Boolean).join(' · ') || 'noch nichts';
+    const b = Kern.el('button', 'rb-sk' + (i === S.dran && !S.ende ? ' dran' : '') + (p.raus ? ' raus' : ''));
+    b.style.setProperty('--pc', p.farbe); b.dataset.sp = i;
+    b.innerHTML = `${figurSvg(p.figur, p.farbe)}<span style="min-width:0;flex:1"><span class="rb-skn">${E(p.name)}</span><span class="rb-skg">${euro(p.geld)}</span><span class="rb-skx">${x}</span></span>`;
+    b.onclick = () => verwalten(i);
+    liste.appendChild(b);
+  });
+}
+function flussSvg() {
+  return `<svg id="rb-fluss" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+   <path d="M30 -2C36 14 22 26 30 40S44 58 38 72S30 90 36 102" stroke="rgba(108,199,216,.10)" stroke-width="9" fill="none"/>
+   <path d="M102 44C88 40 78 48 66 46S46 50 36 53" stroke="rgba(108,199,216,.08)" stroke-width="4.5" fill="none"/>
+   <path d="M-2 22C10 26 18 20 28 26" stroke="rgba(108,199,216,.07)" stroke-width="5" fill="none"/></svg>`;
+}
+function statusSatz() {
+  const a = S.akt;
+  if (S.ende) return S.ende.art === 'zeit' ? 'Die Zeit ist um – das Vermögen entscheidet.' : `${E(sp(S.ende.sieger[0]).name)} hat gewonnen.`;
+  if (!a) return '';
+  const P = sp(handelnde());
+  switch (a.t) {
+    case 'wurf': return S.pasch > 0 ? 'Pasch! Würfle noch einmal.' : 'Würfeln';
+    case 'turm': return `sitzt im Hexenturm · Versuch ${P.versuche + 1} von 3`;
+    case 'kauf': return `${E(F[a.feld].n)}: Kaufen für ${euro(F[a.feld].p)} oder versteigern`;
+    case 'auktion': return a.art === 'feld' ? `Versteigerung: ${E(F[a.feld].n)}` : `Versteigerung: das letzte ${a.art === 'hotel' ? 'Hotel' : 'Haus'} der Bank`;
+    case 'zahlen': {
+      const an = a.an != null ? sp(a.an).name : 'die Bank';
+      const was = a.grund === 'miete' ? `Miete ${euro(a.betrag)} an ${E(an)}` : a.grund === 'steuer' ? `${E(F[a.feld].n)}: ${euro(a.betrag)} an die Bank`
+        : a.grund === 'turm' ? `Hexenturm: ${euro(a.betrag)} an die Bank` : a.grund === 'zinsen' ? `Zinsen: ${euro(a.betrag)} an die Bank` : `Zahle ${euro(a.betrag)} an ${E(an)}`;
+      return P.geld >= a.betrag ? was : `${was} – dir fehlen ${euro(a.betrag - P.geld)}`;
+    }
+    case 'werk': return `Würfle die Miete aus: Augen × ${a.faktor} an ${E(sp(a.an).name)}`;
+    case 'karte': return `zieht eine ${R.DECKNAME[a.deck]}karte`;
+    case 'uebernahme': return `übernimmt ${E(F[a.feld].n)} mit Hypothek: ablösen oder 10 % Zinsen zahlen`;
+    case 'gutschein': return `Tippe eine leuchtende Straße für das ersteigerte ${a.art === 'hotel' ? 'Hotel' : 'Haus'}`;
+    case 'fertig': return a.nochmal ? 'Pasch! Noch einmal würfeln' : 'Zug beenden';
+  }
+  return '';
+}
+function knopf(text, art, fn, aus) {
+  const b = Kern.el('button', 'k-btn ' + (art || ''), text);
+  if (aus) b.disabled = true; b.onclick = fn; return b;
+}
+function wuerfelReihe(wert) {
+  const r = Kern.el('div', 'rb-wuerfel');
+  const w = wert || S.wurf; if (w) { Kern.wuerfelSetzen(WUERFEL[0], w[0]); Kern.wuerfelSetzen(WUERFEL[1], w[1]); }
+  const gr = Math.round(Math.max(44, Math.min(70, GEO.M * .11)));
+  WUERFEL.forEach(d => d.style.setProperty('--ww', gr + 'px'));
+  r.append(...WUERFEL); return r;
+}
+function aktionBauen(box) {
+  const a = S.akt, wer = handelnde(), P = sp(wer);
+  const kn = Kern.el('div', 'rb-knoepfe'), leise = t => Kern.el('div', 'rb-leise', t);
+  if (S.ende) {
+    box.append(leise(S.ende.art === 'zeit' ? 'Nach Vermögen gewertet.' : 'Alle anderen sind pleite.'), kn);
+    kn.append(knopf('Wertung', '', endeFenster), knopf('Nochmal', 'leise', nochmal), knopf('Neues Spiel', 'leise', startseite));
+    return;
+  }
+  switch (a.t) {
+    case 'wurf':
+      box.append(wuerfelReihe(), kn);
+      kn.append(knopf('Würfeln', 'gross', () => wuerfelnUndZiehen()));
+      break;
+    case 'turm':
+      box.append(wuerfelReihe(), kn);
+      kn.append(knopf('Pasch versuchen', '', () => wuerfelnUndZiehen(R.turmWuerfeln)));
+      kn.append(knopf(`${euro(R.TURM_STRAFE)} zahlen`, 'leise', () => tu(() => R.turmZahlen(S)), P.geld < R.TURM_STRAFE));
+      if (P.karten.length) kn.append(knopf('Schlüssel nutzen', 'leise', () => tu(() => R.turmKarte(S))));
+      break;
+    case 'kauf': {
+      box.append(urkundeEl(a.feld, true), kn);
+      const f = F[a.feld], fehlt = f.p - P.geld;
+      kn.append(knopf(`Kaufen · ${euro(f.p)}`, 'gut', () => tu(() => { R.kaufen(S); Kern.ton('punkt'); }), fehlt > 0), knopf('Versteigern', 'leise', () => tu(() => R.versteigern(S))));
+      if (fehlt > 0) box.append(leise(`Dir fehlen ${euro(fehlt)}. Über „Grundstücke“ kannst du vorher Geld beschaffen.`));
+      break;
+    }
+    case 'zahlen': {
+      const kann = P.geld >= a.betrag;
+      const b = Kern.el('div', 'rb-betrag', euro(a.betrag)); box.append(b, kn);
+      kn.append(knopf(`${euro(a.betrag)} zahlen`, kann ? 'gross' : '', () => tu(() => { R.zahlen(S); Kern.ton('legen'); }), !kann));
+      if (!kann) {
+        kn.append(knopf('Geld beschaffen', 'leise', () => verwalten(a.von)));
+        if (R.kannBankrott(S)) kn.append(knopf('Aufgeben', 'gefahr', aufgeben));
+        box.append(leise(R.kannBankrott(S) ? 'Auch mit allen Verkäufen und Hypotheken reicht es nicht. Du kannst noch handeln – oder aufgeben.' : 'Verkaufe Gebäude oder nimm Hypotheken auf, dann zahle.'));
+      } else if (a.grund === 'miete' && a.doppelt) box.append(leise('Doppelte Bahnhofsmiete wegen der Karte.'));
+      break;
+    }
+    case 'werk':
+      box.append(wuerfelReihe(S.werkWurf), kn);
+      kn.append(knopf('Würfeln', 'gross', () => wuerfelnUndZiehen(R.werkWuerfeln)));
+      break;
+    case 'karte': {
+      const k = Kern.el('div', 'rb-karte');
+      k.style.setProperty('--kc', a.deck === 'E' ? '#c86a1e' : '#2a7f8f');
+      k.innerHTML = `<header>${R.DECKNAME[a.deck]}</header><p>${E(R.KARTEN[a.id].text)}</p>`;
+      box.append(k, kn); kn.append(knopf('OK', 'gross', () => tu(() => R.karteOk(S))));
+      break;
+    }
+    case 'uebernahme': {
+      box.append(urkundeEl(a.feld, false), kn);
+      const ab = R.abloesePreis(a.feld), zi = R.zinsen(a.feld);
+      kn.append(knopf(`Ablösen · ${euro(ab)}`, '', () => tu(() => R.uebernehmen(S, 'abloesen')), P.geld < ab), knopf(`Nur Zinsen · ${euro(zi)}`, 'leise', () => tu(() => R.uebernehmen(S, 'zinsen'))));
+      break;
+    }
+    case 'gutschein': {
+      const fl = R.gutscheinFelder(S);
+      box.append(leise(fl.length ? fl.map(f => E(F[f].n)).join(' · ') : 'Es gibt keinen erlaubten Platz mehr.'), kn);
+      if (!fl.length) kn.append(knopf('Verzichten', 'leise', () => tu(() => R.gutscheinVerzichten(S))));
+      break;
+    }
+    case 'auktion': auktionBauen(box); break;
+    case 'fertig': {
+      box.append(wuerfelReihe());
+      const zuletzt = S.log.slice(-2).map(E).join('<br>');
+      box.append(leise(zuletzt), kn);
+      const naechste = (() => { let i = S.dran; for (let k = 0; k < S.spieler.length; k++) { i = (i + 1) % S.spieler.length; if (!sp(i).raus) return i; } return i; })();
+      if (a.nochmal) kn.append(knopf('Noch einmal würfeln', 'gross', () => { if (BUSY) return; tu(() => R.weiter(S)).then(() => wuerfelnUndZiehen()); }));
+      else kn.append(knopf(`Zug beenden · ${E(sp(naechste).name)} ist dran`, 'gross', () => tu(() => { R.weiter(S); Kern.ton('tipp'); })));
+      break;
+    }
+  }
+}
+function urkundeEl(f, kurz) {
+  const d = Kern.el('div', 'rb-urkunde'); d.innerHTML = urkundeHtml(f, kurz); return d;
+}
+function urkundeHtml(f, kurz) {
+  const x = F[f], b = S.besitz[f], o = b && b.von != null ? sp(b.von) : null;
+  const gc = x.g ? G[x.g].farbe : (x.t === 'bahnhof' ? '#2a3a40' : '#3b5560'), gi = x.g && hellGruppe(x.g) ? '#1b2a2f' : '#fff';
+  const unter = x.g ? G[x.g].name : x.t === 'bahnhof' ? 'Bahnhof' : 'Werk';
+  let z = '';
+  const an = (cond) => cond ? ' class="an"' : '';
+  if (x.t === 'strasse') {
+    const voll = o && R.hatGruppe(S, b.von, x.g);
+    const rows = [['Miete', x.m[0], b.h === 0 && !voll], ['Ganze Farbgruppe', x.m[0] * 2, b.h === 0 && voll], ['1 Haus', x.m[1], b.h === 1], ['2 Häuser', x.m[2], b.h === 2], ['3 Häuser', x.m[3], b.h === 3], ['4 Häuser', x.m[4], b.h === 4], ['Hotel', x.m[5], b.h === 5]];
+    if (kurz) z = `<span>Miete</span><b>${euro(x.m[0])}</b><span>Ganze Farbgruppe</span><b>${euro(x.m[0] * 2)}</b><span>1 bis 4 Häuser</span><b>${x.m.slice(1, 5).join(' · ')} €</b><span>Hotel</span><b>${euro(x.m[5])}</b>`;
+    else z = rows.map(([t, v, akt]) => `<span${an(o && akt)}>${t}</span><b${an(o && akt)}>${euro(v)}</b>`).join('');
+    z += `<span class="t"></span><span>Haus oder Hotel je</span><b>${euro(x.h)}</b>`;
+  } else if (x.t === 'bahnhof') {
+    const n = o ? R.BAHNHOEFE.filter(q => S.besitz[q].von === b.von).length : 0;
+    z = [1, 2, 3, 4].map(k => `<span${an(n === k)}>${k} Bahnh${k > 1 ? 'öfe' : 'of'}</span><b${an(n === k)}>${euro(R.BAHN_MIETE[k])}</b>`).join('');
+  } else {
+    const n = o ? R.WERKE.filter(q => S.besitz[q].von === b.von).length : 0;
+    z = `<span${an(n === 1)}>Ein Werk</span><b${an(n === 1)}>Augen × 4</b><span${an(n === 2)}>Beide Werke</span><b${an(n === 2)}>Augen × 10</b>`;
+  }
+  if (!kurz) z += `<span class="t"></span><span>Hypothek</span><b>${euro(x.hy)}</b><span>Ablösen</span><b>${euro(R.abloesePreis(f))}</b>`;
+  const stand = o ? `<span class="t"></span><span>Besitz</span><b>${E(o.name)}${b.hy ? ' · Hypothek' : ''}${b.h ? ' · ' + (b.h === 5 ? 'Hotel' : b.h + (b.h > 1 ? ' Häuser' : ' Haus')) : ''}</b>` : (kurz ? '' : `<span class="t"></span><span>Besitz</span><b>frei · ${euro(x.p)}</b>`);
+  return `<header style="--gc:${gc};--gi:${gi}"><small>${E(unter)}</small><b>${E(x.n)}</b></header><div class="rb-zeilen">${kurz ? `<span>Kaufpreis</span><b>${euro(x.p)}</b>` : ''}${z}${stand}</div>${!kurz && x.ort ? `<div class="rb-ort">${E(x.ort)}</div>` : ''}`;
+}
+function auktionBauen(box) {
+  const a = S.akt;
+  const kopf = Kern.el('div', 'rb-auk-kopf');
+  const min = R.mindestGebot(a);
+  kopf.innerHTML = a.hoechster == null ? `<span>Noch kein Gebot · ab</span><b>${euro(min)}</b>` : `<span>Höchstgebot</span><b>${euro(a.gebot)}</b><span>von ${E(sp(a.hoechster).name)}</span>`;
+  const liste = Kern.el('div', 'rb-auk');
+  if (a.art === 'feld') {
+    const f = F[a.feld];
+    box.append(Object.assign(Kern.el('div', 'rb-leise', `${E(f.n)} · Listenpreis ${euro(f.p)}${f.t === 'strasse' ? ` · Miete ab ${euro(f.m[0])}` : ''} – alle bieten, wer aussteigt, ist raus.`)));
+  } else box.append(Kern.el('div', 'rb-leise', 'Wer ersteigert, zahlt das Gebot an die Bank und setzt das Gebäude sofort.'));
+  box.append(kopf, liste);
+  a.teilnehmer.forEach(i => {
+    const p = sp(i), raus = a.raus.includes(i), hoch = a.hoechster === i;
+    const z = Kern.el('div', 'rb-auk-z' + (hoch ? ' hoch' : '') + (raus ? ' raus' : '')); z.style.setProperty('--pc', p.farbe); z.dataset.sp = i;
+    z.innerHTML = `${figurSvg(p.figur, p.farbe)}<span class="n"><b>${E(p.name)}</b><small>${euro(p.geld)}${hoch ? ' · bietet am meisten' : raus ? ' · ausgestiegen' : ''}</small></span>`;
+    if (!raus && !hoch) {
+      const stufen = a.hoechster == null ? [min, 50, 100] : [a.gebot + 1, a.gebot + 10, a.gebot + 50];
+      [...new Set(stufen)].forEach((v, k) => {
+        const b = Kern.el('button', 'k-btn' + (k ? ' leise' : ''), euro(v)); b.dataset.gebot = v;
+        if (v > p.geld) b.disabled = true;
+        Kern.tap(b, () => tu(() => { R.bieten(S, i, v); Kern.ton('stein'); }));
+        z.appendChild(b);
+      });
+      const r = Kern.el('button', 'k-btn leise', 'Raus'); r.dataset.raus = i;
+      Kern.tap(r, () => tu(() => R.aussteigen(S, i))); z.appendChild(r);
+    }
+    liste.appendChild(z);
+  });
+}
+function seiteZeichnen() {
+  if (SEITE.hidden) return;
+  const rest = S.zeit.limit ? Math.max(0, S.zeit.limit - S.zeit.gespielt) : null;
+  const zeit = rest != null ? `<div class="rb-box"><h3>Zeitlimit</h3><div style="font:800 26px var(--f-disp);color:var(--ink)" class="k-zahl" id="rb-rest">${Math.ceil(rest / 60000)} Min.</div><div>danach zählt das Vermögen</div></div>` : '';
+  const quer = innerWidth > innerHeight;
+  const n = quer ? 18 : 5;
+  SEITE.style.flexDirection = quer ? 'column' : 'row';
+  SEITE.innerHTML = `${quer ? '<div style="height:44px"></div>' : ''}<div class="rb-box" style="${quer ? '' : 'flex:0 0 auto'}"><h3>Bank</h3><div class="rb-bank"><span><i></i>${S.bank.haeuser} Häuser</span><span><i class="h"></i>${S.bank.hotels} Hotels</span></div></div>${zeit}
+    <div class="rb-box" style="flex:1;min-height:0;overflow:hidden"><h3>Verlauf</h3><div class="rb-log">${S.log.slice(-n).reverse().map(t => `<div>${E(t)}</div>`).join('')}</div></div>`;
+}
+
+/* ---------- Handlungen ---------- */
+async function tu(fn) {
+  if (BUSY || !S) return; BUSY = true;
+  const vorher = S.spieler.map(p => p.pos);
+  try { fn(); }
+  catch (e) { BUSY = false; if (e.regel) { Kern.hinweis(e.message); Kern.ton('fehler'); return; } throw e; }
+  try { await animieren(vorher); } finally { BUSY = false; }
+  speichern(); zeichnen();
+  S.anim.filter(an => an.art === 'geld').forEach(geldBlitz);
+  if (S.ende) spielVorbei();
+}
+async function wuerfelnUndZiehen(aktion = R.wuerfeln) {
+  if (BUSY) return;
+  const w = wurf();
+  BUSY = true; Kern.ton('wuerfel');
+  await Promise.all([Kern.wuerfelRollen(WUERFEL[0], w[0]), Kern.wuerfelRollen(WUERFEL[1], w[1])]);
+  BUSY = false;
+  await tu(() => aktion(S, w));
+}
+async function animieren(vorher) {
+  ANZEIGE = vorher.slice();
+  for (const an of S.anim) {
+    if (an.art === 'zug') {
+      const schritt = Math.sign(an.n);
+      for (let k = 0; k < Math.abs(an.n); k++) {
+        ANZEIGE[an.sp] = ((ANZEIGE[an.sp] + schritt) % 40 + 40) % 40; figurenSetzen(false);
+        if ((k & 1) === 0) Kern.ton('zeit');
+        await Kern.warte(115);
+      }
+      await Kern.warte(120);
+    } else if (an.art === 'sprung') {
+      FIGEL[an.sp].classList.add('weit'); ANZEIGE[an.sp] = null; figurenSetzen(false); Kern.ton('gong');
+      await Kern.warte(500); FIGEL[an.sp].classList.remove('weit');
+      ANZEIGE[an.sp] = an.nach;
+    } else if (an.art === 'los') Kern.ton('punkt');
+  }
+  ANZEIGE = [];
+}
+function geldBlitz(an) {
+  const zeige = (i, plus) => {
+    const k = MITTE.querySelector(`.rb-sk[data-sp="${i}"]`); if (!k) return;
+    const d = Kern.el('span', 'rb-delta' + (plus ? '' : ' minus'), (plus ? '+' : '−') + euro(an.betrag).replace('−', ''));
+    k.appendChild(d); setTimeout(() => d.remove(), 1900);
+  };
+  setTimeout(() => { if (an.von != null) zeige(an.von, false); if (an.an != null) zeige(an.an, true); }, 30);
+}
+function feldTippen(i) {
+  if (S && S.akt && S.akt.t === 'gutschein' && R.gutscheinFelder(S).includes(i)) { tu(() => { R.gutscheinSetzen(S, i); Kern.ton('legen'); }); return; }
+  const f = F[i];
+  if (f.p) { Kern.fenster(`<div style="display:grid;place-items:center">${'<div class="rb-urkunde" style="font-size:17px;width:100%;max-width:26em">' + urkundeHtml(i, false) + '</div>'}</div>`); return; }
+  const text = {
+    start: `Wer über „Leinen los“ zieht oder darauf landet, bekommt ${euro(R.LOS_GELD)}.`,
+    turm: `Im Hexenturm sitzt, wer auf „Ab in den Hexenturm“ kommt, eine Karte zieht oder dreimal hintereinander einen Pasch würfelt. Wer nur hier landet, ist zu Besuch.`,
+    pause: 'Kleine Pause am Ufer. Hier passiert nichts – auch kein Geld.',
+    abInTurm: 'Direkt in den Hexenturm, ohne über „Leinen los“ zu ziehen.',
+    steuer: `Zahle ${euro(f.betrag || 0)} an die Bank.`,
+    ereignis: 'Ziehe eine Ereigniskarte und führe sie sofort aus.',
+    gemeinschaft: 'Ziehe eine Gemeinschaftskarte und führe sie sofort aus.'
+  }[f.t];
+  Kern.fenster(`<h2>${E(f.n)}</h2><p>${text}</p>`);
+}
+async function aufgeben() {
+  const a = S.akt, P = sp(a.von);
+  // eigene Rückfrage (Kern.frage liefert beim Knopf null, siehe Bericht)
+  const box = Kern.el('div');
+  box.innerHTML = `<h2>${E(P.name)} gibt auf?</h2><p>${a.an != null ? `Alles, was ${E(P.name)} besitzt, geht an ${E(sp(a.an).name)}.` : 'Die Grundstücke gehen an die Bank und werden einzeln versteigert.'}</p>`;
+  const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
+  const fe = Kern.fenster(box);
+  k.append(knopf('Abbrechen', 'leise', () => fe.schliessen()), knopf('Aufgeben', 'gefahr', () => { fe.schliessen(); tu(() => { R.bankrott(S); Kern.ton('fehler'); }); }));
+}
+
+/* ---------- Grundstücke verwalten ---------- */
+function verwalten(i) {
+  if (!S || S.ende) return;
+  if (!R.verwaltenErlaubt(S)) { Kern.hinweis('Erst die Versteigerung bzw. Karte abschließen.'); return; }
+  MAN.sp = i;
+  const fe = Kern.fenster(Kern.el('div'), {breit: true, beimSchliessen: () => { MAN.fenster = null; zeichnen(); }});
+  MAN.fenster = fe; verwaltenFuellen();
+}
+function verwaltenFuellen() {
+  const box = MAN.fenster.inhalt, i = MAN.sp, P = sp(i);
+  if (P.raus) { MAN.sp = R.aktive(S)[0]; return verwaltenFuellen(); }
+  const roll = MAN.fenster.fenster.scrollTop;
+  const a = S.akt;
+  let html = `<h2>Grundstücke</h2><div class="rb-fwahl">${R.aktive(S).map(k => `<button data-wahl="${k}" aria-pressed="${k === i}" style="--pc:${sp(k).farbe}">${figurSvg(sp(k).figur, sp(k).farbe)}${E(sp(k).name)}</button>`).join('')}</div>
+    <p class="rb-info">Bargeld <b class="k-zahl" style="color:var(--ink)">${euro(P.geld)}</b> · Bank: ${S.bank.haeuser} Häuser, ${S.bank.hotels} Hotels${P.karten.length ? ` · ${P.karten.length} Turmschlüssel` : ''}</p>`;
+  if (a && a.t === 'zahlen' && a.von === i && P.geld < a.betrag) html += `<div class="rb-schuld">Offen: ${euro(a.betrag)} an ${E(a.an != null ? sp(a.an).name : 'die Bank')} – dir fehlen noch <b>${euro(a.betrag - P.geld)}</b>.</div>`;
+  const meine = R.felderVon(S, i);
+  if (!meine.length) html += '<p class="rb-leer">Noch keine Grundstücke.</p>';
+  const gruppen = [...Object.keys(G).map(g => ({g, felder: G[g].felder})), {g: null, name: 'Bahnhöfe', farbe: '#9db8b8', felder: R.BAHNHOEFE}, {g: null, name: 'Werke', farbe: '#9db8b8', felder: R.WERKE}];
+  gruppen.forEach(gr => {
+    const da = gr.felder.filter(f => S.besitz[f].von === i);
+    if (!da.length) return;
+    const name = gr.g ? G[gr.g].name : gr.name, farbe = gr.g ? G[gr.g].farbe : gr.farbe;
+    const voll = gr.g && R.hatGruppe(S, i, gr.g);
+    html += `<div class="rb-gruppe" style="--gc:${farbe}"><h4>${E(name)}${gr.g && !voll ? ` · ${da.length} von ${gr.felder.length}` : ''}</h4>`;
+    da.forEach(f => {
+      const b = S.besitz[f], x = F[f];
+      const stand = [b.h ? (b.h === 5 ? 'Hotel' : `${b.h} ${b.h > 1 ? 'Häuser' : 'Haus'}`) : '', b.hy ? 'Hypothek' : '', `Miete ${x.t === 'werk' ? 'Augen × ' + R.werkFaktor(S, i) : euro(R.miete(S, f))}`].filter(Boolean).join(' · ');
+      html += `<div class="rb-zeile"><span class="nm">${E(x.n)}<small>${stand}</small></span>`;
+      if (x.t === 'strasse' && voll) {
+        const w = R.warumNichtBauen(S, i, f);
+        if (!w) html += `<button class="k-btn" data-bauen="${f}">${b.h === 4 ? '+ Hotel' : '+ Haus'} ${euro(x.h)}</button>`;
+        else if (b.h < 5 && !b.hy && !/gleichmäßig|belastet/.test(w)) html += `<span class="rb-leer" style="font-size:14px">${E(w)}</span>`;
+        if (!R.warumNichtVerkaufen(S, i, f)) html += `<button class="k-btn leise" data-verkauf="${f}">− verkaufen +${euro(x.h / 2)}</button>`;
+      }
+      if (!R.warumNichtHypothek(S, i, f)) html += `<button class="k-btn leise" data-hypo="${f}">Hypothek +${euro(x.hy)}</button>`;
+      if (b.hy) html += `<button class="k-btn leise" data-abl="${f}" ${P.geld < R.abloesePreis(f) ? 'disabled' : ''}>Ablösen ${euro(R.abloesePreis(f))}</button>`;
+      html += `</div>`;
+    });
+    if (gr.g && voll && R.gruppeBebaut(S, gr.g) && gr.felder.some(f => R.warumNichtVerkaufen(S, i, f) && S.besitz[f].h === 5))
+      html += `<div class="rb-zeile"><span class="nm"><small>Für ein Hotel fehlen der Bank 4 Häuser zum Tausch.</small></span><button class="k-btn leise" data-alle="${gr.g}">Alle Gebäude verkaufen +${euro(R.gruppeErloes(S, gr.g))}</button></div>`;
+    html += `</div>`;
+  });
+  html += `<div class="k-knoepfe"><button class="k-btn leise" data-handel="1">Handeln</button><button class="k-btn" data-zu="1">Fertig</button></div>`;
+  box.innerHTML = html;
+  MAN.fenster.fenster.scrollTop = roll;
+  box.querySelectorAll('[data-wahl]').forEach(b => b.onclick = () => { MAN.sp = +b.dataset.wahl; verwaltenFuellen(); });
+  const mach = fn => () => { try { fn(); Kern.ton('legen'); speichern(); zeichnen(); } catch (e) { if (e.regel) { Kern.hinweis(e.message); Kern.ton('fehler'); } else throw e; } };
+  box.querySelectorAll('[data-bauen]').forEach(b => b.onclick = () => bauen(i, +b.dataset.bauen));
+  box.querySelectorAll('[data-verkauf]').forEach(b => b.onclick = mach(() => R.hausVerkaufen(S, i, +b.dataset.verkauf)));
+  box.querySelectorAll('[data-hypo]').forEach(b => b.onclick = mach(() => R.hypothek(S, i, +b.dataset.hypo)));
+  box.querySelectorAll('[data-abl]').forEach(b => b.onclick = mach(() => R.abloesen(S, i, +b.dataset.abl)));
+  box.querySelectorAll('[data-alle]').forEach(b => b.onclick = mach(() => R.gruppeVerkaufen(S, i, b.dataset.alle)));
+  box.querySelector('[data-zu]').onclick = () => MAN.fenster.schliessen();
+  box.querySelector('[data-handel]').onclick = () => { MAN.fenster.schliessen(); handelFenster(i); };
+}
+// Bauen mit Mangel-Prüfung (A8)
+function bauen(i, f) {
+  const hotel = S.besitz[f].h === 4, art = hotel ? 'hotel' : 'haus';
+  const vorrat = hotel ? S.bank.hotels : S.bank.haeuser;
+  const andere = vorrat === 1 ? R.mangelInteressenten(S, i, art) : [];
+  const kaufen = () => { try { R.hausKaufen(S, i, f); Kern.ton('legen'); speichern(); zeichnen(); } catch (e) { if (e.regel) { Kern.hinweis(e.message); Kern.ton('fehler'); } else throw e; } };
+  if (!andere.length) { kaufen(); return; }
+  const wahl = new Set();
+  const box = Kern.el('div');
+  box.innerHTML = `<h2>Das letzte ${hotel ? 'Hotel' : 'Haus'}</h2><p>Die Bank hat nur noch eins. Möchte noch jemand eins kaufen? Dann wird es versteigert (ab ${euro(R.MIN_GEBOT)}).</p><div class="rb-fwahl">${andere.map(k => `<button data-k="${k}" aria-pressed="false" style="--pc:${sp(k).farbe}">${figurSvg(sp(k).figur, sp(k).farbe)}${E(sp(k).name)} möchte auch</button>`).join('')}</div><div class="k-knoepfe"><button class="k-btn leise" data-niemand="1">Niemand – ${E(sp(i).name)} kauft</button><button class="k-btn" data-auk="1" disabled>Versteigern</button></div>`;
+  const fe = Kern.fenster(box);
+  box.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const k = +b.dataset.k; wahl.has(k) ? wahl.delete(k) : wahl.add(k); b.setAttribute('aria-pressed', wahl.has(k)); box.querySelector('[data-auk]').disabled = !wahl.size; });
+  box.querySelector('[data-niemand]').onclick = () => { fe.schliessen(); kaufen(); };
+  box.querySelector('[data-auk]').onclick = () => { fe.schliessen(); if (MAN.fenster) MAN.fenster.schliessen(); tu(() => R.mangelAuktion(S, art, [i, ...wahl])); };
+}
+
+/* ---------- Handeln ---------- */
+function handelFenster(a) {
+  if (!S || S.ende) return;
+  if (!R.verwaltenErlaubt(S)) { Kern.hinweis('Erst die Versteigerung bzw. Karte abschließen.'); return; }
+  const akt = R.aktive(S);
+  const H = {a, b: akt.find(k => k !== a), gA: {felder: new Set(), karten: new Set(), geld: 0}, gB: {felder: new Set(), karten: new Set(), geld: 0}, okA: false, okB: false};
+  const fe = Kern.fenster(Kern.el('div'), {breit: true, beimSchliessen: () => zeichnen()});
+  const neuFuellen = () => {
+    const box = fe.inhalt;
+    const seite = (wer, g, key) => {
+      const P = sp(wer);
+      const felder = R.felderVon(S, wer);
+      return `<div class="rb-seiteh" style="--pc:${P.farbe}"><h4>${E(P.name)} gibt</h4>
+        <div class="rb-chips">${felder.length ? felder.map(f => `<button data-f="${key}:${f}" aria-pressed="${g.felder.has(f)}" ${R.handelbar(S, wer, f) ? '' : 'disabled title="Gebäude in der Farbgruppe"'} style="--gc:${gruppeFarbe(f)}"><i></i>${E(F[f].n)}${S.besitz[f].hy ? ' (Hyp.)' : ''}</button>`).join('') : '<span class="rb-leer">keine Grundstücke</span>'}
+        ${P.karten.map((k, n) => `<button data-c="${key}:${k}" aria-pressed="${g.karten.has(k)}">Turmschlüssel</button>`).join('')}</div>
+        <div class="rb-geld"><button data-g="${key}:-50">−50</button><button data-g="${key}:-10">−10</button><input data-gi="${key}" inputmode="numeric" value="${g.geld}" aria-label="Betrag"><button data-g="${key}:10">+10</button><button data-g="${key}:50">+50</button><span class="rb-leer" style="font-size:14px">von ${euro(P.geld)}</span></div></div>`;
+    };
+    const w = R.warumNichtHandeln(S, plan());
+    box.innerHTML = `<h2>Handeln</h2><div class="rb-fwahl">${akt.map(k => `<button data-pa="${k}" aria-pressed="${k === H.a}" style="--pc:${sp(k).farbe}">${figurSvg(sp(k).figur, sp(k).farbe)}${E(sp(k).name)}</button>`).join('')}</div>
+      <div class="rb-fwahl" style="margin-top:-6px"><span style="align-self:center;color:var(--ink2)">mit</span>${akt.filter(k => k !== H.a).map(k => `<button data-pb="${k}" aria-pressed="${k === H.b}" style="--pc:${sp(k).farbe}">${figurSvg(sp(k).figur, sp(k).farbe)}${E(sp(k).name)}</button>`).join('')}</div>
+      <div class="rb-handel">${seite(H.a, H.gA, 'A')}${seite(H.b, H.gB, 'B')}</div>
+      <p class="rb-leer" style="margin-top:10px">${w && w !== 'Es wird nichts getauscht.' ? E(w) : 'Belastete Grundstücke: Wer sie bekommt, löst sofort ab oder zahlt 10 % Zinsen.'}</p>
+      <div class="rb-ok"><button class="k-btn leise" data-ok="A" aria-pressed="${H.okA}" ${w ? 'disabled' : ''}>${E(sp(H.a).name)} ist einverstanden</button><button class="k-btn leise" data-ok="B" aria-pressed="${H.okB}" ${w ? 'disabled' : ''}>${E(sp(H.b).name)} ist einverstanden</button></div>`;
+    const geaendert = () => { H.okA = H.okB = false; neuFuellen(); };
+    box.querySelectorAll('[data-pa]').forEach(b => b.onclick = () => { H.a = +b.dataset.pa; if (H.b === H.a) H.b = akt.find(k => k !== H.a); leeren(); geaendert(); });
+    box.querySelectorAll('[data-pb]').forEach(b => b.onclick = () => { H.b = +b.dataset.pb; H.gB = {felder: new Set(), karten: new Set(), geld: 0}; geaendert(); });
+    box.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { const [k, f] = b.dataset.f.split(':'); const g = k === 'A' ? H.gA : H.gB; g.felder.has(+f) ? g.felder.delete(+f) : g.felder.add(+f); geaendert(); });
+    box.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { const [k, c] = b.dataset.c.split(':'); const g = k === 'A' ? H.gA : H.gB; g.karten.has(c) ? g.karten.delete(c) : g.karten.add(c); geaendert(); });
+    box.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const [k, d] = b.dataset.g.split(':'); const g = k === 'A' ? H.gA : H.gB, max = sp(k === 'A' ? H.a : H.b).geld; g.geld = Math.max(0, Math.min(max, g.geld + +d)); geaendert(); });
+    box.querySelectorAll('[data-gi]').forEach(inp => inp.onchange = () => { const k = inp.dataset.gi, g = k === 'A' ? H.gA : H.gB, max = sp(k === 'A' ? H.a : H.b).geld; g.geld = Math.max(0, Math.min(max, parseInt(inp.value, 10) || 0)); geaendert(); });
+    box.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => {
+      if (b.dataset.ok === 'A') H.okA = !H.okA; else H.okB = !H.okB;
+      if (H.okA && H.okB) { fe.schliessen(); tu(() => { R.handeln(S, plan()); Kern.ton('punkt'); Kern.hinweis('Handel abgeschlossen'); }); return; }
+      neuFuellen();
+    });
+  };
+  const leeren = () => { H.gA = {felder: new Set(), karten: new Set(), geld: 0}; H.gB = {felder: new Set(), karten: new Set(), geld: 0}; };
+  const plan = () => ({a: H.a, b: H.b, gibA: {felder: [...H.gA.felder], karten: [...H.gA.karten], geld: H.gA.geld}, gibB: {felder: [...H.gB.felder], karten: [...H.gB.karten], geld: H.gB.geld}});
+  neuFuellen();
+}
+
+/* ---------- Spielende ---------- */
+function spielVorbei() {
+  Kern.ton('sieg'); Kern.feier(); endeFenster();
+}
+function endeFenster() {
+  const e = S.ende; if (!e) return;
+  const namen = e.sieger.map(i => sp(i).name).join(' und ');
+  const zeilen = e.wertung.map((w, k) => `<span>${k + 1}.</span>${figurSvg(sp(w.sp).figur, sp(w.sp).farbe)}<b>${E(sp(w.sp).name)}</b>${w.raus ? `<span class="rb-leer" style="grid-column:span 4">pleite in Zug ${w.rausZug}</span>` : `<span class="k-zahl">${euro(w.geld)}</span><span class="k-zahl">+ ${euro(w.grund)}</span><span class="k-zahl">+ ${euro(w.gebaeude)}</span><b class="k-zahl">= ${euro(w.summe)}</b>`}`).join('');
+  const box = Kern.el('div');
+  box.innerHTML = `<h2>${E(namen)} ${e.sieger.length > 1 ? 'gewinnen' : 'gewinnt'}!</h2><p>${e.art === 'zeit' ? 'Die Zeit ist um. Gewertet wird das Vermögen.' : 'Alle anderen sind pleite.'}</p>
+    <div class="rb-wert"><span></span><span></span><span></span><span class="k">Bargeld</span><span class="k">Grund</span><span class="k">Gebäude</span><span class="k">Vermögen</span>${zeilen}</div>
+    <p class="rb-leer">Grund: Kaufpreis, belastete Grundstücke zum Hypothekenwert. Gebäude: Kaufpreis, ein Hotel zählt fünf Hauspreise.</p>`;
+  const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
+  const fe = Kern.fenster(box, {breit: true});
+  k.append(knopf('Nochmal', '', () => { fe.schliessen(); nochmal(); }), knopf('Neues Spiel', 'leise', () => { fe.schliessen(); startseite(); }), knopf('Brett ansehen', 'leise', () => fe.schliessen()));
+}
+function nochmal() {
+  const alt = S; neuesSpiel(alt.spieler.map(p => p.name), alt.spieler.map(p => p.farbe), {zeit: alt.zeit.limit / 60000});
+}
+
+/* ---------- Zeit ---------- */
+setInterval(() => {
+  const jetzt = performance.now(), d = LETZT_TICK ? jetzt - LETZT_TICK : 0; LETZT_TICK = jetzt;
+  if (!S || S.ende || !BRETT || document.hidden || d > 5000) return;
+  R.zeitPlus(S, d);
+  if ((ZEIT_SPEICHERN += d) > 10000) { ZEIT_SPEICHERN = 0; speichern(); }
+  const r = document.getElementById('rb-rest'); if (r && S.zeit.limit) r.textContent = Math.ceil(Math.max(0, S.zeit.limit - S.zeit.gespielt) / 60000) + ' Min.';
+}, 1000);
+
+Kern.init({id: 'rheinbaron', name: 'Rheinbaron', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); S = null; startseite(); },
+  menue: [{text: 'Verlauf', aktion: () => { if (S) Kern.fenster(`<h2>Verlauf</h2>${S.log.slice().reverse().map(t => `<p>${E(t)}</p>`).join('')}`); }}]});
+startseite();
+</script>
+</body>
+</html>

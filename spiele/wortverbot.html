@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Wortverbot · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Wortverbot: Erklärkarte aus Papier mitten auf dem Seekarten-Tisch. Links „Weiter“, rechts „Erraten“,
+   oben rechts der rote Knopf für die Aufpasser. Teamfarben: Gelb und Türkis aus Kern.farben. */
+:root{--wv-a:#f2c14e;--wv-b:#6cc7d8}
+
+/* ---------- Teams auf der Startseite ---------- */
+.wv-teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wv-team{border:1px solid var(--line);border-radius:18px;padding:12px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:8px;
+  box-shadow:inset 0 3px 0 var(--pc)}
+.wv-team .k-feld{height:46px;padding:0 10px}
+.wv-team .k-feld input{font-size:17px}
+.wv-team .wv-tname{border-color:color-mix(in srgb,var(--pc) 55%,transparent)}
+.wv-team .wv-tname input{font-weight:700}
+.wv-weg{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:var(--ink2);display:grid;place-items:center;padding:0;margin-right:-4px}
+.wv-weg svg{width:14px;height:14px}
+.wv-plus{min-height:44px;border-radius:12px;border:1px dashed var(--line-stark);background:none;color:var(--ink2);font-weight:700;font-size:15px}
+.wv-hinweis{font-size:14px;color:var(--ink2);margin:8px 0 0}
+
+/* ---------- Bühne ---------- */
+.wv-buehne{display:flex;flex-direction:column}
+.wv-zwischen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(14px,2.4vh,26px);padding:60px 10px 10px;min-height:0}
+.wv-titel{font-size:clamp(30px,4vw,46px);text-align:center}
+.wv-satz{color:var(--ink2);font-size:19px;text-align:center;max-width:40ch;margin:0 auto;line-height:1.45;text-wrap:balance}
+.wv-satz b{color:var(--ink)}
+.wv-tafel{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:min(760px,100%)}
+.wv-tk{border-radius:22px;padding:18px 20px;background:var(--panel);border:1px solid var(--line);position:relative;overflow:hidden}
+.wv-tk::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--pc)}
+.wv-tk.dran{border-color:var(--pc);box-shadow:0 0 0 1px var(--pc),0 0 34px color-mix(in srgb,var(--pc) 22%,transparent)}
+.wv-tk h3{font-family:var(--f-disp);font-size:24px;display:flex;align-items:center;gap:10px}
+.wv-tk .wv-pkt{font-family:var(--f-disp);font-weight:800;font-size:64px;line-height:1;margin:6px 0 10px;letter-spacing:-.04em}
+.wv-tk ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.wv-tk li{font-size:15px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.07);color:var(--ink2)}
+.wv-tk li.naechst{background:var(--pc);color:#0f2229;font-weight:700}
+.wv-runde{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.wv-knopfreihe{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+/* ---------- Laufender Durchgang ---------- */
+.wv-spiel{flex:1;min-height:0;display:grid;gap:clamp(10px,1.6vw,18px);padding-top:4px;
+  grid-template-columns:minmax(150px,1fr) minmax(340px,520px) minmax(150px,1fr);
+  grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-areas:"links uhr verboten" "weiter karte erraten" "unten unten unten"}
+.wv-uhr{grid-area:uhr;display:flex;flex-direction:column;align-items:center;gap:6px}
+.wv-zeit{font-family:var(--f-disp);font-weight:800;font-size:clamp(46px,6.4vw,72px);line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;transition:color .3s}
+.wv-balken{width:100%;height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.wv-balken i{display:block;height:100%;width:100%;background:var(--akzent);border-radius:inherit;transform-origin:left;transition:background .3s}
+.wv-uhr.knapp .wv-zeit{color:var(--warn)}
+.wv-uhr.knapp .wv-balken i{background:var(--warn)}
+.wv-uhr.sehrknapp .wv-zeit{color:var(--fehler);animation:wv-puls .5s ease-in-out infinite alternate}
+@keyframes wv-puls{to{transform:scale(1.07)}}
+.wv-links{grid-area:links;display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding-top:60px;min-width:0}
+.wv-wer{font-size:15px;color:var(--ink2);line-height:1.35}
+.wv-wer b{display:block;color:var(--ink);font-size:20px;font-family:var(--f-disp);letter-spacing:-.02em}
+.wv-stand{display:flex;flex-wrap:wrap;gap:6px}
+.wv-stand .k-chip{font-size:15px}
+.wv-verboten{grid-area:verboten;justify-self:end;align-self:start;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.wv-verboten .k-btn{min-height:70px;padding:0 22px;font-size:20px;border-radius:18px;background:#c0453a;color:#fff;box-shadow:0 8px 24px rgba(192,69,58,.35)}
+.wv-verboten small{font-size:13px;color:var(--ink2);text-align:right}
+.wv-seite{display:flex;align-items:center}
+.wv-seite .k-btn{width:100%;height:min(100%,300px);flex-direction:column;gap:8px;border-radius:24px;font-size:24px;white-space:normal}
+.wv-seite .k-btn svg{width:44px;height:44px}
+.wv-weiterbtn{grid-area:weiter}
+.wv-erratenbtn{grid-area:erraten}
+.wv-erratenbtn .k-btn{font-size:28px}
+.wv-unten{grid-area:unten;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.wv-unten .k-btn{min-height:48px}
+
+/* ---------- Die Karte ---------- */
+.wv-kartenplatz{grid-area:karte;display:grid;place-items:center;min-height:0;position:relative}
+.wv-karte{width:100%;max-height:100%;aspect-ratio:5/6;background:var(--papier);color:var(--papier-ink);border-radius:28px;
+  box-shadow:0 22px 50px rgba(0,0,0,.45),inset 0 0 0 1px rgba(0,0,0,.06);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.wv-kopf{background:linear-gradient(160deg,#d64d8a,#8f2858);color:#fff;padding:clamp(16px,2.6vh,26px) 22px clamp(14px,2.2vh,22px);text-align:center;position:relative}
+.wv-kopf small{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;font-weight:700;margin-bottom:6px}
+.wv-begriff{font-family:var(--f-disp);font-weight:800;letter-spacing:-.03em;line-height:1;font-size:clamp(30px,4.6vw,52px);overflow-wrap:anywhere;hyphens:auto}
+.wv-liste{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:8px 26px 14px;margin:0;list-style:none}
+.wv-liste li{display:flex;align-items:center;gap:14px;font-size:clamp(20px,2.6vw,30px);font-weight:700;padding:6px 0;border-bottom:1px solid rgba(27,42,47,.1)}
+.wv-liste li:last-child{border-bottom:0}
+.wv-liste li::before{content:"";flex:none;width:.72em;height:.72em;border-radius:50%;border:3px solid #c0453a;
+  background:linear-gradient(135deg,transparent 44%,#c0453a 44% 56%,transparent 56%)}
+.wv-karte.rein{animation:wv-rein .32s cubic-bezier(.2,.8,.3,1)}
+@keyframes wv-rein{from{transform:translateX(26px) rotate(1.5deg);opacity:0}}
+.wv-pause{position:absolute;inset:0;border-radius:28px;background:#0f2e3a;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:3;text-align:center;padding:20px}
+.wv-pause h2{font-size:38px}
+.wv-leer{color:var(--ink2);text-align:center;padding:30px}
+
+/* ---------- Wertung ---------- */
+.wv-wertung{width:min(760px,100%);display:flex;flex-direction:column;gap:14px;min-height:0}
+.wv-karten{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-height:34vh;overflow-y:auto;touch-action:pan-y}
+.wv-kk{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:17px;font-weight:700}
+.wv-kk i{width:10px;height:10px;border-radius:50%;flex:none}
+.wv-kk.erraten i{background:var(--gut)}.wv-kk.verboten i{background:var(--fehler)}.wv-kk.weiter i{background:var(--ink3)}
+.wv-kk.zurueck{opacity:.6;border-style:dashed}
+.wv-legende{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;color:var(--ink2);font-size:14px}
+.wv-legende span{display:inline-flex;align-items:center;gap:6px}
+.wv-legende i{width:10px;height:10px;border-radius:50%}
+.wv-rechnung{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wv-rechnung div{border-radius:16px;padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--pc)}
+.wv-rechnung b{font-family:var(--f-disp);font-size:34px;display:block;line-height:1.05}
+.wv-rechnung small{color:var(--ink2);font-size:14px}
+
+/* ---------- Ende ---------- */
+.wv-sieger{font-size:clamp(40px,6vw,70px);text-align:center;color:var(--pc)}
+.wv-verlauf{width:min(760px,100%);border:1px solid var(--line);border-radius:16px;overflow:auto;max-height:28vh;touch-action:pan-y}
+.wv-verlauf table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.wv-verlauf th,.wv-verlauf td{padding:7px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.wv-verlauf th:nth-child(-n+2),.wv-verlauf td:nth-child(-n+2){text-align:left}
+.wv-verlauf th{color:var(--ink2);font-size:12px;letter-spacing:.07em;text-transform:uppercase;position:sticky;top:0;background:var(--panel-fest)}
+
+/* ---------- Hochformat ---------- */
+@media (max-aspect-ratio:1/1){
+  .wv-spiel{grid-template-columns:1fr 1fr;grid-template-rows:auto auto minmax(0,1fr) auto auto;
+    grid-template-areas:"uhr verboten" "links links" "karte karte" "weiter erraten" "unten unten"}
+  .wv-uhr{align-items:flex-start;padding-left:118px}
+  .wv-links{padding-top:0;flex-direction:row;align-items:center;justify-content:space-between;width:100%}
+  .wv-seite .k-btn{height:120px;flex-direction:row}
+  .wv-seite .k-btn svg{width:34px;height:34px}
+  .wv-kartenplatz .wv-karte{width:min(100%,560px)}
+  .wv-tafel{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="wortverbot.logik.js"></script>
+<script src="wortverbot.daten.js"></script>
+<script>
+'use strict';
+const L = window.WortverbotLogik, KARTEN = window.WORTVERBOT_KARTEN;
+const KARTE = Object.fromEntries(KARTEN.map(k => [k.b, k]));
+const AKZENT = '#e46a9e', TEAMFARBEN = ['#f2c14e', '#6cc7d8'];
+const K_TEAMS = 'spieltisch.wortverbot.teams', K_GESEHEN = 'spieltisch.wortverbot.gesehen';
+const ls = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const esc = Kern.esc, el = Kern.el;
+const ICON = {
+  haken: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>',
+  weiter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>',
+  zurueck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+
+const REGELN = `
+<p>Zwei Teams treten gegeneinander an. Wer erklärt, bringt das eigene Team dazu, den Begriff oben auf der Karte zu sagen – ohne den Begriff selbst und ohne die fünf Wörter darunter.</p>
+<h3>Ablauf</h3>
+<ul>
+<li>Die Teams sind abwechselnd dran. Im Team wechselt die erklärende Person reihum.</li>
+<li>Wer erklärt, hält das iPad. Eine Person aus dem anderen Team schaut über die Schulter mit und passt auf.</li>
+<li>Die Uhr läuft eine Minute (einstellbar). Erraten? <b>Erraten</b> tippen, die nächste Karte kommt.</li>
+<li>Zu schwer? <b>Weiter</b> überspringt die Karte.</li>
+<li>Fällt ein verbotenes Wort, tippt die aufpassende Person auf <b>Verbotenes Wort</b>.</li>
+<li>Ist die Zeit um, zählt die Karte, die gerade dran war, nicht und kommt zurück unter den Stapel.</li>
+</ul>
+<h3>Was beim Erklären verboten ist</h3>
+<ul>
+<li>der Begriff und die fünf Wörter, auch Wortteile und andere Formen (aus „Gießkanne“ weder „gießen“ noch „Kanne“),</li>
+<li>Abkürzungen, Gesten und nachgemachte Geräusche,</li>
+<li>„klingt wie …“ oder „reimt sich auf …“.</li>
+</ul>
+<p>Singen ist erlaubt.</p>
+<h3>Punkte</h3>
+<p>Das erklärende Team bekommt 1 Punkt je erratenem Begriff. Das andere Team bekommt 1 Punkt je übersprungener Karte und je verbotenem Wort. Die Punkte werden am Ende jedes Durchgangs gutgeschrieben.</p>
+<h3>Spielende</h3>
+<p>Das Spiel endet, wenn alle gleich oft erklärt haben. Bei ungleich großen Teams spielen beide Teams gleich viele Durchgänge, bis jede Person mindestens einmal dran war. Als Variante könnt ihr eine feste Rundenzahl oder ein Punktziel wählen. Das meiste Punkte gewinnt; bei Gleichstand folgt noch eine Runde, bis ein Team vorn liegt.</p>
+<p>Gespielte Karten merkt sich das iPad. Sie kommen erst wieder, wenn alle Karten einmal dran waren.</p>`;
+
+let S = null;          // Spielzustand (Logik)
+let UHR = null;        // laufende Uhr {ende, iv, letzteSek}
+const buehne = el('div', 'k-buehne wv-buehne'); buehne.hidden = true; document.body.appendChild(buehne);
+let setupZiel = null;
+
+Kern.init({ id: 'wortverbot', name: 'Wortverbot', akzent: AKZENT, regeln: REGELN, onNeu: () => { uhrStopp(); Kern.speicher.loeschen(); startseite(); } });
+
+/* ---------- Merkliste gespielter Karten ---------- */
+function gesehenMerken(begriff) {
+  const g = ls.get(K_GESEHEN, []);
+  if (!g.includes(begriff)) g.push(begriff);
+  ls.set(K_GESEHEN, g.length >= KARTEN.length ? [] : g);
+}
+
+/* ---------- Startseite ---------- */
+function teamEditor() {
+  const gespeichert = ls.get(K_TEAMS, null);
+  const vorgabe = [{ name: '', mitglieder: ['', ''] }, { name: '', mitglieder: ['', ''] }];
+  const daten = (gespeichert && gespeichert.length === 2 ? gespeichert : vorgabe).map(t => ({ name: t.name || '', mitglieder: (t.mitglieder && t.mitglieder.length >= 2 ? t.mitglieder : ['', '']).slice(0, 6) }));
+  const PLATZ = ['Füchse', 'Eulen'];
+  const box = el('div');
+  box.innerHTML = `<span class="k-lab">Teams</span>`;
+  const reihe = el('div', 'wv-teams'); box.appendChild(reihe);
+  const hint = el('p', 'wv-hinweis', 'Je Team 2 bis 6 Personen. Die Reihenfolge ist die Erklär-Reihenfolge.'); box.appendChild(hint);
+  const namen = Kern.namen.liste();
+  if (namen.length) { const dl = el('datalist'); dl.id = 'wv-namen'; dl.innerHTML = namen.map(n => `<option value="${esc(n)}">`).join(''); box.appendChild(dl); }
+  function zeichnen() {
+    reihe.innerHTML = '';
+    daten.forEach((t, ti) => {
+      const k = el('div', 'wv-team'); k.style.setProperty('--pc', TEAMFARBEN[ti]);
+      const nf = el('label', 'k-feld wv-tname'); nf.style.setProperty('--pc', TEAMFARBEN[ti]);
+      nf.innerHTML = `<span class="k-dot">${ti + 1}</span><input id="wv-team-${ti}" maxlength="14" autocomplete="off" spellcheck="false" placeholder="${PLATZ[ti]}">`;
+      const ni = nf.querySelector('input'); ni.value = t.name; ni.oninput = () => { t.name = ni.value; };
+      k.appendChild(nf);
+      t.mitglieder.forEach((m, mi) => {
+        const f = el('label', 'k-feld');
+        f.innerHTML = `<input id="wv-m-${ti}-${mi}" maxlength="14" autocomplete="off" spellcheck="false" ${namen.length ? 'list="wv-namen"' : ''} placeholder="${PLATZ[ti]} ${mi + 1}">`;
+        const inp = f.querySelector('input'); inp.value = m; inp.oninput = () => { t.mitglieder[mi] = inp.value; };
+        if (t.mitglieder.length > 2) {
+          const x = el('button', 'wv-weg', ICON.x); x.type = 'button'; x.setAttribute('aria-label', 'Person entfernen');
+          x.onclick = ev => { ev.preventDefault(); t.mitglieder.splice(mi, 1); zeichnen(); Kern.ton('tipp'); };
+          f.appendChild(x);
+        }
+        k.appendChild(f);
+      });
+      if (t.mitglieder.length < 6) {
+        const p = el('button', 'wv-plus', '+ Person'); p.type = 'button'; p.id = `wv-plus-${ti}`;
+        p.onclick = () => { t.mitglieder.push(''); zeichnen(); Kern.ton('tipp'); const l = document.getElementById(`wv-m-${ti}-${t.mitglieder.length - 1}`); l && l.focus(); };
+        k.appendChild(p);
+      }
+      reihe.appendChild(k);
+    });
+  }
+  zeichnen();
+  return {
+    box,
+    lesen() {
+      ls.set(K_TEAMS, daten);
+      return daten.map((t, ti) => ({
+        name: t.name.trim() || PLATZ[ti], farbe: TEAMFARBEN[ti],
+        mitglieder: t.mitglieder.map((m, mi) => m.trim() || `${PLATZ[ti]} ${mi + 1}`)
+      }));
+    }
+  };
+}
+
+const BILD = `<svg width="190" height="130" viewBox="0 0 190 130" aria-hidden="true">
+  <g transform="rotate(-7 60 70)"><rect x="18" y="16" width="92" height="108" rx="14" fill="#f4efe4"/><rect x="18" y="16" width="92" height="34" rx="14" fill="#d64d8a"/><rect x="18" y="38" width="92" height="12" fill="#d64d8a"/>
+  ${[64, 80, 96, 112].map(y => `<rect x="34" y="${y - 4}" width="58" height="7" rx="3.5" fill="#1b2a2f" opacity=".22"/>`).join('')}</g>
+  <g transform="rotate(6 128 64)"><rect x="80" y="8" width="92" height="108" rx="14" fill="#fbf8f1"/><rect x="80" y="8" width="92" height="34" rx="14" fill="#e46a9e"/><rect x="80" y="30" width="92" height="12" fill="#e46a9e"/>
+  <rect x="98" y="20" width="56" height="9" rx="4.5" fill="#fff"/>
+  ${[56, 72, 88, 104].map(y => `<circle cx="100" cy="${y}" r="5" fill="none" stroke="#c0453a" stroke-width="2.4"/><path d="M96.5 ${y - 3.5}l7 7" stroke="#c0453a" stroke-width="2.4"/><rect x="112" y="${y - 3.5}" width="44" height="7" rx="3.5" fill="#1b2a2f" opacity=".3"/>`).join('')}</g>
+</svg>`;
+
+function startseite() {
+  uhrStopp(); S = null; buehne.hidden = true; buehne.innerHTML = '';
+  Kern.kopf(true, 'links');
+  if (!setupZiel) { setupZiel = el('div', 'k-scroll chart'); document.body.appendChild(setupZiel); }
+  setupZiel.hidden = false;
+  const alt = Kern.speicher.laden();
+  const te = teamEditor();
+  Kern.setup({
+    ziel: setupZiel,
+    titel: 'Wortverbot', bild: BILD,
+    unter: 'Erkläre Begriffe, ohne die fünf verbotenen Wörter zu sagen. Zwei Teams, ein iPad, viel Gelächter.',
+    fakten: ['4–12 Personen', '2 Teams', `${KARTEN.length} Karten`],
+    fortsetzen: alt && alt.phase !== 'ende' && alt.teams ? `Runde ${L.rundeNr(alt)} · ${alt.teams[0].name} ${alt.teams[0].punkte} : ${alt.teams[1].punkte} ${alt.teams[1].name}` : null,
+    onFortsetzen: () => { S = alt; spielZeigen(); },
+    extra: te.box,
+    optionen: [
+      { id: 'zeit', label: 'Zeit je Durchgang', werte: [{ wert: 60, text: '1 Minute' }, { wert: 90, text: '1½ Minuten' }, { wert: 120, text: '2 Minuten' }], standard: 60 },
+      { id: 'ende', label: 'Spielende', klein: true, werte: [
+        { wert: 'alle1', text: 'Alle 1× erklärt' }, { wert: 'alle2', text: 'Alle 2× erklärt' },
+        { wert: 'r6', text: 'Variante: 6 Runden' }, { wert: 'p30', text: 'Variante: 30 Punkte' }], standard: 'alle1' }
+    ],
+    startText: 'Spiel starten',
+    onStart: ({ optionen }) => {
+      const teams = te.lesen();
+      Kern.namen.merken(teams.flatMap(t => t.mitglieder));
+      neuesSpiel(teams, optionen);
+    }
+  });
+}
+
+function optionenAus(o) {
+  const e = o.ende || 'alle1';
+  if (e === 'alle2') return { zeit: o.zeit, ende: 'alle', mal: 2 };
+  if (e === 'r6') return { zeit: o.zeit, ende: 'runden', runden: 6 };
+  if (e === 'p30') return { zeit: o.zeit, ende: 'punkte', punkte: 30 };
+  return { zeit: o.zeit, ende: 'alle', mal: 1 };
+}
+
+function neuesSpiel(teams, roh) {
+  const gesehen = ls.get(K_GESEHEN, []);
+  const st = L.stapelBauen(KARTEN.map(k => k.b), gesehen, Kern.zufall);
+  if (st.zuruecksetzen) ls.set(K_GESEHEN, []);
+  S = L.neu({ teams, optionen: optionenAus(roh), stapel: st.stapel });
+  S.roh = roh;
+  speichern(); spielZeigen();
+}
+
+function speichern() { if (S) Kern.speicher.speichern(S); }
+
+/* ---------- Bühne ---------- */
+function spielZeigen() {
+  if (setupZiel) setupZiel.hidden = true;
+  buehne.hidden = false;
+  zeichnen();
+}
+
+function zeichnen() {
+  if (!S) return;
+  if (S.phase === 'bereit') return zeigeBereit();
+  if (S.phase === 'laeuft') return zeigeLaeuft(true);
+  if (S.phase === 'wertung') return zeigeWertung();
+  if (S.phase === 'ende') return zeigeEnde();
+}
+
+const tf = t => S.teams[t].farbe || TEAMFARBEN[t];
+const pkt = n => n === 1 ? '1 Punkt' : `${n} Punkte`;
+function tafelHtml(markiere) {
+  return `<div class="wv-tafel">${S.teams.map((t, i) => `
+    <div class="wv-tk ${markiere === i ? 'dran' : ''}" style="--pc:${tf(i)}">
+      <h3><span class="k-dot">${i + 1}</span>${esc(t.name)}</h3>
+      <div class="wv-pkt k-zahl">${t.punkte}</div>
+      <ul>${t.mitglieder.map((m, mi) => `<li class="${markiere === i && mi === t.naechster % t.mitglieder.length ? 'naechst' : ''}">${esc(m)}</li>`).join('')}</ul>
+    </div>`).join('')}</div>`;
+}
+
+function rundenText() {
+  const o = S.optionen, n = L.rundeNr(S);
+  if (L.verlaengerung(S)) return `Runde ${n} · Verlängerung bei Gleichstand`;
+  if (o.ende === 'punkte') return `Runde ${n} · Ziel ${o.punkte} Punkte`;
+  return `Runde ${n} von ${S.sollDurchgaenge}`;
+}
+
+function zeigeBereit() {
+  const t = S.amZug, g = 1 - t, wer = L.erklaerer(S);
+  buehne.innerHTML = `<div class="wv-zwischen">
+    <div class="wv-runde">${esc(rundenText())}</div>
+    ${tafelHtml(t)}
+    <p class="wv-satz"><b>${esc(wer)}</b> erklärt für <b style="color:${tf(t)}">${esc(S.teams[t].name)}</b>. Eine Person aus <b style="color:${tf(g)}">${esc(S.teams[g].name)}</b> schaut über die Schulter und passt auf.</p>
+    <div class="wv-knopfreihe"><button class="k-btn gross" id="wv-los">iPad an ${esc(wer)} geben</button></div>
+  </div>`;
+  Kern.tap(buehne.querySelector('#wv-los'), () => durchgangStarten());
+}
+
+async function durchgangStarten() {
+  const t = S.amZug, g = 1 - t, wer = L.erklaerer(S);
+  await Kern.sichtschutz({ name: wer, farbe: tf(t), knopf: `Ich bin ${wer} – Uhr starten`,
+    text: `Du erklärst für ${esc(S.teams[t].name)}. Jemand aus ${esc(S.teams[g].name)} schaut mit. Die Uhr läuft, sobald du tippst.` });
+  if (S.phase !== 'bereit') return;
+  L.starteZug(S); speichern();
+  Kern.ton('runde');
+  zeigeLaeuft(false); uhrStart();
+}
+
+/* ---------- Uhr ---------- */
+function uhrStart() {
+  uhrStopp();
+  const z = S.zug; if (!z) return;
+  UHR = { ende: performance.now() + z.restMs, letzteSek: Math.ceil(z.restMs / 1000), iv: setInterval(uhrTakt, 100), gespeichert: 0 };
+  uhrTakt();
+}
+function uhrStopp() { if (UHR) { clearInterval(UHR.iv); UHR = null; } }
+function uhrPause() {
+  if (!UHR || !S || !S.zug) return;
+  S.zug.restMs = Math.max(0, UHR.ende - performance.now()); uhrStopp(); S.zug.pause = true; speichern(); zeigeLaeuft(false);
+}
+function uhrTakt() {
+  if (!UHR || !S || S.phase !== 'laeuft') return uhrStopp();
+  const rest = Math.max(0, UHR.ende - performance.now());
+  S.zug.restMs = rest;
+  const sek = Math.ceil(rest / 1000);
+  uhrAnzeigen(rest);
+  if (sek !== UHR.letzteSek) {
+    UHR.letzteSek = sek;
+    if (sek <= 10 && sek > 0) Kern.ton(sek <= 3 ? 'warn' : 'zeit');
+    speichern();
+  }
+  if (rest <= 0) zeitUm();
+}
+function uhrAnzeigen(rest) {
+  const u = buehne.querySelector('.wv-uhr'); if (!u) return;
+  const sek = Math.ceil(rest / 1000);
+  u.querySelector('.wv-zeit').textContent = `${Math.floor(sek / 60)}:${String(sek % 60).padStart(2, '0')}`;
+  u.querySelector('.wv-balken i').style.transform = `scaleX(${rest / (S.optionen.zeit * 1000)})`;
+  u.classList.toggle('knapp', sek <= 10); u.classList.toggle('sehrknapp', sek <= 5 && sek > 0);
+}
+function zeitUm() {
+  uhrStopp();
+  L.zeitAbgelaufen(S); speichern();
+  Kern.ton('gong');
+  if (navigator.vibrate) try { navigator.vibrate(300); } catch (e) {}
+  zeigeWertung(true);
+}
+
+/* ---------- Laufender Durchgang ---------- */
+function zeigeLaeuft(nachLaden) {
+  const z = S.zug, t = z.team, g = 1 - t, st = L.zugStand(z);
+  if (nachLaden) z.pause = true;   // nach dem Neuladen nie sofort weiterlaufen
+  const karte = z.aktuell != null ? KARTE[z.aktuell] : null;
+  buehne.innerHTML = `<div class="wv-spiel">
+    <div class="wv-links">
+      <div class="wv-wer">Erklärt für <span style="color:${tf(t)}">${esc(S.teams[t].name)}</span><b>${esc(z.erklaerer)}</b></div>
+      <div class="wv-stand"><span class="k-chip k-zahl" style="--pc:${tf(t)}">${esc(S.teams[t].name)} +${st.erraten}</span><span class="k-chip k-zahl" style="--pc:${tf(g)}">${esc(S.teams[g].name)} +${st.verboten + st.weiter}</span></div>
+    </div>
+    <div class="wv-uhr"><div class="wv-zeit k-zahl">1:00</div><div class="wv-balken"><i></i></div></div>
+    <div class="wv-verboten"><button class="k-btn" id="wv-verboten">Verbotenes Wort</button><small>für ${esc(S.teams[g].name)}</small></div>
+    <div class="wv-seite wv-weiterbtn"><button class="k-btn leise" id="wv-weiter">${ICON.weiter}Weiter</button></div>
+    <div class="wv-kartenplatz">${karte ? `
+      <div class="wv-karte rein" id="wv-karte">
+        <div class="wv-kopf"><small>Erkläre</small><div class="wv-begriff">${esc(karte.b)}</div></div>
+        <ul class="wv-liste">${karte.v.map(v => `<li>${esc(v)}</li>`).join('')}</ul>
+        ${z.pause ? `<div class="wv-pause"><h2>Pause</h2><p class="wv-satz">Die Uhr steht. Nur ${esc(z.erklaerer)} schaut.</p><button class="k-btn gross" id="wv-fortsetzen">Weiter erklären</button></div>` : ''}
+      </div>` : `<div class="wv-karte"><div class="wv-leer"><h2>Keine Karten mehr</h2><p>Der Stapel ist leer.</p><button class="k-btn" id="wv-leerende">Durchgang beenden</button></div></div>`}
+    </div>
+    <div class="wv-seite wv-erratenbtn"><button class="k-btn gut" id="wv-erraten">${ICON.haken}Erraten</button></div>
+    <div class="wv-unten">
+      <button class="k-btn leise klein" id="wv-rueck" ${z.karten.length ? '' : 'disabled'}>${ICON.zurueck}Rückgängig</button>
+      <span class="wv-wer k-zahl">Erraten ${st.erraten} · Verboten ${st.verboten} · Weiter ${st.weiter}</span>
+      <button class="k-btn leise klein" id="wv-pause">${ICON.pause}Pause</button>
+    </div>
+  </div>`;
+  uhrAnzeigen(z.restMs);
+  const aus = z.pause || !karte;
+  ['#wv-erraten', '#wv-weiter', '#wv-verboten'].forEach(id => buehne.querySelector(id).disabled = aus);
+  buehne.querySelector('#wv-pause').disabled = !!z.pause;
+  Kern.tap(buehne.querySelector('#wv-erraten'), () => werten('erraten'));
+  Kern.tap(buehne.querySelector('#wv-weiter'), () => werten('weiter'));
+  Kern.tap(buehne.querySelector('#wv-verboten'), () => werten('verboten'));
+  Kern.tap(buehne.querySelector('#wv-rueck'), () => { if (L.rueckgaengig(S)) { speichern(); Kern.ton('tipp'); zeigeLaeuft(false); } });
+  Kern.tap(buehne.querySelector('#wv-pause'), () => { Kern.ton('tipp'); uhrPause(); });
+  const f = buehne.querySelector('#wv-fortsetzen');
+  if (f) Kern.tap(f, async () => {
+    if (nachLaden) await Kern.sichtschutz({ name: z.erklaerer, farbe: tf(t), knopf: `Ich bin ${z.erklaerer} – weiter`, text: 'Die Uhr läuft weiter, sobald du tippst.' });
+    z.pause = false; speichern(); zeigeLaeuft(false); uhrStart();
+  });
+  const le = buehne.querySelector('#wv-leerende');
+  if (le) Kern.tap(le, () => zeitUm());
+}
+
+let sperre = 0;
+function werten(art) {
+  if (!S || S.phase !== 'laeuft' || S.zug.pause || S.zug.aktuell == null) return;
+  if (performance.now() - sperre < 350) return;   // Doppeltipp abfangen
+  sperre = performance.now();
+  const begriff = S.zug.aktuell;
+  L.werten(S, art);
+  gesehenMerken(begriff);
+  speichern();
+  Kern.ton(art === 'erraten' ? 'punkt' : art === 'verboten' ? 'fehler' : 'karte');
+  if (art === 'verboten') Kern.hinweis(`Verboten! Punkt für ${S.teams[1 - S.zug.team].name}`, 1300);
+  zeigeLaeuft(false);
+}
+
+/* ---------- Wertung ---------- */
+function zeigeWertung() {
+  const v = S.verlauf[S.verlauf.length - 1], t = v.team, g = 1 - t;
+  buehne.innerHTML = `<div class="wv-zwischen">
+    <h1 class="wv-titel">Zeit um!</h1>
+    <div class="wv-wertung">
+      <div class="wv-legende"><span><i style="background:var(--gut)"></i>erraten</span><span><i style="background:var(--fehler)"></i>verbotenes Wort</span><span><i style="background:var(--ink3)"></i>übersprungen</span></div>
+      <div class="wv-karten">${v.karten.length ? v.karten.map(k => `<span class="wv-kk ${k.ergebnis}"><i></i>${esc(k.karte)}</span>`).join('') : '<span class="wv-satz">Keine Karte gewertet.</span>'}</div>
+      ${v.zurueck ? `<p class="wv-satz">„${esc(v.zurueck)}“ war gerade dran, zählt nicht und kommt zurück unter den Stapel.</p>` : ''}
+      <div class="wv-rechnung">
+        <div style="--pc:${tf(t)}"><small>${esc(S.teams[t].name)} · ${v.stand.erraten} erraten</small><b class="k-zahl">+${v.punkte[t]}</b><small>jetzt ${pkt(S.teams[t].punkte)}</small></div>
+        <div style="--pc:${tf(g)}"><small>${esc(S.teams[g].name)} · ${v.stand.verboten} verboten, ${v.stand.weiter} übersprungen</small><b class="k-zahl">+${v.punkte[g]}</b><small>jetzt ${pkt(S.teams[g].punkte)}</small></div>
+      </div>
+    </div>
+    <div class="wv-knopfreihe"><button class="k-btn gross" id="wv-naechst">Weiter</button></div>
+  </div>`;
+  Kern.tap(buehne.querySelector('#wv-naechst'), () => {
+    L.weiter(S);
+    if (S.phase === 'ende') { Kern.speicher.loeschen(); zeigeEnde(true); } else { speichern(); Kern.ton('tipp'); zeigeBereit(); }
+  });
+}
+
+/* ---------- Spielende ---------- */
+function zeigeEnde(feiern) {
+  const w = S.sieger;
+  buehne.innerHTML = `<div class="wv-zwischen">
+    <div class="wv-runde">Spielende</div>
+    <h1 class="wv-sieger" style="--pc:${tf(w)}">Sieg für ${esc(S.teams[w].name)}</h1>
+    ${tafelHtml(null)}
+    <div class="wv-verlauf"><table><thead><tr><th>Runde</th><th>Erklärt</th><th>Erraten</th><th>Verboten</th><th>Weiter</th><th>${esc(S.teams[0].name)}</th><th>${esc(S.teams[1].name)}</th></tr></thead><tbody>
+    ${S.verlauf.map((v, i) => `<tr><td>${Math.floor(i / 2) + 1}</td><td><span class="k-dot" style="--pc:${tf(v.team)};display:inline-grid;width:12px;height:12px;vertical-align:-1px;margin-right:6px"></span>${esc(v.erklaerer)}</td><td>${v.stand.erraten}</td><td>${v.stand.verboten}</td><td>${v.stand.weiter}</td><td>+${v.punkte[0]}</td><td>+${v.punkte[1]}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="wv-knopfreihe"><button class="k-btn gross" id="wv-nochmal">Nochmal</button><button class="k-btn gross leise" id="wv-neu">Neues Spiel</button></div>
+  </div>`;
+  if (feiern) { Kern.feier(); Kern.ton('sieg'); }
+  Kern.tap(buehne.querySelector('#wv-nochmal'), () => neuesSpiel(S.teams.map(t => ({ name: t.name, farbe: t.farbe, mitglieder: t.mitglieder })), S.roh || { zeit: S.optionen.zeit, ende: 'alle1' }));
+  Kern.tap(buehne.querySelector('#wv-neu'), () => { Kern.speicher.loeschen(); startseite(); });
+}
+
+/* Seite verlassen oder in den Hintergrund: Uhr anhalten und speichern. */
+document.addEventListener('visibilitychange', () => { if (document.hidden && UHR) uhrPause(); });
+addEventListener('pagehide', () => { if (UHR && S && S.zug) { S.zug.restMs = Math.max(0, UHR.ende - performance.now()); S.zug.pause = true; speichern(); } });
+
+window.__test = { zustand: () => S, uhrSetzen: ms => { if (UHR) UHR.ende = performance.now() + ms; }, karten: () => KARTEN.length };
+startseite();
+</script>
+</body>
+</html>

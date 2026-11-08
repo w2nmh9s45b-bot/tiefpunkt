@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Poker · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Poker: ovaler Filztisch mitten auf der Seekarte, Sitze rundherum, unten die eigene Leiste (nur nach Sichtschutz). */
+#pk{display:grid;grid-template-rows:1fr auto;gap:10px}
+.pk-tisch{position:relative;min-height:0;pointer-events:none}
+.pk-filz{position:absolute;border-radius:50%;background:
+  radial-gradient(ellipse 60% 55% at 50% 45%, #1f7a52 0%, #145a3c 60%, #0d4029 100%);
+  box-shadow:0 0 0 10px #3b2a1c, 0 0 0 12px rgba(255,255,255,.08), 0 24px 60px rgba(0,0,0,.55), inset 0 0 60px rgba(0,0,0,.35)}
+.pk-filz::after{content:"";position:absolute;inset:18px;border-radius:50%;border:1.5px solid rgba(255,255,255,.08)}
+.pk-mitte{position:absolute;display:flex;flex-direction:column;align-items:center;gap:10px;transform:translate(-50%,-50%)}
+.pk-board{display:flex;gap:8px;min-height:calc(var(--bk)*1.4)}
+.pk-board .pk-leer{width:var(--bk);height:calc(var(--bk)*1.4);border-radius:calc(var(--bk)*.11);border:1.5px dashed rgba(255,255,255,.18)}
+.pk-board .k-karte.neu{animation:pk-flieg .45s cubic-bezier(.2,.8,.3,1) both}
+@keyframes pk-flieg{from{transform:translateY(-30px) rotate(-6deg);opacity:0}}
+.pk-board .k-karte.gewinn{box-shadow:0 0 0 3px var(--warn),0 6px 16px rgba(0,0,0,.4)}
+.pk-board .k-karte.matt{filter:brightness(.62)}
+.pk-topf{display:flex;align-items:center;gap:10px;background:rgba(5,25,16,.7);border:1px solid rgba(255,255,255,.12);border-radius:99px;
+  padding:6px 16px 6px 8px;font-weight:700;font-size:18px}
+.pk-topf small{color:var(--ink2);font-weight:400;font-size:14px}
+.pk-strasse{font:700 12px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:rgba(232,241,238,.6)}
+.pk-chip{position:relative;width:24px;height:24px;border-radius:50%;flex:none;
+  background:repeating-conic-gradient(var(--pc,#d8483c) 0 30deg, #fbf8f1 30deg 45deg);box-shadow:0 2px 4px rgba(0,0,0,.45)}
+.pk-chip::after{content:"";position:absolute;inset:22%;border-radius:50%;background:var(--pc,#d8483c);box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}
+.pk-chip.klein{width:18px;height:18px}
+
+.pk-sitz{position:absolute;transform:translate(-50%,-50%);width:var(--sw);display:flex;flex-direction:column;align-items:center;gap:4px;
+  transition:opacity .3s}
+.pk-sitz .pk-schild{width:100%;background:rgba(7,24,32,.86);border:1.5px solid var(--line);border-radius:14px;padding:7px 10px;
+  display:grid;grid-template-columns:auto 1fr;column-gap:8px;align-items:center;transition:border-color .25s, box-shadow .25s}
+.pk-sitz .k-dot{grid-row:span 2}
+.pk-sitz .pk-name{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pk-sitz .pk-stack{font-size:14px;color:var(--ink2);white-space:nowrap}
+.pk-sitz .pk-stack b{color:var(--ink);font-family:var(--f-disp);font-size:16px}
+.pk-sitz.dran .pk-schild{border-color:var(--pc);box-shadow:0 0 0 2px var(--pc), 0 0 24px color-mix(in srgb,var(--pc) 45%,transparent)}
+.pk-sitz.passt{opacity:.5}
+.pk-sitz.raus{opacity:.28}
+.pk-sitz .pk-tat{font-size:13px;font-weight:700;padding:2px 9px;border-radius:99px;background:rgba(255,255,255,.1);white-space:nowrap;min-height:22px}
+.pk-sitz .pk-tat:empty{visibility:hidden}
+.pk-sitz .pk-tat.allin{background:var(--warn);color:#2a1f05}
+.pk-sitz .pk-tat.sieg{background:var(--gut);color:#0d2416}
+.pk-sitz .pk-hk{display:flex;gap:4px;height:calc(var(--sk)*1.4)}
+.pk-sitz .pk-hk .k-karte{--kw:var(--sk)}
+.pk-sitz .pk-hk .k-karte.gewinn{box-shadow:0 0 0 2px var(--warn),0 4px 10px rgba(0,0,0,.4)}
+.pk-sitz .pk-hand{font-size:12px;color:var(--ink2);text-align:center;line-height:1.2;max-width:calc(var(--sw) + 30px);min-height:15px}
+.pk-einsatz{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;font-weight:700;font-size:15px;
+  background:rgba(5,25,16,.78);padding:3px 10px 3px 4px;border-radius:99px;white-space:nowrap;transition:left .4s,top .4s}
+.pk-sitz .pk-schild{position:relative}
+.pk-knopf{position:absolute;right:-10px;top:-12px;height:24px;padding:0 9px;border-radius:99px;background:#fbf8f1;color:#1e2a30;
+  font:800 12px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.5);}
+.pk-info{position:absolute;right:0;top:0;text-align:right;font-size:14px;color:var(--ink2);line-height:1.35}
+.pk-info b{color:var(--ink)}
+
+/* ---------- Leiste unten ---------- */
+.pk-leiste{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:14px 16px;display:flex;gap:18px;align-items:center;min-height:150px}
+.pk-leiste.hoch{flex-direction:column;align-items:stretch;gap:12px}
+.pk-eigen{display:flex;align-items:center;gap:14px;flex:none}
+.pk-eigen .pk-ek{display:flex;gap:8px}
+.pk-eigen .pk-wer{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pk-eigen .pk-wer h2{font-size:26px;color:var(--pc)}
+.pk-eigen .pk-wer span{color:var(--ink2);font-size:15px}
+.pk-eigen .pk-wer em{font-style:normal;font-weight:700;color:var(--ink);font-size:15px}
+.pk-aktionen{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pk-reihe{display:flex;gap:10px;flex-wrap:wrap}
+.pk-reihe .k-btn{flex:1 1 0;min-width:120px}
+.pk-erh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:8px 10px}
+.pk-erh input[type=range]{flex:1 1 180px;min-width:140px;accent-color:var(--akzent);height:36px}
+.pk-erh .pk-schnell{display:flex;gap:6px;flex-wrap:wrap}
+.pk-erh .pk-schnell button{min-height:40px;padding:0 11px;border-radius:10px;border:1px solid var(--line);background:var(--panel-hell);font-weight:700;font-size:14px}
+.pk-erh .pk-schnell button[aria-pressed="true"]{background:var(--akzent);color:var(--akzent-ink);border-color:transparent}
+.pk-erhknopf{background:var(--warn);color:#2a1f05}
+.pk-pm{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel-hell);font-size:22px;font-weight:700;flex:none}
+.pk-betrag{font:800 22px var(--f-disp);min-width:72px;text-align:center}
+.pk-satz{flex:1;font-size:19px;line-height:1.35}
+.pk-satz b{color:var(--akzent)}
+.pk-satz small{display:block;color:var(--ink2);font-size:15px;margin-top:4px}
+
+/* ---------- Ergebnis ---------- */
+.pk-erg table{width:100%;border-collapse:collapse;margin:6px 0 4px;font-size:16px}
+.pk-erg td,.pk-erg th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.pk-erg th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.pk-erg .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pk-erg .plus{color:var(--gut)}.pk-erg .minus{color:var(--fehler)}
+.pk-plaetze{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.pk-plaetze div{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.05);font-size:18px}
+.pk-plaetze div.eins{background:color-mix(in srgb,var(--warn) 22%,transparent);border:1px solid var(--warn)}
+.pk-plaetze b{font-family:var(--f-disp);font-size:22px;min-width:34px}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="poker.logik.js"></script>
+<script>
+"use strict";
+const REGELN_HTML = `
+<h3>Ziel</h3><p>Gewinne alle Chips. Jede Hand gewinnt, wer am Ende die beste Fünf-Karten-Hand zeigt – oder wer als Letzter übrig bleibt, weil alle anderen passen.</p>
+<h3>Ablauf einer Hand</h3><ol>
+<li>Links vom Dealer-Knopf <b>D</b> setzt die erste Person den Small Blind, die nächste den Big Blind. Zu zweit setzt der Dealer den Small Blind.</li>
+<li>Alle bekommen zwei verdeckte Karten. Gesetzt wird viermal: vor dem Flop, nach dem Flop (drei offene Karten), nach dem Turn (vierte) und nach dem River (fünfte).</li>
+<li>Vor dem Flop spricht zuerst die Person links vom Big Blind, danach immer die erste links vom Dealer.</li></ol>
+<h3>Was du tun kannst</h3><ul>
+<li><b>Schieben</b> – nichts setzen, wenn kein Einsatz offen ist.</li>
+<li><b>Mitgehen</b> – den höchsten Einsatz ausgleichen.</li>
+<li><b>Setzen / Erhöhen</b> – mindestens um den Big Blind bzw. um die letzte volle Erhöhung. Nach oben gibt es keine Grenze außer deinem Stapel (No Limit).</li>
+<li><b>Passen</b> – Karten weg, du bist in dieser Hand raus.</li>
+<li><b>All-in</b> – alle Chips. Wer All-in ist, kann nur den Teil der Töpfe gewinnen, den er abgedeckt hat (Nebentöpfe).</li></ul>
+<p>Ein All-in unterhalb einer vollen Erhöhung öffnet die Runde nicht neu: Wer schon gehandelt hat, darf dann nur mitgehen oder passen.</p>
+<h3>Showdown</h3><p>Hat es am River einen Einsatz gegeben, zeigt der letzte Setzer zuerst, sonst die erste Person links vom Dealer. Wer nicht mehr gewinnen kann, wirft verdeckt weg. Sind alle All-in, werden sofort alle Karten aufgedeckt.</p>
+<h3>Rangfolge</h3><p>Royal Flush · Straight Flush · Vierling · Full House · Flush · Straße · Drilling · Zwei Paare · Paar · Höchste Karte. Gleich gute Hände teilen den Topf; übrige Einzelchips bekommt der erste Gewinner links vom Dealer.</p>
+<h3>Ende</h3><p>Wer keine Chips mehr hat, scheidet aus. Wer zuletzt übrig ist, gewinnt.</p>`;
+
+const $ = (s, r = document) => r.querySelector(s);
+const FARBE = {c: 'kreuz', d: 'karo', h: 'herz', s: 'pik'};
+const RANG = {T: '10', J: 'B', Q: 'D', K: 'K', A: 'A'};
+const kartenDaten = k => ({rang: RANG[k[0]] || k[0], farbe: FARBE[k[1]]});
+const karte = (k, kw, opt = {}) => { const e = Kern.karte(Object.assign(kartenDaten(k), {kw})); if (opt.klasse) e.classList.add(...opt.klasse.split(' ')); return e; };
+const zu = kw => Kern.karte({rang: 'A', farbe: 'pik', zu: true, kw});
+const zahl = v => Number(v).toLocaleString('de-DE');
+const STRASSE = {preflop: 'Vor dem Flop', flop: 'Flop', turn: 'Turn', river: 'River', showdown: 'Showdown', handende: 'Hand vorbei'};
+
+let S = null, BUEHNE = null, SETUP = null, gezeigtBoard = 0, LAUF = 0;
+const rnd = n => Kern.zufall(n);
+
+Kern.init({id: 'poker', name: 'Poker', akzent: '#5fcf8f', regeln: REGELN_HTML, onNeu: () => { Kern.speicher.loeschen(); startseite(); },
+  menue: [{text: 'Verlauf dieser Hand', aktion: () => verlauf()}]});
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  if (BUEHNE) { BUEHNE.remove(); BUEHNE = null; }
+  S = null; LAUF++; document.querySelectorAll('.k-sichtschutz').forEach(x => x.remove());
+  const gesp = Kern.speicher.laden();
+  const bild = `<svg width="120" height="84" viewBox="0 0 120 84"><g transform="rotate(-10 40 44)"><rect x="18" y="10" width="44" height="62" rx="6" fill="#fbf8f1"/><text x="28" y="34" font-family="Bricolage Grotesque" font-weight="800" font-size="20" fill="#c0392b">A</text><text x="34" y="60" font-size="26" fill="#c0392b">♦</text></g><g transform="rotate(8 70 44)"><rect x="48" y="8" width="44" height="62" rx="6" fill="#fbf8f1"/><text x="58" y="32" font-family="Bricolage Grotesque" font-weight="800" font-size="20" fill="#1e2a30">A</text><text x="64" y="58" font-size="26" fill="#1e2a30">♣</text></g><circle cx="96" cy="64" r="16" fill="#d8483c" stroke="#fff" stroke-width="4" stroke-dasharray="6 5"/><circle cx="96" cy="64" r="7" fill="#fff"/></svg>`;
+  SETUP = Kern.setup({
+    titel: 'Poker', unter: 'Texas Hold\'em ohne Limit. Zwei Karten auf der Hand, fünf in der Mitte – und so viel setzen, wie du dich traust.',
+    bild, fakten: ['2–8 Personen', 'No Limit', 'Nebentöpfe'],
+    spieler: {min: 2, max: 8, standard: 4},
+    optionen: [
+      {id: 'chips', label: 'Startchips', werte: [{wert: 500, text: '500'}, {wert: 1000, text: '1.000'}, {wert: 2000, text: '2.000'}, {wert: 5000, text: '5.000'}], standard: 1000},
+      {id: 'blinds', label: 'Blinds zu Beginn', werte: [{wert: '5/10', text: '5 / 10'}, {wert: '10/20', text: '10 / 20'}, {wert: '25/50', text: '25 / 50'}], standard: '5/10'},
+      {id: 'steigen', label: 'Blinds steigen', werte: [{wert: 0, text: 'nie'}, {wert: 10, text: 'alle 10 Hände'}, {wert: 20, text: 'alle 20 Hände'}], standard: 0},
+      {id: 'zeigen', label: 'Beim Showdown', werte: [{wert: 'regel', text: 'Verlierer werfen verdeckt weg'}, {wert: 'alle', text: 'Alle Karten zeigen'}], standard: 'regel', klein: true}
+    ],
+    fortsetzen: gesp && gesp.phase !== 'ende' ? `Hand ${gesp.handNr} · ${gesp.spieler.filter(s => !s.raus).map(s => s.name).join(', ')}` : null,
+    onFortsetzen: () => { S = gesp; spielStarten(); },
+    onStart: ({namen, farben, optionen}) => {
+      const [sb, bb] = optionen.blinds.split('/').map(Number);
+      S = Poker.neuesSpiel({namen, farben, startChips: optionen.chips, sb, bb, steigen: optionen.steigen, zeigen: optionen.zeigen}, rnd);
+      speichern(); spielStarten();
+    }
+  });
+}
+
+function speichern() { if (S && S.phase !== 'ende') Kern.speicher.speichern(S); else Kern.speicher.loeschen(); }
+
+/* ---------- Spielfläche ---------- */
+function spielStarten() {
+  if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
+  if (!BUEHNE) {
+    BUEHNE = Kern.el('div', 'k-buehne'); BUEHNE.id = 'pk';
+    BUEHNE.innerHTML = `<div class="pk-tisch" id="pk-tisch"></div><div class="pk-leiste" id="pk-leiste"></div>`;
+    document.body.appendChild(BUEHNE);
+  }
+  gezeigtBoard = S.board.length;
+  zeichnen(); ablauf();
+}
+
+let GEOM = null;
+function geometrie() {
+  const t = $('#pk-tisch'); const W = t.clientWidth, H = t.clientHeight;
+  const hoch = W < 900;
+  const n = S.spieler.length;
+  const sw = Math.max(118, Math.min(168, W / (hoch ? 4.6 : 7)));
+  const sk = Math.round(Math.max(30, Math.min(44, sw / 3.6)));
+  const seatH = 100 + sk * 1.4;
+  const cx = W / 2, cy = H / 2 + (hoch ? 0 : 6);
+  const rx = Math.max(160, W / 2 - sw / 2 - 6), ry = Math.max(120, H / 2 - seatH / 2 - 2);
+  const fw = rx * 2 * (hoch ? .74 : .72), fh = ry * 2 * (hoch ? .66 : .62);
+  const bk = Math.round(Math.max(44, Math.min(hoch ? 74 : 78, fw / 7.2, fh / 2.9)));
+  const sitze = S.spieler.map((_, i) => {
+    const w = Math.PI / 2 + i * 2 * Math.PI / n;
+    return {x: cx + rx * Math.cos(w), y: cy + ry * Math.sin(w), w};
+  });
+  GEOM = {W, H, cx, cy, rx, ry, fw, fh, bk, sw, sk, sitze, hoch};
+  return GEOM;
+}
+
+function zeichnen() {
+  if (!S || !BUEHNE) return;
+  const g = geometrie();
+  const t = $('#pk-tisch'); t.innerHTML = '';
+  t.style.setProperty('--bk', g.bk + 'px'); t.style.setProperty('--sw', g.sw + 'px'); t.style.setProperty('--sk', g.sk + 'px');
+  const filz = Kern.el('div', 'pk-filz');
+  Object.assign(filz.style, {left: (g.cx - g.fw / 2) + 'px', top: (g.cy - g.fh / 2) + 'px', width: g.fw + 'px', height: g.fh + 'px'});
+  t.appendChild(filz);
+  // Mitte: Board, Topf
+  const mitte = Kern.el('div', 'pk-mitte'); mitte.style.left = g.cx + 'px'; mitte.style.top = g.cy + 'px';
+  const st = Kern.el('div', 'pk-strasse', STRASSE[S.phase] || ''); mitte.appendChild(st);
+  const board = Kern.el('div', 'pk-board'); board.id = 'pk-board';
+  const gewinnK = new Set();
+  if (S.ergebnis && !S.ergebnis.kampflos && S.ergebnis.toepfe[0]) {
+    const haupt = S.ergebnis.toepfe.find(x => !x.zurueck);
+    if (haupt) haupt.gewinner.forEach(w => (S.ergebnis.haende[w] || {karten: []}).karten.forEach(k => gewinnK.add(k)));
+  }
+  for (let i = 0; i < 5; i++) {
+    const k = S.board[i];
+    if (k) {
+      const e = karte(k, g.bk); if (i >= gezeigtBoard) { e.classList.add('neu'); e.style.animationDelay = ((i - gezeigtBoard) * 0.12) + 's'; }
+      if (gewinnK.size) e.classList.add(gewinnK.has(k) ? 'gewinn' : 'matt');
+      board.appendChild(e);
+    } else board.appendChild(Kern.el('div', 'pk-leer'));
+  }
+  if (S.board.length > gezeigtBoard) Kern.ton('karte');
+  gezeigtBoard = S.board.length;
+  mitte.appendChild(board);
+  const summe = Poker.topf(S), imTopf = S.phase === 'handende' ? 0 : summe - S.ph.reduce((a, p) => a + (p ? p.einsatz : 0), 0);
+  const tp = Kern.el('div', 'pk-topf', `<span class="pk-chip" style="--pc:#d8483c"></span><span>Topf <b class="k-zahl">${zahl(S.phase === 'handende' ? S.ergebnis.toepfe.reduce((a, x) => a + x.betrag, 0) : summe)}</b></span>${imTopf > 0 && imTopf !== summe && S.phase !== 'handende' ? `<small>davon ${zahl(summe - imTopf)} vor den Plätzen</small>` : ''}`);
+  mitte.appendChild(tp);
+  t.appendChild(mitte);
+  // Info oben rechts
+  const b = S.blinds || Poker.blinds(S);
+  let steigt = '';
+  if (S.opt.steigen > 0) { const rest = S.opt.steigen - ((S.handNr - 1) % S.opt.steigen); steigt = `<br>steigen in ${rest} ${rest === 1 ? 'Hand' : 'Händen'}`; }
+  t.appendChild(Kern.el('div', 'pk-info', `Hand <b>${S.handNr}</b><br>Blinds <b class="k-zahl">${zahl(b.sb)} / ${zahl(b.bb)}</b>${steigt}`));
+  // Sitze
+  S.spieler.forEach((sp, i) => {
+    const p = S.ph[i], pos = g.sitze[i];
+    const e = Kern.el('div', 'pk-sitz'); e.style.left = pos.x + 'px'; e.style.top = pos.y + 'px'; e.style.setProperty('--pc', sp.farbe); e.id = 'pk-sitz-' + i;
+    if (sp.raus && (!p)) e.classList.add('raus');
+    if (p && p.status === 'passt') e.classList.add('passt');
+    if (S.amZug === i) e.classList.add('dran');
+    const hk = Kern.el('div', 'pk-hk');
+    const erg = S.ergebnis;
+    const offen = p && (p.status === 'aktiv' || p.status === 'allin') && ((erg && erg.gezeigt && erg.gezeigt[i]) || (S.aufgedeckt && S.phase !== 'handende'));
+    const gew = erg && erg.haende && erg.haende[i] ? new Set(erg.haende[i].karten) : null;
+    const istGewinner = erg && erg.toepfe.some(x => !x.zurueck && x.gewinner.includes(i));
+    if (p && p.karten.length && p.status !== 'passt') p.karten.forEach(k => {
+      if (offen) { const c = karte(k, g.sk); if (istGewinner && gew && gew.has(k)) c.classList.add('gewinn'); hk.appendChild(c); }
+      else hk.appendChild(zu(g.sk));
+    });
+    e.appendChild(hk);
+    let handText = '';
+    if (offen && erg && erg.haende && erg.haende[i]) handText = erg.haende[i].name.split(' · ')[0];
+    else if (offen && S.aufgedeckt) handText = beschreibung(p.karten);
+    const schild = Kern.el('div', 'pk-schild', `<span class="k-dot">${Kern.esc(sp.name.charAt(0).toUpperCase())}</span>
+      <span class="pk-name">${Kern.esc(sp.name)}</span><span class="pk-stack"><b class="k-zahl">${zahl(sp.chips)}</b>${sp.raus ? ' · raus' : ''}</span>`);
+    if (i === S.button) { const d = Kern.el('span', 'pk-knopf', 'Dealer'); d.title = 'Dealer'; schild.appendChild(d); }
+    e.appendChild(schild);
+    let tat = '', tk = '';
+    if (erg && S.phase === 'handende') {
+      const gewonnen = erg.toepfe.reduce((a, x) => a + (x.zurueck ? 0 : (x.anteile[i] || 0)), 0);
+      const zurueck = erg.toepfe.reduce((a, x) => a + (x.zurueck ? (x.anteile[i] || 0) : 0), 0);
+      if (istGewinner) { tat = `gewinnt ${zahl(gewonnen)}` + (zurueck ? ` · ${zahl(zurueck)} zurück` : ''); tk = 'sieg'; }
+      else if (zurueck) tat = `${zahl(zurueck)} zurück`;
+      else if (p && p.status === 'passt') tat = 'Passt';
+      else if (erg.gezeigt && p && !erg.gezeigt[i] && !erg.kampflos) tat = 'Wirft weg';
+      if (erg.raus && erg.raus.includes(i)) { tat = `scheidet aus · Platz ${sp.platz}`; tk = 'allin'; }
+    } else if (p) {
+      if (p.status === 'allin') { tat = 'All-in'; tk = 'allin'; } else tat = p.letzte || '';
+    }
+    e.appendChild(Kern.el('div', 'pk-tat' + (tk ? ' ' + tk : ''), Kern.esc(tat)));
+    e.appendChild(Kern.el('div', 'pk-hand', Kern.esc(handText)));
+    t.appendChild(e);
+    // Einsatz vor dem Sitz
+    if (p && p.einsatz > 0 && S.phase !== 'handende') {
+      const f = .58, ex = g.cx + (pos.x - g.cx) * f, ey = g.cy + (pos.y - g.cy) * f;
+      const ei = Kern.el('div', 'pk-einsatz', `<span class="pk-chip klein" style="--pc:${sp.farbe}"></span><span class="k-zahl">${zahl(p.einsatz)}</span>`);
+      ei.style.left = ex + 'px'; ei.style.top = ey + 'px'; t.appendChild(ei);
+    }
+  });
+}
+addEventListener('resize', () => { if (S && BUEHNE) { gezeigtBoard = S.board.length; zeichnen(); if (AKTUELLE_LEISTE) AKTUELLE_LEISTE(); } });
+
+// Kurzbeschreibung der eigenen Hand: vor dem Flop die zwei Karten, danach die beste Hand mit dem Board
+const RN = {T: '10', J: 'Bube', Q: 'Dame', K: 'König', A: 'Ass'}, RP = {T: 'Zehnen', J: 'Buben', Q: 'Damen', K: 'Könige', A: 'Asse'};
+function beschreibung(karten) {
+  if (S.board.length >= 3) return Poker.besteHand(karten.concat(S.board)).name.split(' · ')[0];
+  const [a, b] = karten.slice().sort((x, y) => Poker.wert(y) - Poker.wert(x));
+  if (a[0] === b[0]) return 'Paar ' + (RP[a[0]] || a[0] + 'er');
+  return `${RN[a[0]] || a[0]} und ${RN[b[0]] || b[0]}${a[1] === b[1] ? ', gleiche Farbe' : ''}`;
+}
+
+/* ---------- Leiste ---------- */
+let AKTUELLE_LEISTE = null;
+let LEISTE_H = 0;
+function leiste(fn) {
+  AKTUELLE_LEISTE = fn; fn();
+  const h = $('#pk-leiste').offsetHeight;
+  if (h !== LEISTE_H) { LEISTE_H = h; gezeigtBoard = S.board.length; zeichnen(); }
+}
+function satz(html, knoepfe = []) {
+  leiste(() => {
+    const l = $('#pk-leiste'); l.className = 'pk-leiste'; l.innerHTML = `<div class="pk-satz">${html}</div>`;
+    const r = Kern.el('div', 'pk-reihe'); r.style.flex = '0 0 auto';
+    knoepfe.forEach(k => { const b = Kern.el('button', 'k-btn gross' + (k.art ? ' ' + k.art : ''), Kern.esc(k.text)); b.id = k.id || ''; b.onclick = k.fn; r.appendChild(b); });
+    if (knoepfe.length) l.appendChild(r);
+  });
+}
+
+function entscheidung() {
+  return new Promise(res => {
+    const i = S.amZug, sp = S.spieler[i], p = S.ph[i];
+    const m = Poker.moeglich(S);
+    let ziel = m.setzen ? m.setzen.min : 0;
+    leiste(() => {
+      const l = $('#pk-leiste'); l.className = 'pk-leiste' + (GEOM && GEOM.hoch ? ' hoch' : ''); l.innerHTML = '';
+      l.style.setProperty('--pc', sp.farbe);
+      const eig = Kern.el('div', 'pk-eigen'); const ek = Kern.el('div', 'pk-ek');
+      const kw = GEOM && GEOM.hoch ? 70 : 78;
+      p.karten.forEach(k => ek.appendChild(karte(k, kw)));
+      const bisher = beschreibung(p.karten);
+      eig.appendChild(ek);
+      eig.appendChild(Kern.el('div', 'pk-wer', `<h2>${Kern.esc(sp.name)}</h2><em>${Kern.esc(bisher)}</em><span>Stapel <b class="k-zahl">${zahl(sp.chips)}</b> · im Topf ${zahl(p.gesamt)}</span>`));
+      l.appendChild(eig);
+      const ak = Kern.el('div', 'pk-aktionen');
+      const reihe = Kern.el('div', 'pk-reihe');
+      const knopf = (text, art, id, fn) => { const b = Kern.el('button', 'k-btn gross' + (art ? ' ' + art : ''), text); b.id = id; b.onclick = fn; reihe.appendChild(b); return b; };
+      if (m.passen) knopf('Passen', 'leise', 'pk-passen', () => fertig({art: 'passen'}));
+      if (m.schieben) knopf('Schieben', 'leise', 'pk-schieben', () => fertig({art: 'schieben'}));
+      if (m.mitgehen) knopf(m.mitgehenAllin ? `Mitgehen ${zahl(m.zuZahlen)} · All-in` : `Mitgehen ${zahl(m.zuZahlen)}`, '', 'pk-mitgehen', () => fertig({art: 'mitgehen'}));
+      ak.appendChild(reihe); l.appendChild(ak);
+      if (m.setzen) {
+        const er = Kern.el('div', 'pk-erh');
+        const min = m.setzen.min, max = m.setzen.max, step = S.blinds.sb || 1;
+        const wort = m.istEinsatz ? 'Setzen' : 'Erhöhen auf';
+        const nurAllin = min === max;
+        if (!nurAllin) {
+          const minus = Kern.el('button', 'pk-pm', '−'); minus.setAttribute('aria-label', 'weniger');
+          const rng = Kern.el('input'); rng.type = 'range'; rng.min = min; rng.max = max; rng.step = 1; rng.value = ziel; rng.id = 'pk-regler';
+          const plus = Kern.el('button', 'pk-pm', '+'); plus.setAttribute('aria-label', 'mehr');
+          const betr = Kern.el('span', 'pk-betrag k-zahl', zahl(ziel));
+          const sch = Kern.el('div', 'pk-schnell');
+          const werte = Poker.schnellwerte(S);
+          const setz = v => {
+            v = Math.max(min, Math.min(max, Math.round(v)));
+            if (v !== max && v !== min) v = Math.min(max, Math.max(min, Math.round(v / step) * step));
+            ziel = v; rng.value = v; betr.textContent = zahl(v);
+            go.textContent = (v === max ? 'All-in ' : wort + ' ') + zahl(v);
+            go.className = 'k-btn gross ' + (v === max ? 'gefahr' : 'pk-erhknopf');
+            [...sch.children].forEach(b => b.setAttribute('aria-pressed', +b.dataset.w === v));
+          };
+          rng.oninput = () => setz(+rng.value);
+          minus.onclick = () => setz(ziel - S.blinds.bb); plus.onclick = () => setz(ziel + S.blinds.bb);
+          werte.forEach(w => { if (w.wert !== max && w.wert !== min) w.wert = Math.min(max, Math.max(min, Math.round(w.wert / step) * step));
+            const b = Kern.el('button', '', `${Kern.esc(w.text)}<br><span class="k-zahl" style="font-weight:400">${zahl(w.wert)}</span>`); b.style.lineHeight = '1.1'; b.dataset.w = w.wert; b.onclick = () => { setz(w.wert); Kern.ton('tipp'); }; sch.appendChild(b); });
+          er.append(minus, rng, plus, betr, sch);
+          ak.appendChild(er);
+          const go = knopf('', 'gut', 'pk-setzen', () => fertig(ziel === max ? {art: 'allin'} : {art: 'setzen', betrag: ziel}));
+          setz(ziel);
+        } else {
+          knopf(`All-in ${zahl(max)}`, 'gefahr', 'pk-allin', () => fertig({art: 'allin'}));
+        }
+      }
+    });
+    function fertig(a) {
+      const r = Poker.aktion(S, a);
+      if (!r.ok) { Kern.hinweis(r.grund); Kern.ton('fehler'); return; }
+      Kern.ton(a.art === 'passen' ? 'karte' : a.art === 'schieben' ? 'tipp' : 'legen');
+      res(r);
+    }
+  });
+}
+
+/* ---------- Ablauf ---------- */
+async function ablauf() {
+  const id = ++LAUF;
+  {
+    while (S && BUEHNE && id === LAUF) {
+      zeichnen();
+      if (S.phase === 'ende') { spielende(); break; }
+      if (S.phase === 'handende') { handende(); break; }
+      if (S.laufen) {
+        satz(`<b>Alle sind All-in.</b> Die Karten liegen offen, das Board wird aufgedeckt.`);
+        await Kern.warte(1300); if (id !== LAUF) break; Poker.naechsteStrasse(S); speichern(); continue;
+      }
+      const i = S.amZug; if (i < 0) break;
+      const sp = S.spieler[i], m = Poker.moeglich(S);
+      satz(`<b>${Kern.esc(sp.name)}</b> ist dran.<small>Gib das iPad weiter.</small>`);
+      const lage = m.zuZahlen > 0 ? `Zum Mitgehen fehlen dir ${zahl(m.zuZahlen)}.` : 'Kein Einsatz offen – du kannst schieben.';
+      await Kern.sichtschutz({name: sp.name, farbe: sp.farbe, text: `${STRASSE[S.phase]} · Topf ${zahl(Poker.topf(S))}. ${lage}`});
+      if (id !== LAUF) break;
+      zeichnen();
+      await entscheidung();
+      // eigene Karten sofort wieder zudecken
+      satz(`<b>${Kern.esc(sp.name)}</b>: ${Kern.esc(S.log[S.log.length - 1].slice(sp.name.length + 1))}`);
+      speichern();
+      await Kern.warte(350);
+    }
+  }
+}
+
+function handende() {
+  const e = S.ergebnis;
+  const zeilen = e.toepfe.filter(x => !x.zurueck).map(x => `${x.gewinner.map(g => `<b>${Kern.esc(S.spieler[g].name)}</b>`).join(' und ')} ${x.gewinner.length > 1 ? 'teilen' : 'gewinnt'} ${zahl(x.betrag)}${x.name ? ' · ' + Kern.esc(x.name) : ''}`);
+  const raus = e.raus ? `<small>${e.raus.map(r => Kern.esc(S.spieler[r].name)).join(', ')} ${e.raus.length > 1 ? 'scheiden' : 'scheidet'} aus.</small>` : '';
+  Kern.ton(e.kampflos ? 'punkt' : 'runde');
+  satz(`${zeilen.join('<br>')}${raus}`, [
+    {text: 'Abrechnung', art: 'leise', id: 'pk-abrechnung', fn: abrechnung},
+    {text: e.spielende ? 'Zum Ergebnis' : 'Nächste Hand', id: 'pk-weiter', fn: () => { Poker.weiterNachHand(S, rnd); gezeigtBoard = 0; speichern(); ablauf(); }}
+  ]);
+}
+
+function abrechnung() {
+  const e = S.ergebnis;
+  let h = '<div class="pk-erg"><h2>Abrechnung</h2>';
+  h += '<table><tr><th>Topf</th><th>Berechtigt</th><th>Ergebnis</th><th class="r">Betrag</th></tr>';
+  e.toepfe.forEach((x, k) => {
+    const name = x.zurueck ? 'Nicht gedeckt' : (k === 0 ? 'Haupttopf' : `Nebentopf ${k}`);
+    const ber = (x.berechtigt || x.gewinner).map(g => Kern.esc(S.spieler[g].name)).join(', ');
+    const erg = x.zurueck ? `geht zurück an ${Kern.esc(S.spieler[x.gewinner[0]].name)}`
+      : e.kampflos ? `${Kern.esc(S.spieler[x.gewinner[0]].name)} – alle anderen haben gepasst`
+      : Object.keys(x.anteile).map(g => `${Kern.esc(S.spieler[g].name)} ${zahl(x.anteile[g])}`).join(', ') + `<br><small style="color:var(--ink2)">${Kern.esc(x.name)}</small>`;
+    h += `<tr><td>${name}</td><td>${ber}</td><td>${erg}</td><td class="r">${zahl(x.betrag)}</td></tr>`;
+  });
+  h += '</table><table><tr><th>Person</th><th class="r">eingesetzt</th><th class="r">erhalten</th><th class="r">Ergebnis</th><th class="r">Stapel</th></tr>';
+  S.spieler.forEach((sp, i) => {
+    const p = S.ph[i]; if (!p) return;
+    const erh = e.toepfe.reduce((a, x) => a + (x.anteile[i] || 0), 0), d = erh - p.gesamt;
+    h += `<tr><td>${Kern.esc(sp.name)}</td><td class="r">${zahl(p.gesamt)}</td><td class="r">${zahl(erh)}</td><td class="r ${d > 0 ? 'plus' : d < 0 ? 'minus' : ''}">${d > 0 ? '+' : d < 0 ? '−' : '±'}${zahl(Math.abs(d))}</td><td class="r">${zahl(sp.chips)}</td></tr>`;
+  });
+  h += '</table>';
+  if (!e.kampflos && e.zeigen) h += `<p style="color:var(--ink2);font-size:15px">Reihenfolge beim Zeigen: ${e.zeigen.map(z => Kern.esc(S.spieler[z].name) + (e.gezeigt[z] ? '' : ' (verdeckt weg)')).join(' → ')}</p>`;
+  h += '</div>';
+  Kern.fenster(h, {breit: true});
+}
+
+function verlauf() {
+  if (!S) return;
+  Kern.fenster(`<h2>Verlauf</h2><p style="color:var(--ink2)">Hand ${S.handNr}</p><ol>${S.log.map(z => `<li>${Kern.esc(z)}</li>`).join('')}</ol>`);
+}
+
+function spielende() {
+  Kern.speicher.loeschen();
+  const sieger = S.spieler[S.sieger];
+  satz(`<b>${Kern.esc(sieger ? sieger.name : '')}</b> hat alle Chips gewonnen.`, [{text: 'Neues Spiel', id: 'pk-neu', fn: startseite}]);
+  Kern.ton('sieg'); Kern.feier();
+  const liste = S.spieler.map((s, i) => ({s, i})).sort((a, b) => a.s.platz - b.s.platz);
+  const box = Kern.el('div');
+  box.innerHTML = `<h2>${Kern.esc(sieger ? sieger.name : '')} gewinnt</h2><p>Nach ${S.handNr} ${S.handNr === 1 ? 'Hand' : 'Händen'} liegen alle ${zahl(S.spieler.reduce((a, s) => a + s.chips, 0))} Chips bei einer Person.</p>
+    <div class="pk-plaetze">${liste.map(({s}) => `<div class="${s.platz === 1 ? 'eins' : ''}"><b>${s.platz}.</b><span class="k-dot" style="--pc:${s.farbe}">${Kern.esc(s.name.charAt(0))}</span>${Kern.esc(s.name)}</div>`).join('')}</div>`;
+  const k = Kern.el('div', 'k-knoepfe');
+  const nochmal = Kern.el('button', 'k-btn', 'Nochmal mit denselben'); const neu = Kern.el('button', 'k-btn leise', 'Neues Spiel');
+  k.append(nochmal, neu); box.appendChild(k);
+  const f = Kern.fenster(box);
+  nochmal.onclick = () => { f.schliessen(); const o = S.opt; S = Poker.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), startChips: o.startChips, sb: o.sb, bb: o.bb, steigen: o.steigen, zeigen: o.zeigen}, rnd); speichern(); gezeigtBoard = 0; ablauf(); };
+  neu.onclick = () => { f.schliessen(); startseite(); };
+}
+
+/* ---------- Testzugang ---------- */
+window.__test = {
+  get S() { return S; }, Poker,
+  setze(st) { S = st; speichern(); },
+  karten(hole, board) { hole.forEach((h, i) => { if (S.ph[i] && h) S.ph[i].karten = h; }); if (board) S.deck = ['2c', board[0], board[1], board[2], '2c', board[3], '2c', board[4]].reverse(); speichern(); }
+};
+
+startseite();
+</script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Zehn Etappen · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Zehn Etappen: helle Papierkarten mit farbiger Zahl und Rahmen; Joker = Stern, Aussetzen = Sprungpfeil.
+   Oben die Plätze, links die Stapel, daneben die Auslagen aller Personen, unten die eigene Hand. */
+.et-buehne{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px}
+.et-oben{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 12px 0 118px;min-height:56px;align-content:flex-start}
+.et-platz{display:flex;align-items:center;gap:9px;padding:6px 12px 6px 7px;border-radius:14px;background:var(--panel);border:1px solid var(--line);position:relative}
+.et-platz.dran{background:rgba(9,32,42,.92);box-shadow:inset 0 0 0 2px var(--pc),0 0 22px color-mix(in srgb,var(--pc) 35%,transparent)}
+.et-platz.raus{opacity:.45}
+.et-platz .k-dot{width:30px;height:30px;font-size:14px}
+.et-platz b{display:block;font-size:15px;max-width:8em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.et-platz small{display:flex;gap:9px;color:var(--ink2);font-size:13px;white-space:nowrap}
+.et-platz small i{font-style:normal;color:var(--ink);font-weight:700}
+.et-platz .et-aus{position:absolute;right:-6px;top:-8px;background:var(--fehler);color:#2a0d08;font:800 11px var(--f-ui);border-radius:99px;padding:1px 7px}
+.et-mini{display:inline-block;width:10px;height:14px;border-radius:2px;background:#e8f1ee;opacity:.8;vertical-align:-2px;margin-right:4px;box-shadow:3px -2px 0 -1px rgba(232,241,238,.45)}
+.et-platz .et-etp{background:var(--pc);color:#0f2229;border-radius:7px;padding:0 6px;font-weight:800}
+.et-platz .et-etp.ok{outline:2px solid var(--gut)}
+
+.et-mitte{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;min-height:0;align-items:stretch}
+.et-hoch .et-mitte{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+.et-hoch .et-auslagen{align-content:start}
+.et-links{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 8px;min-width:0}
+.et-satz{font-size:clamp(16px,1.8vw,20px);text-align:center;line-height:1.3;max-width:20em;text-wrap:balance}
+.et-hoch .et-satz{max-width:32em}
+.et-satz b{color:var(--pc,var(--akzent));font-family:var(--f-disp);font-weight:800}
+.et-stapel-reihe{display:flex;gap:calc(var(--pw)*.35)}
+.et-pile{position:relative;width:var(--pw);height:calc(var(--pw)*1.45);--w:var(--pw);border-radius:calc(var(--pw)*.12)}
+.et-pile .et-k{position:absolute;left:0;top:0}
+.et-pile.leer{box-shadow:inset 0 0 0 1px var(--line)}
+.et-pile.ziel{cursor:pointer}
+.et-pile.ziel::after,.et-gruppe.ziel::after{content:"";position:absolute;inset:-6px;border-radius:14px;box-shadow:0 0 0 3px var(--akzent);animation:et-puls 1.5s ease-in-out infinite;pointer-events:none}
+.et-pile.ueber::after,.et-gruppe.ueber::after{content:"";position:absolute;inset:-8px;border-radius:15px;box-shadow:0 0 0 5px var(--akzent);pointer-events:none}
+@keyframes et-puls{0%,100%{opacity:1}50%{opacity:.35}}
+.et-pile .et-cap{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);font:700 12px var(--f-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);white-space:nowrap}
+.et-cnt{position:absolute;right:-9px;top:-9px;z-index:3;min-width:28px;height:28px;padding:0 6px;border-radius:99px;background:#e8f1ee;color:#132f4a;font:700 13px var(--f-ui);display:grid;place-items:center}
+.et-log{font-size:14px;color:var(--ink2);text-align:center;max-width:22em;min-height:2.6em;margin-top:18px}
+.et-hoch .et-log{max-width:40em;min-height:1.3em}
+.et-auslagen{display:grid;grid-template-columns:repeat(var(--sp,2),minmax(0,1fr));gap:10px;align-content:center;min-height:0;overflow:hidden}
+.et-person{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:9px 11px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.et-person.dran{box-shadow:inset 0 0 0 2px var(--pc)}
+.et-person h4{margin:0;font:700 14px var(--f-ui);display:flex;gap:8px;align-items:center;white-space:nowrap;overflow:hidden}
+.et-person h4 .k-dot{width:20px;height:20px;font-size:11px}
+.et-person h4 span.t{color:var(--ink2);font-weight:400;overflow:hidden;text-overflow:ellipsis}
+.et-gruppen{display:flex;gap:10px;flex-wrap:wrap;min-height:calc(var(--mw)*1.45 + 18px);align-items:flex-start}
+.et-gruppe{position:relative;display:flex;flex-direction:column;gap:3px;padding:4px;border-radius:10px;--w:var(--mw)}
+.et-gruppe.ziel{cursor:pointer}
+.et-gruppe .reihe{display:flex}
+.et-gruppe .reihe .et-k:not(:first-child){margin-left:calc(var(--mw)*-.56)}
+.et-k.mini .mi,.et-k.mini .ix.u{display:none}
+.et-k.mini .ix{left:calc(var(--w)*.1);top:calc(var(--w)*.1);font-size:calc(var(--w)*.4)}
+.et-k.mini.sonder .ix{display:none}
+.et-k.mini.sonder .mi{display:grid;place-items:start;padding:calc(var(--w)*.1)}
+.et-k.mini.sonder svg{width:calc(var(--w)*.4);height:calc(var(--w)*.4)}
+.et-k.mini .als{left:calc(var(--w)*.1);right:auto;bottom:calc(var(--w)*.1);font-size:calc(var(--w)*.4)}
+.et-gruppe small{font-size:11px;color:var(--ink2);white-space:nowrap}
+.et-noch{font-size:13px;color:var(--ink3);align-self:center}
+
+.et-unten{display:flex;flex-direction:column;gap:8px}
+.et-leiste{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;min-height:52px}
+.et-leiste .et-ziel{font-size:15px;color:var(--ink2);max-width:28em;text-align:center}
+.et-leiste .et-ziel b{color:var(--ink)}
+.et-hand{position:relative;height:calc(var(--hw)*1.45 + 22px);--w:var(--hw)}
+.et-hand .et-k{position:absolute;top:18px;transition:transform .16s, left .3s cubic-bezier(.3,.7,.3,1);touch-action:none;cursor:pointer}
+.et-hand .et-k.wahl{transform:translateY(-18px);outline:3px solid var(--akzent);outline-offset:2px}
+.et-hand .et-k.neu{outline:3px solid var(--gut);outline-offset:2px}
+.et-hand .et-k.weg{opacity:.25}
+.et-hand.zu .et-k{cursor:default}
+.et-hand .et-k.matt{filter:brightness(.55)}
+.et-geist{position:fixed;left:0;top:0;z-index:120;pointer-events:none}
+
+/* ---------- Karte ---------- */
+.et-k{position:relative;width:var(--w);height:calc(var(--w)*1.45);border-radius:calc(var(--w)*.12);background:#fbf8f1;color:var(--fc);flex:none;overflow:hidden;
+  font-family:var(--f-disp);font-weight:800;box-shadow:inset 0 0 0 calc(var(--w)*.06) var(--fc),inset 0 0 0 calc(var(--w)*.085) #fbf8f1,
+  inset 0 0 0 calc(var(--w)*.095) color-mix(in srgb,var(--fc) 40%,transparent),0 calc(var(--w)*.03) calc(var(--w)*.08) rgba(0,0,0,.35)}
+.et-k .ix{position:absolute;left:calc(var(--w)*.15);top:calc(var(--w)*.12);font-size:calc(var(--w)*.22);line-height:1;letter-spacing:-.04em}
+.et-k .ix.u{left:auto;top:auto;right:calc(var(--w)*.15);bottom:calc(var(--w)*.12);transform:rotate(180deg)}
+.et-k .mi{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(var(--w)*.58);letter-spacing:-.06em;line-height:1}
+.et-k .mi.ul span{text-decoration:underline;text-decoration-thickness:calc(var(--w)*.045);text-underline-offset:calc(var(--w)*.05)}
+.et-k .mi::before{content:"";position:absolute;left:50%;top:50%;width:calc(var(--w)*.78);height:calc(var(--w)*.78);transform:translate(-50%,-50%) rotate(45deg);
+  border-radius:calc(var(--w)*.12);background:color-mix(in srgb,var(--fc) 13%,transparent)}
+.et-k .mi span{position:relative}
+.et-k.sonder{background:#2a1f4a;color:#fff;box-shadow:inset 0 0 0 calc(var(--w)*.06) #fbf8f1,0 calc(var(--w)*.03) calc(var(--w)*.08) rgba(0,0,0,.35)}
+.et-k.sonder .mi::before{display:none}
+.et-k.sonder svg{width:calc(var(--w)*.56);height:calc(var(--w)*.56)}
+.et-k.sonder .ix{font-size:calc(var(--w)*.13);letter-spacing:.02em}
+.et-k.aus{background:#3a1d22}
+.et-k .als{position:absolute;right:calc(var(--w)*.1);bottom:calc(var(--w)*.08);font:800 calc(var(--w)*.26) var(--f-disp);color:#f5d27a}
+.et-k.zu{background:linear-gradient(160deg,#3a2c78,#1d1640);box-shadow:inset 0 0 0 calc(var(--w)*.05) #e8f1ee,0 2px 6px rgba(0,0,0,.35)}
+.et-k.zu > *{display:none}
+.et-k.zu::after{content:"10";position:absolute;inset:0;display:grid;place-items:center;font:800 calc(var(--w)*.34) var(--f-disp);color:rgba(232,241,238,.85);
+  background:repeating-linear-gradient(135deg,transparent 0 calc(var(--w)*.09),rgba(255,255,255,.07) calc(var(--w)*.09) calc(var(--w)*.18))}
+
+.et-tab{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:15px}
+.et-tab td,.et-tab th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.et-tab th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.et-tab .r{text-align:right;font-variant-numeric:tabular-nums}
+.et-tab .sieg td{color:var(--akzent);font-weight:700}
+.et-reste{display:flex;gap:2px;flex-wrap:wrap;--w:24px}
+.et-reste .et-k .ix{display:none}
+.et-liste{list-style:none;padding:0;margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:16px}
+.et-liste b{color:var(--akzent);font-family:var(--f-disp)}
+.et-meldung{position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:300;pointer-events:none;background:#f4efe4;color:#14262b;font-weight:700;
+  padding:11px 20px;border-radius:99px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100% - 40px);text-align:center;animation:k-hoch .25s cubic-bezier(.2,.8,.3,1)}
+.et-start{display:flex}
+.et-start .et-k{--w:70px}
+@media (prefers-reduced-motion:reduce){.et-hand .et-k{transition:none!important}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="etappen.logik.js"></script>
+<script>
+"use strict";
+(() => {
+const E = window.Etappen;
+const AKZENT = '#a68cf5';
+const FC = {rot: '#cf3e35', blau: '#2c69bd', gelb: '#c48a0c', gruen: '#2a8a4d'};
+const esc = Kern.esc;
+const TEST = {rnd: null};
+const R = n => TEST.rnd ? TEST.rnd(n) : Kern.zufall(n);
+const EINST = Kern.einst.laden({sort: 'zahl'});
+let S = null, OFFEN = null, BUSY = false, SEL = new Set(), NEU = new Set(), START = null, B = null;
+
+const REGELN = `
+<p>Zehn Etappen, eine nach der anderen. In jeder Runde versuchst du, deine aktuelle Etappe auszulegen. Wer zuerst Etappe 10 geschafft hat, gewinnt.</p>
+<h3>Karten</h3>
+<p>108 Karten: die Zahlen 1 bis 12 je zweimal in Rot, Blau, Gelb und Grün, dazu 8 <b>Joker</b> (Stern) und 4 <b>Aussetzen</b>-Karten (Sprungpfeil).</p>
+<h3>Die zehn Etappen</h3>
+<ol>${E.PHASEN.map((_, i) => `<li>${E.phaseText(i)}</li>`).join('')}</ol>
+<p><b>Drilling, Vierling …</b>: gleiche Zahl, Farben egal. <b>Folge</b>: lückenlos aufsteigende Zahlen, Farben egal, nur 1 bis 12 (nach der 12 kommt keine 1). <b>Farbe</b>: gleiche Farbe, Zahlen egal.</p>
+<h3>Dein Zug</h3>
+<ol><li>Ziehe eine Karte: vom Stapel oder die oberste Karte der Ablage (eine Aussetzen-Karte darf nie von der Ablage genommen werden).</li>
+<li>Hast du deine Etappe komplett auf der Hand, tippe ihre Karten an und lege sie aus. Du darfst mehr Karten auslegen, als verlangt sind, wenn sie direkt in die Gruppen passen – aber keine zusätzliche Gruppe.</li>
+<li>Liegt deine Etappe, darfst du <b>anlegen</b>: einzelne Karten an deine oder fremde Gruppen. Folgen werden nur an den Enden verlängert.</li>
+<li>Wirf eine Karte ab – damit endet dein Zug.</li></ol>
+<h3>Joker und Aussetzen</h3>
+<p>Ein Joker ersetzt jede Zahl und jede Farbe. Jede Gruppe braucht mindestens eine echte Karte. Ein ausgelegter Joker bleibt bis zum Rundenende, was er ist. Wirfst du ein Aussetzen ab, wählst du eine andere Person: Sie verliert ihren nächsten Zug. Wer schon ein offenes Aussetzen hat, kann kein zweites bekommen. Liegt als erste Ablagekarte ein Aussetzen, verliert die erste Person ihren ersten Zug.</p>
+<h3>Rundenende</h3>
+<p>Wer alle Handkarten los ist (durch Abwerfen oder Anlegen), beendet die Runde. Alle, die ihre Etappe ausgelegt haben, gehen zur nächsten weiter; die anderen versuchen dieselbe noch einmal. Für die Karten auf der Hand gibt es Strafpunkte: 1–9 je 5, 10–12 je 10, Aussetzen 15, Joker 25. Danach gibt die nächste Person.</p>
+<h3>Spielende</h3>
+<p>Wer am Ende einer Runde Etappe 10 geschafft hat, gewinnt. Schaffen es mehrere, gewinnt, wer insgesamt die wenigsten Punkte hat. Stehen sie gleich, spielen nur sie Etappe 10 noch einmal – wer zuerst alle Karten los ist, gewinnt.</p>`;
+
+Kern.init({id: 'etappen', name: 'Zehn Etappen', akzent: AKZENT, regeln: REGELN,
+  onNeu: () => { Kern.speicher.loeschen(); startseite(); }, menue: [{text: 'Punktestand', aktion: () => punkteFenster()}, {text: 'Die zehn Etappen', aktion: () => etappenFenster()}]});
+
+/* ---------- Karten ---------- */
+const SYM = {
+  J: '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.7 6.3 6.8.6-5.2 4.5 1.6 6.7L12 17.1 6.1 20.6l1.6-6.7-5.2-4.5 6.8-.6z" fill="#f5d27a"/></svg>',
+  A: '<svg viewBox="0 0 24 24" fill="none" stroke="#f3a596" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c2-7 13-9 17-3"/><path d="M20.5 9.5l-.4 4.8-4.6-1.2"/><circle cx="11" cy="18.5" r="2.2" fill="#f3a596" stroke="none"/></svg>'
+};
+function karteHtml(k, cls = '', als = null) {
+  if (!k) return '';
+  if (k.w === 'J') return `<div class="et-k sonder ${cls}" data-id="${k.id}" aria-label="Joker"><div class="ix">JOKER</div><div class="mi">${SYM.J}</div>${als != null ? `<span class="als">${als}</span>` : ''}</div>`;
+  if (k.w === 'A') return `<div class="et-k sonder aus ${cls}" data-id="${k.id}" aria-label="Aussetzen"><div class="ix">AUSSETZEN</div><div class="mi">${SYM.A}</div></div>`;
+  const ul = k.w === 6 || k.w === 9;
+  return `<div class="et-k ${cls}" style="--fc:${FC[k.f]}" data-id="${k.id}" aria-label="${E.FARBNAME[k.f]} ${k.w}">
+    <div class="ix">${k.w}</div><div class="mi${ul ? ' ul' : ''}"><span>${k.w}</span></div><div class="ix u">${k.w}</div></div>`;
+}
+const rueck = () => '<div class="et-k zu"></div>';
+
+/* ---------- Hilfen ---------- */
+function hinweis(text, ms = 2600) {
+  document.querySelectorAll('.et-meldung').forEach(e => e.remove());
+  const m = Kern.el('div', 'et-meldung', esc(text)); document.body.appendChild(m);
+  const h = B && B.querySelector('.et-leiste'); if (h) m.style.top = Math.max(70, h.getBoundingClientRect().top - 60) + 'px';
+  setTimeout(() => m.remove(), ms);
+}
+/* Rückfrage (eigene Fassung: Kern.frage liefert beim Knopf null, siehe Abschlussbericht). */
+function frage({titel = '', text = '', knoepfe = []}) {
+  return new Promise(res => {
+    const box = Kern.el('div'); box.innerHTML = `<h2>${esc(titel)}</h2>${text ? `<p>${text}</p>` : ''}<div class="k-knoepfe"></div>`;
+    let wert = null; const fe = Kern.fenster(box, {schliessbar: true, beimSchliessen: () => res(wert)});
+    knoepfe.forEach(b => { const k = Kern.el('button', 'k-btn ' + (b.art || ''), esc(b.text)); if (b.id) k.id = b.id; k.onclick = () => { wert = b.wert; fe.schliessen(); }; box.querySelector('.k-knoepfe').appendChild(k); });
+  });
+}
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  document.querySelectorAll('.et-buehne').forEach(e => e.remove());
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null; OFFEN = null;
+  const alt = Kern.speicher.laden(), lauf = alt && alt.s && alt.s.phase !== 'spielende' ? alt.s : null;
+  const bsp = [{f: 'gruen', w: 4}, {f: 'gruen', w: 5}, {w: 'J'}, {f: 'blau', w: 7}, {f: 'rot', w: 8}];
+  Kern.setup({
+    ziel: START, titel: 'Zehn Etappen', unter: 'Drillinge, Folgen, eine Farbe: Etappe für Etappe zum Ziel. Wer zuerst alle zehn schafft, gewinnt.',
+    bild: `<div class="et-start" style="margin-bottom:14px">${bsp.map((k, i) => `<div style="transform:translateY(${(4 - i) * 5}px);margin-left:${i ? -18 : 0}px">${karteHtml(k)}</div>`).join('')}</div>`,
+    fakten: ['2–6 Personen', '108 Karten', 'ca. 60–90 Minuten'],
+    spieler: {min: 2, max: 6, standard: 3},
+    fortsetzen: lauf ? `Runde ${lauf.runde} · ${lauf.namen.map((n, i) => `${n} (${lauf.etappe[i] + 1})`).join(', ')}` : null,
+    onFortsetzen: () => { S = lauf; spielen(); },
+    onStart: ({namen, farben}) => neuesSpiel(namen, farben)
+  });
+}
+function neuesSpiel(namen, farben) { S = E.neu({namen}, R); S.farben = farben; speichern(); spielen(); }
+const speichern = () => Kern.speicher.speichern({s: S});
+
+/* ---------- Spielfläche ---------- */
+function spielen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.et-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne et-buehne');
+  B.innerHTML = `<div class="et-oben"></div><div class="et-mitte"><div class="et-links"></div><div class="et-auslagen"></div></div><div class="et-unten"><div class="et-leiste"></div><div class="et-hand"></div></div>`;
+  document.body.appendChild(B);
+  OFFEN = null; SEL.clear(); zeichnen(); weiterAn();
+}
+function masse() {
+  const W = innerWidth, H = innerHeight, hoch = H > W * 1.05;
+  B.classList.toggle('et-hoch', hoch);
+  const hw = Math.round(Math.max(52, Math.min(hoch ? 112 : 108, W / (hoch ? 7.6 : 11.2), H * (hoch ? .11 : .15))));
+  const pw = Math.round(Math.max(54, Math.min(hoch ? 128 : 104, H * (hoch ? .11 : .14), W / (hoch ? 6.5 : 10))));
+  const n = S.aktive.length, sp = hoch ? 2 : (n <= 2 ? 1 : n <= 4 ? 2 : 3);
+  const mw = Math.round(Math.max(24, Math.min(hoch ? 52 : 46, hoch ? W / 17 : W / (n <= 4 ? 28 : 34))));
+  B.style.setProperty('--hw', hw + 'px'); B.style.setProperty('--pw', pw + 'px'); B.style.setProperty('--mw', mw + 'px'); B.style.setProperty('--sp', sp);
+}
+addEventListener('resize', () => { if (B && S) zeichnen(); });
+const nm = i => esc(S.namen[i]);
+const farbe = i => S.farben[i];
+const amZug = () => OFFEN !== null && OFFEN === S.dran && (S.phase === 'ziehen' || S.phase === 'spielen');
+const gruppeName = g => g.t === 'satz' ? `${g.karten.length} × ${g.wert}` : g.t === 'folge' ? `Folge ${g.von}–${g.bis}` : `Farbe ${E.FARBNAME[g.farbe]}`;
+
+function zeichnen() {
+  if (!B || !S) return;
+  masse();
+  const offen = amZug(), ich = S.dran;
+  // Plätze
+  B.querySelector('.et-oben').innerHTML = S.namen.map((n, i) => `<div class="et-platz${i === S.dran && S.phase !== 'rundenende' && S.phase !== 'spielende' ? ' dran' : ''}${S.aktive.includes(i) ? '' : ' raus'}" style="--pc:${farbe(i)}">
+    <span class="k-dot">${esc(n.charAt(0).toUpperCase())}</span><span><b>${esc(n)}</b><small><span class="et-etp${S.ausgelegt[i] ? ' ok' : ''}" title="Etappe">E${S.etappe[i] + 1}</span>
+    <span><span class="et-mini"></span><i class="k-zahl">${S.haende[i].length}</i></span><span><i class="k-zahl">${S.punkte[i]}</i> P</span></small></span>
+    ${S.aussetzen[i] ? '<span class="et-aus">setzt aus</span>' : ''}</div>`).join('');
+  // Stapel und Satz
+  const top = E.oben(S), lnks = B.querySelector('.et-links');
+  const ziehenAn = offen && S.phase === 'ziehen';
+  const abwerfZiel = offen && S.phase === 'spielen' && SEL.size === 1;
+  lnks.innerHTML = `<div class="et-satz">${satz(offen)}</div>
+    <div class="et-stapel-reihe">
+      <div class="et-pile${ziehenAn ? ' ziel' : ''}" id="et-stapel">${rueck()}<span class="et-cnt k-zahl">${S.stapel.length}</span><span class="et-cap">Stapel</span></div>
+      <div class="et-pile${top ? '' : ' leer'}${(ziehenAn && E.ablageNehmbar(S)) || abwerfZiel ? ' ziel' : ''}" id="et-ablage" data-ziel="ablage">${top ? karteHtml(top) : ''}<span class="et-cap">Ablage</span></div>
+    </div><div class="et-log">${esc(S.log.slice(-2).join(' '))}</div>`;
+  Kern.tap(lnks.querySelector('#et-stapel'), () => ziehen('stapel'));
+  Kern.tap(lnks.querySelector('#et-ablage'), () => { if (S.phase === 'ziehen') ziehen('ablage'); else abwerfen(); });
+  // Auslagen
+  const zielGruppen = new Map();
+  if (offen && S.phase === 'spielen' && SEL.size === 1 && S.ausgelegt[ich]) E.anlegeZiele(S, [...SEL][0]).forEach(z => zielGruppen.set(z.gid, (zielGruppen.get(z.gid) || []).concat(z.ende)));
+  B.querySelector('.et-auslagen').innerHTML = S.aktive.map(i => {
+    const gs = S.auslagen.filter(g => g.besitzer === i);
+    return `<div class="et-person${i === S.dran ? ' dran' : ''}" style="--pc:${farbe(i)}"><h4><span class="k-dot">${esc(S.namen[i].charAt(0).toUpperCase())}</span>${esc(S.namen[i])}
+      <span class="t">· Etappe ${S.etappe[i] + 1}: ${E.phaseText(S.etappe[i])}</span></h4><div class="et-gruppen">
+      ${gs.length ? gs.map(g => `<div class="et-gruppe${zielGruppen.has(g.gid) ? ' ziel' : ''}" data-gid="${g.gid}" data-ziel="g${g.gid}"><div class="reihe">${g.karten.map(k => karteHtml(k, 'mini', k.w === 'J' && g.t !== 'farbe' ? k.als : null)).join('')}</div><small>${gruppeName(g)}</small></div>`).join('')
+        : '<span class="et-noch">noch nicht ausgelegt</span>'}</div></div>`;
+  }).join('');
+  B.querySelectorAll('.et-gruppe').forEach(g => Kern.tap(g, () => anlegen(+g.dataset.gid)));
+  leiste(offen);
+  handZeichnen(offen);
+  // Auslagen zu hoch? Kleinere Karten.
+  const au = B.querySelector('.et-auslagen'); let mw = parseFloat(B.style.getPropertyValue('--mw'));
+  for (let i = 0; i < 10 && au.scrollHeight > au.clientHeight + 1 && mw > 20; i++) { mw = Math.round(mw * .9); B.style.setProperty('--mw', mw + 'px'); }
+}
+function satz(offen) {
+  const wer = `<b style="--pc:${farbe(S.dran)}">${nm(S.dran)}</b>`;
+  if (S.phase === 'rundenende' || S.phase === 'spielende') return 'Die Runde ist vorbei.';
+  if (!offen) return `Gleich ist ${wer} dran.`;
+  if (S.phase === 'ziehen') return `${wer}, ziehe eine Karte: Stapel oder Ablage.`;
+  if (!S.ausgelegt[S.dran]) return `${wer}, lege deine Etappe aus – oder wirf eine Karte ab.`;
+  return `${wer}, lege an oder wirf eine Karte ab.`;
+}
+function leiste(offen) {
+  const l = B.querySelector('.et-leiste'); l.innerHTML = '';
+  if (!offen) return;
+  const ich = S.dran, knopf = (t, id, art, fn, an = true) => { const b = Kern.el('button', 'k-btn ' + (art || ''), t); b.id = id; b.onclick = fn; b.disabled = !an; l.appendChild(b); return b; };
+  const sel = [...SEL].map(id => S.haende[ich].find(k => k.id === id)).filter(Boolean);
+  if (S.phase === 'ziehen') {
+    const z = Kern.el('span', 'et-ziel', `Deine Etappe ${S.etappe[ich] + 1}: <b>${E.phaseText(S.etappe[ich])}</b>`); l.appendChild(z);
+  } else {
+    if (!S.ausgelegt[ich]) {
+      const grund = E.etappeGrund(S.etappe[ich], sel);
+      const z = Kern.el('span', 'et-ziel', `Etappe ${S.etappe[ich] + 1}: <b>${E.phaseText(S.etappe[ich])}</b><br>${sel.length ? (grund ? esc(grund) : '<span style="color:var(--gut)">Passt – leg sie aus!</span>') : 'Tippe die Karten deiner Etappe an.'}`);
+      l.appendChild(z);
+      knopf('Etappe auslegen', 'et-auslegen', '', () => auslegen(), sel.length && !grund);
+    } else if (SEL.size === 1) {
+      const n = E.anlegeZiele(S, [...SEL][0]).length;
+      l.appendChild(Kern.el('span', 'et-ziel', n ? 'Tippe eine leuchtende Gruppe zum Anlegen – oder wirf ab.' : 'Diese Karte passt an keine Gruppe.'));
+    }
+    knopf(sel.length === 1 && sel[0].w === 'A' ? 'Aussetzen abwerfen' : 'Abwerfen', 'et-abwerfen', sel.length === 1 ? 'leise' : 'leise', () => abwerfen(), sel.length === 1);
+    if (SEL.size) knopf('Auswahl aufheben', 'et-leeren', 'leise klein', () => { SEL.clear(); zeichnen(); });
+  }
+  knopf(EINST.sort === 'zahl' ? 'Nach Farbe' : 'Nach Zahl', 'et-sort', 'leise klein', () => { EINST.sort = EINST.sort === 'zahl' ? 'farbe' : 'zahl'; Kern.einst.speichern(EINST); zeichnen(); });
+}
+function sortiert(h) {
+  const fo = {rot: 0, blau: 1, gelb: 2, gruen: 3}, wv = k => typeof k.w === 'number' ? k.w : k.w === 'J' ? 13 : 14;
+  return h.slice().sort((a, b) => EINST.sort === 'zahl' ? wv(a) - wv(b) || (fo[a.f] ?? 9) - (fo[b.f] ?? 9) : ((fo[a.f] ?? 9) - (fo[b.f] ?? 9)) || wv(a) - wv(b));
+}
+function handZeichnen(offen) {
+  const el = B.querySelector('.et-hand');
+  el.classList.toggle('zu', !offen);
+  const hw = parseFloat(B.style.getPropertyValue('--hw'));
+  if (!offen) { el.innerHTML = Array.from({length: Math.min(S.haende[S.dran].length, 11)}, rueck).join(''); legeAus(el, hw); return; }
+  // Liegt die Etappe, sind Karten ohne Anlegeplatz gedimmt (abwerfen geht trotzdem).
+  const matt = k => S.phase === 'spielen' && S.ausgelegt[S.dran] && !SEL.has(k.id) && !E.anlegeZiele(S, k.id).length;
+  el.innerHTML = sortiert(S.haende[S.dran]).map(k => karteHtml(k, (SEL.has(k.id) ? 'wahl' : '') + (NEU.has(k.id) ? ' neu' : '') + (matt(k) ? ' matt' : ''))).join('');
+  legeAus(el, hw);
+  el.querySelectorAll('.et-k').forEach(c => ziehbar(c, +c.dataset.id));
+}
+function legeAus(el, hw) {
+  const ks = [...el.querySelectorAll('.et-k')], n = ks.length, A = el.clientWidth;
+  const step = n > 1 ? Math.min(hw * 1.06, (A - hw) / (n - 1)) : 0, x0 = (A - hw - step * (n - 1)) / 2;
+  ks.forEach((c, i) => { c.style.left = (x0 + i * step) + 'px'; c.style.zIndex = i + 1; });
+}
+/* Antippen wählt aus; Ziehen auf Ablage = abwerfen, auf eine Gruppe = anlegen. */
+function ziehbar(c, id) {
+  let st = null, geist = null, ueber = null;
+  const ziele = () => [...B.querySelectorAll('[data-ziel]')];
+  c.addEventListener('pointerdown', e => { if (st || BUSY || S.phase !== 'spielen') return; st = {p: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), zieht: false}; try { c.setPointerCapture(e.pointerId); } catch (_) {} });
+  c.addEventListener('pointermove', e => {
+    if (!st || e.pointerId !== st.p) return;
+    if (!st.zieht && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 16) {
+      st.zieht = true; SEL = new Set([id]); c.classList.add('weg');
+      // Ziele markieren, ohne neu zu zeichnen (sonst ginge die gezogene Karte verloren)
+      const gz = new Set(S.ausgelegt[S.dran] ? E.anlegeZiele(S, id).map(x => x.gid) : []);
+      B.querySelectorAll('.et-gruppe').forEach(g => g.classList.toggle('ziel', gz.has(+g.dataset.gid)));
+      B.querySelector('#et-ablage').classList.add('ziel');
+      geist = Kern.el('div', 'et-geist', karteHtml(S.haende[S.dran].find(k => k.id === id))); geist.style.setProperty('--w', B.style.getPropertyValue('--hw')); B.appendChild(geist);
+    }
+    if (st.zieht) {
+      geist.style.transform = `translate(${e.clientX - 40}px,${e.clientY - 70}px) rotate(-4deg)`;
+      ueber = ziele().find(z => { const r = z.getBoundingClientRect(); return e.clientX > r.left - 16 && e.clientX < r.right + 16 && e.clientY > r.top - 16 && e.clientY < r.bottom + 16; }) || null;
+      ziele().forEach(z => z.classList.toggle('ueber', z === ueber && (z.dataset.ziel === 'ablage' || z.classList.contains('ziel'))));
+    }
+  });
+  const ende = (e, abbruch) => {
+    if (!st || e.pointerId !== st.p) return; const s = st; st = null;
+    if (s.zieht) {
+      geist && geist.remove(); geist = null; const z = !abbruch && ueber; ueber = null;
+      if (z && z.dataset.ziel === 'ablage') abwerfen(); else if (z && z.classList.contains('ziel')) anlegen(+z.dataset.gid); else zeichnen();
+      return;
+    }
+    if (!abbruch && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 28 && performance.now() - s.t < 900) { if (SEL.has(id)) SEL.delete(id); else SEL.add(id); Kern.ton('tipp'); zeichnen(); }
+  };
+  c.addEventListener('pointerup', e => ende(e, false));
+  c.addEventListener('pointercancel', e => ende(e, true));
+}
+
+/* ---------- Züge ---------- */
+function ziehen(q) {
+  if (!amZug() || BUSY) return;
+  if (S.phase !== 'ziehen') { if (q === 'stapel') hinweis('Du hast schon gezogen.'); return; }
+  const r = E.ziehen(S, q, R);
+  if (!r.ok) { Kern.ton('fehler'); hinweis(r.grund); return; }
+  Kern.ton('ziehen'); NEU = new Set(r.karte ? [r.karte.id] : []); SEL.clear(); speichern(); zeichnen();
+}
+async function auslegen() {
+  if (!amZug() || S.phase !== 'spielen') return;
+  const ids = [...SEL], ks = ids.map(id => S.haende[S.dran].find(k => k.id === id));
+  const lagen = E.etappeLagen(S.etappe[S.dran], ks);
+  if (!lagen.length) { Kern.ton('fehler'); hinweis(E.etappeGrund(S.etappe[S.dran], ks)); return; }
+  let wahl = 0;
+  const folgen = new Set(lagen.map(l => l.filter(g => g.t === 'folge').map(g => `${g.von}-${g.bis}`).join(' + ')));
+  if (folgen.size > 1) {
+    const kurz = l => l.map(g => g.t === 'folge' ? `Folge ${g.von}–${g.bis}` : gruppeName(g)).join(' + ');
+    wahl = await frage({titel: 'Wo liegen die Joker?', text: 'Deine Joker können am Rand der Folge verschiedene Zahlen sein. Ein ausgelegter Joker bleibt, was er ist.',
+      knoepfe: lagen.map((l, i) => ({text: kurz(l), wert: i, art: i ? 'leise' : '', id: 'et-lage-' + i}))});
+    if (wahl === null) return;
+  }
+  const r = E.auslegen(S, ids, wahl);
+  if (!r.ok) { hinweis(r.grund); return; }
+  Kern.ton('punkt'); SEL.clear(); NEU.clear(); speichern();
+  if (r.rundeVorbei) { nachZug(); return; }
+  hinweis(`Etappe ${S.etappe[S.dran] + 1} liegt!`); zeichnen();
+}
+async function anlegen(gid) {
+  if (!amZug() || S.phase !== 'spielen' || SEL.size !== 1) return;
+  const id = [...SEL][0], z = E.anlegeZiele(S, id).filter(x => x.gid === gid);
+  if (!z.length) { Kern.ton('fehler'); hinweis(S.ausgelegt[S.dran] ? 'Die Karte passt nicht an diese Gruppe.' : 'Anlegen geht erst, wenn deine Etappe liegt.'); return; }
+  let ende = z[0].ende;
+  if (z.length > 1) {
+    const g = S.auslagen.find(x => x.gid === gid);
+    ende = await frage({titel: 'Joker anlegen', text: `An welchem Ende der Folge ${g.von}–${g.bis}?`,
+      knoepfe: [{text: `Unten als ${g.von - 1}`, wert: 'unten', art: 'leise', id: 'et-unten'}, {text: `Oben als ${g.bis + 1}`, wert: 'oben', id: 'et-oben'}]});
+    if (!ende) return;
+  }
+  const r = E.anlegen(S, id, gid, ende);
+  if (!r.ok) { hinweis(r.grund); return; }
+  Kern.ton('legen'); SEL.clear(); NEU.clear(); speichern();
+  if (r.rundeVorbei) { nachZug(); return; }
+  zeichnen();
+}
+async function abwerfen() {
+  if (!amZug() || S.phase !== 'spielen') return;
+  if (SEL.size !== 1) { hinweis('Wähle genau eine Karte zum Abwerfen.'); return; }
+  const id = [...SEL][0], k = S.haende[S.dran].find(c => c.id === id);
+  let ziel = null;
+  if (k.w === 'A' && S.haende[S.dran].length > 1) {
+    const zl = E.aussetzZiele(S);
+    if (zl.length) {
+      ziel = await frage({titel: 'Wer setzt aus?', text: 'Diese Person verliert ihren nächsten Zug.',
+        knoepfe: zl.map(i => ({text: S.namen[i], wert: i, art: 'leise', id: 'et-ziel-' + i}))});
+      if (ziel === null) return;
+    }
+  }
+  const r = E.abwerfen(S, id, ziel);
+  if (!r.ok) { hinweis(r.grund || 'Geht nicht.'); return; }
+  Kern.ton(k.w === 'A' ? 'warn' : 'karte'); SEL.clear(); NEU.clear();
+  nachZug();
+}
+async function nachZug() {
+  speichern();
+  OFFEN = null; zeichnen();
+  if (S.phase === 'rundenende' || S.phase === 'spielende') { await Kern.warte(700); wertung(); return; }
+  await Kern.warte(700); weiterAn();
+}
+async function weiterAn() {
+  if (S.phase === 'rundenende' || S.phase === 'spielende') { wertung(); return; }
+  OFFEN = null; SEL.clear(); NEU.clear(); zeichnen();
+  const sp = S.dran, was = S.log.slice(-2).join(' ');
+  await Kern.sichtschutz({name: S.namen[sp], farbe: farbe(sp), text: (was ? esc(was) + '<br>' : '') + `Deine Etappe ${S.etappe[sp] + 1}: ${E.phaseText(S.etappe[sp])}.`});
+  OFFEN = sp; zeichnen();
+}
+
+/* ---------- Wertung ---------- */
+function wertung() {
+  document.querySelectorAll('.et-meldung').forEach(m => m.remove());
+  const e = S.ergebnis, ende = S.phase === 'spielende', box = Kern.el('div');
+  const titel = ende ? `${nm(e.spielSieger)} gewinnt!` : e.stechen ? 'Gleichstand nach Etappe 10' : `${nm(e.sieger)} ist alle Karten los`;
+  let text = ende ? (e.warStechen ? `${nm(e.spielSieger)} war im Stechen zuerst alle Karten los.` : e.zehn.length > 1 ? `Mehrere haben Etappe 10 geschafft – ${nm(e.spielSieger)} hat die wenigsten Punkte.` : `${nm(e.spielSieger)} hat als erste Person alle zehn Etappen geschafft.`)
+    : e.stechen ? `${e.stechen.map(nm).join(' und ')} haben Etappe 10 geschafft und gleich viele Punkte. Sie spielen Etappe 10 noch einmal – wer zuerst alle Karten los ist, gewinnt.`
+    : 'Wer seine Etappe ausgelegt hat, geht weiter. Strafpunkte für die Handkarten: 1–9 je 5, 10–12 je 10, Aussetzen 15, Joker 25.';
+  const zeilen = e.einzel.map(x => x.sp);
+  box.innerHTML = `<h2>${titel}</h2><p>${text}</p>
+    <table class="et-tab"><tr><th>Name</th><th>Etappe</th><th>Handkarten</th><th class="r">Runde</th><th class="r">Gesamt</th></tr>
+    ${zeilen.map(i => { const x = e.einzel.find(y => y.sp === i); return `<tr class="${e.spielSieger === i ? 'sieg' : ''}"><td><span class="k-dot" style="--pc:${farbe(i)};display:inline-grid;margin-right:8px;vertical-align:-5px">${esc(S.namen[i].charAt(0))}</span>${nm(i)}</td>
+      <td>${x.geschafft ? `<span style="color:var(--gut)">✓ ${x.etappe + 1}</span>${x.etappe < 9 ? ` → ${x.etappe + 2}` : ''}` : `${x.etappe + 1} (nochmal)`}</td>
+      <td>${S.haende[i].length ? `<div class="et-reste">${S.haende[i].map(k => karteHtml(k)).join('')}</div>` : '<span style="color:var(--akzent)">alle los</span>'}</td>
+      <td class="r">${x.wert ? '+' + x.wert : '0'}</td><td class="r"><b>${S.punkte[i]}</b></td></tr>`; }).join('')}</table><div class="k-knoepfe"></div>`;
+  const fe = Kern.fenster(box, {breit: true, schliessbar: false}), kn = box.querySelector('.k-knoepfe');
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { fe.schliessen(); fn(); }; kn.appendChild(b); };
+  if (ende) {
+    Kern.speicher.loeschen(); Kern.ton('sieg'); Kern.feier();
+    knopf('Neues Spiel', 'et-neu', 'leise', () => startseite());
+    knopf('Nochmal', 'et-nochmal', '', () => neuesSpiel(S.namen, S.farben));
+  } else {
+    Kern.ton('runde');
+    knopf(e.stechen ? 'Stechen beginnen' : 'Nächste Runde', 'et-weiter', '', () => { E.naechsteRunde(S, R); speichern(); weiterAn(); });
+  }
+}
+function punkteFenster() {
+  if (!S) return;
+  const z = S.namen.map((n, i) => i).sort((a, b) => S.etappe[b] - S.etappe[a] || S.punkte[a] - S.punkte[b]);
+  Kern.fenster(`<h2>Punktestand</h2><p>Runde ${S.runde}${S.stechen ? ' · Stechen um den Sieg' : ''}</p><table class="et-tab"><tr><th>Name</th><th>Etappe</th><th class="r">Punkte</th></tr>
+    ${z.map(i => `<tr><td>${nm(i)}</td><td>${S.etappe[i] + 1}: ${E.phaseText(S.etappe[i])}</td><td class="r">${S.punkte[i]}</td></tr>`).join('')}</table>`);
+}
+function etappenFenster() {
+  Kern.fenster(`<h2>Die zehn Etappen</h2><ul class="et-liste">${E.PHASEN.map((_, i) => `<b>${i + 1}</b><span>${E.phaseText(i)}</span>`).join('')}</ul>`);
+}
+
+window.__test = {
+  S: () => S, offen: () => OFFEN, logik: E,
+  zufall(seed) { let s = seed >>> 0; TEST.rnd = n => { s = (s * 1664525 + 1013904223) >>> 0; return s % n; }; },
+  setze(fn) { fn(S); speichern(); zeichnen(); }
+};
+startseite();
+})();
+</script>
+</body>
+</html>

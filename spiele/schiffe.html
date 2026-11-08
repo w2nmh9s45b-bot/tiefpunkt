@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Schiffe versenken · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Schiffe versenken: links/oben das große Meer, daneben Lage, Flotten und das eigene kleine Brett. Präfix .sv- */
+.sv-buehne{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+@media (max-aspect-ratio:1/1){.sv-buehne{grid-template-columns:1fr;grid-template-rows:auto 1fr;justify-items:center;align-items:start}}
+.sv-links{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.sv-titel{font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);padding-left:calc(var(--c)*.6 + 4px)}
+.sv-titel b{color:var(--ink)}
+.sv-rechts{display:flex;flex-direction:column;gap:14px;min-width:0;align-self:stretch;justify-content:center;padding-top:56px;max-width:460px;width:100%}
+@media (max-aspect-ratio:1/1){
+  .sv-buehne > .sv-links{padding-top:34px}
+  .sv-rechts{padding-top:0;max-width:none;display:grid;grid-template-columns:1fr auto;grid-template-areas:"lage mini" "flotte mini";grid-template-rows:auto 1fr;align-items:start;gap:14px}
+  .sv-rechts .sv-a-lage{grid-area:lage}.sv-rechts .sv-a-flotte{grid-area:flotte}.sv-rechts .sv-a-mini{grid-area:mini}
+  .sv-aufstell .sv-knoepfe .k-btn{flex:1 1 0}.sv-aufstell .sv-knoepfe #sv-fertig{flex-basis:0 !important;flex-grow:1.4}
+  .sv-aufstell .sv-boot{min-height:40px}}
+.sv-karte{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px 18px}
+.sv-karte h2{font-size:26px;margin-bottom:6px}
+.sv-karte p{margin:0;color:var(--ink2);font-size:16px}
+.sv-lage{font-size:21px;font-weight:700;line-height:1.3}
+.sv-lage span{color:var(--akzent)}
+.sv-ergebnis{display:inline-block;margin-top:8px;font-family:var(--f-disp);font-weight:800;font-size:30px;letter-spacing:-.02em}
+.sv-ergebnis.wasser{color:#9fd4e6}.sv-ergebnis.treffer{color:#ffa45c}.sv-ergebnis.versenkt{color:var(--fehler)}
+.sv-knoepfe{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.sv-knoepfe .k-btn{flex:1 1 auto}
+
+/* Brett */
+.sv-brett{--c:56px;display:grid;grid-template-columns:calc(var(--c)*.6) repeat(10,var(--c));grid-template-rows:calc(var(--c)*.6) repeat(10,var(--c));
+  font-family:var(--f-disp);font-weight:800;color:var(--ink2);user-select:none;-webkit-user-select:none}
+.sv-sl,.sv-zl{display:grid;place-items:center;font-size:max(10px,calc(var(--c)*.3))}
+.sv-meer{grid-column:2/-1;grid-row:2/-1;position:relative;display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr);
+  border-radius:calc(var(--c)*.18);overflow:hidden;touch-action:none;
+  background:linear-gradient(160deg,#1c5a76,#123d55);box-shadow:inset 0 0 0 2px rgba(160,220,235,.25), 0 14px 34px rgba(0,0,0,.4)}
+.sv-feld{position:relative;border-right:1px solid rgba(170,225,240,.13);border-bottom:1px solid rgba(170,225,240,.13);display:grid;place-items:center}
+.sv-feld:nth-child(10n){border-right:0}
+.sv-ziel .sv-feld.leer{cursor:pointer}
+.sv-ziel.aktiv .sv-feld.leer:hover{background:rgba(255,255,255,.08)}
+.sv-feld.wasser::after{content:"";width:28%;height:28%;border-radius:50%;box-shadow:0 0 0 calc(var(--c)*.05) rgba(225,245,250,.75);background:rgba(225,245,250,.18)}
+.sv-feld.frei::after{content:"";width:12%;height:12%;border-radius:50%;background:rgba(225,245,250,.3)}
+.sv-feld.treffer,.sv-feld.versenkt{z-index:2}
+.sv-feld.treffer::before,.sv-feld.versenkt::before{content:"";position:absolute;inset:16%;border-radius:50%;
+  background:radial-gradient(circle,#fff3c4 0 18%,#ffb547 28%,#f0603c 62%,rgba(240,96,60,0) 72%)}
+.sv-feld.treffer::after,.sv-feld.versenkt::after{content:"";position:absolute;inset:30%;
+  background:linear-gradient(45deg,transparent 42%,#5a1308 42% 58%,transparent 58%),linear-gradient(-45deg,transparent 42%,#5a1308 42% 58%,transparent 58%)}
+.sv-feld.versenkt::before{background:radial-gradient(circle,#ff8a6f 0 30%,#c23a26 60%,rgba(194,58,38,0) 72%);inset:22%}
+.sv-feld.zuletzt{animation:sv-puls 1.1s ease-out 2}
+@keyframes sv-puls{0%{box-shadow:inset 0 0 0 3px #fff}100%{box-shadow:inset 0 0 0 3px rgba(255,255,255,0)}}
+.sv-schiff{position:absolute;z-index:1;border-radius:calc(var(--c)*.42);pointer-events:none;
+  background:linear-gradient(180deg,#e9efee,#b9c7c6);box-shadow:inset 0 0 0 calc(var(--c)*.04) rgba(30,50,58,.35), 0 3px 8px rgba(0,0,0,.35)}
+.sv-schiff::after{content:"";position:absolute;inset:34%;border-radius:99px;background:rgba(30,50,58,.22)}
+.sv-schiff.wrack{background:linear-gradient(180deg,#8d3326,#5c1a12);box-shadow:inset 0 0 0 calc(var(--c)*.05) #ff9a80, 0 3px 10px rgba(0,0,0,.4)}
+.sv-schiff.wrack::after{background:rgba(255,154,128,.35)}
+.sv-schiff.greif{pointer-events:auto;cursor:grab;touch-action:none}
+.sv-schiff.wahl{box-shadow:inset 0 0 0 calc(var(--c)*.04) rgba(30,50,58,.35), 0 0 0 3px var(--akzent), 0 6px 14px rgba(0,0,0,.45)}
+.sv-schiff.zieht{opacity:.35}
+.sv-geist{position:absolute;z-index:3;border-radius:calc(var(--c)*.42);pointer-events:none;border:3px dashed var(--gut);background:rgba(127,212,154,.25)}
+.sv-geist.nein{border-color:var(--fehler);background:rgba(239,125,109,.25)}
+.sv-deckel{position:absolute;inset:0;z-index:5;display:grid;place-items:center;text-align:center;padding:10px;
+  background:repeating-linear-gradient(135deg,#123545 0 10px,#0f2d3b 10px 20px);color:var(--ink2);font-family:var(--f-ui);font-weight:700;font-size:14px}
+
+/* Flottenliste */
+.sv-flotte{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:10px}
+.sv-boot{display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px;border-radius:12px;border:1px solid var(--line);background:var(--panel-hell);
+  font-size:15px;font-weight:700;touch-action:none}
+.sv-boot .sv-segs{display:flex;gap:2px}
+.sv-boot .sv-segs i{width:14px;height:14px;border-radius:4px;background:#d6e0df}
+.sv-boot.versenkt{opacity:.6}
+.sv-boot.versenkt .sv-segs i{background:var(--fehler)}
+.sv-boot.versenkt b{text-decoration:line-through}
+.sv-boot.gesetzt{opacity:.45}
+.sv-boot.wahl{border-color:var(--akzent);background:color-mix(in srgb,var(--akzent) 18%,transparent)}
+.sv-boot.wahl .sv-segs i{background:var(--akzent)}
+.sv-aufstell .sv-boot{cursor:pointer}
+.sv-klein .sv-titel{font-size:12px}
+.sv-zaehler{font-size:14px;color:var(--ink2);margin-top:6px}
+.sv-gruppen{display:grid;gap:7px;margin-top:10px}
+.sv-gruppe{display:grid;grid-template-columns:8.5em 1fr;align-items:center;gap:8px;font-size:15px}
+.sv-gruppe > span{display:flex;flex-wrap:wrap;gap:10px}
+.sv-gruppe .sv-segs{display:flex;gap:2px}
+.sv-gruppe .sv-segs i{width:13px;height:13px;border-radius:4px;background:#d6e0df}
+.sv-gruppe .sv-segs.weg i{background:var(--fehler);opacity:.75}
+.sv-gruppe .sv-segs.weg{position:relative}
+.sv-gruppe .sv-segs.weg::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:2px;background:#ffd2c8;transform:rotate(-8deg)}
+.sv-buehne .sv-rechts .sv-karte{padding:14px 16px}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="schiffe.logik.js"></script>
+<script>
+"use strict";
+const L = window.Schiffe;
+const AKZENT = '#5fc2d6';
+const REGELN = `
+<h3>Ziel</h3><p>Versenke alle Schiffe der anderen Person, bevor sie deine versenkt.</p>
+<h3>Aufstellen</h3><p>Jede Person stellt ihre Flotte geheim auf einem Meer aus 10 × 10 Feldern auf: ein Schlachtschiff (5 Felder),
+zwei Kreuzer (4), drei Zerstörer (3) und vier U-Boote (2). Schiffe liegen gerade – waagerecht oder senkrecht –, dürfen am Rand liegen,
+sich aber nicht berühren, auch nicht über Eck.</p>
+<h3>Schießen</h3><p>Abwechselnd tippst du ein Feld im Meer der anderen Person an. Die Antwort heißt <b>Wasser</b>, <b>Treffer</b> oder
+<b>versenkt</b> – versenkt ist ein Schiff, wenn alle seine Felder getroffen sind. Rund um ein versenktes Schiff ist sicher Wasser; diese Felder bekommen einen kleinen Punkt.</p>
+<h3>Ende</h3><p>Wer zuerst alle Schiffe versenkt, gewinnt. Wer beginnt, lost das Spiel aus.</p>
+<h3>Varianten</h3><ul><li><b>Fünf Schiffe</b>: 5, 4, 3, 3 und 2 Felder.</li><li><b>Über Eck erlaubt</b> oder <b>Berühren erlaubt</b>: lockerere Aufstellung.</li>
+<li><b>Nach Treffer nochmal</b>: Wer trifft, schießt gleich noch einmal.</li></ul>`;
+
+let S = null, geschuetzt = false, beschaeftigt = false, zugFertig = false;
+const speichern = () => Kern.speicher.speichern(S);
+const nm = i => Kern.esc(S.spieler[i].name);
+
+Kern.init({id: 'schiffe', name: 'Schiffe versenken', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+
+/* ---------- Startseite ---------- */
+let START = null;
+function startseite() {
+  document.querySelectorAll('.sv-buehne').forEach(e => e.remove());
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null; Kern.kopf(true);
+  const alt = Kern.speicher.laden();
+  Kern.setup({
+    ziel: START, titel: 'Schiffe versenken', unter: 'Flotte geheim aufstellen, dann abwechselnd ins Meer der anderen schießen.',
+    bild: `<svg viewBox="0 0 120 80" width="160" height="107"><rect x="2" y="2" width="76" height="76" rx="8" fill="#1c5a76"/>
+      <path d="M21 2v76M40 2v76M59 2v76M2 21h76M2 40h76M2 59h76" stroke="rgba(170,225,240,.3)" stroke-width="1.5"/>
+      <rect x="23" y="23" width="54" height="15" rx="7.5" fill="#d6e0df"/><circle cx="12" cy="68" r="4" fill="none" stroke="#e1f5fa" stroke-width="2"/>
+      <circle cx="49" cy="49" r="8" fill="#f0603c"/><circle cx="49" cy="49" r="3" fill="#fff3c4"/>
+      <path d="M92 18l16 16M108 18L92 34" stroke="${AKZENT}" stroke-width="5" stroke-linecap="round"/><path d="M90 58h26l-5 8H95z" fill="#d6e0df"/><path d="M98 58v-8h8v8" fill="#d6e0df"/></svg>`,
+    fakten: ['2 Personen', '10 × 10 Felder', 'ca. 25 Minuten'],
+    spieler: {min: 2, max: 2, standard: 2, frage: 'Wer spielt?'},
+    optionen: [
+      {id: 'flotte', label: 'Flotte', werte: [{wert: 'zehn', text: 'Zehn Schiffe'}, {wert: 'fuenf', text: 'Fünf Schiffe'}], standard: 'zehn'},
+      {id: 'abstand', label: 'Schiffe berühren sich', werte: [{wert: 'eck', text: 'Nie (Wasser rundherum)'}, {wert: 'kante', text: 'Über Eck erlaubt'}, {wert: 'frei', text: 'Erlaubt'}], standard: 'eck'},
+      {id: 'nachTreffer', label: 'Nach einem Treffer', werte: [{wert: 'wechsel', text: 'Abwechselnd'}, {wert: 'weiter', text: 'Nochmal schießen'}], standard: 'wechsel'}
+    ],
+    fortsetzen: alt && alt.phase !== 'ende' ? `${alt.phase === 'aufstellen' ? 'Aufstellen' : 'Gefecht'} · ${alt.spieler.map(p => p.name).join(' gegen ')}` : null,
+    onFortsetzen: () => { S = alt; spielen(); },
+    onStart: ({namen, farben, optionen}) => {
+      S = L.neu({namen, farben, optionen, beginner: Kern.zufall(2)}); speichern(); spielen();
+    }
+  });
+}
+
+/* ---------- Brett-Baustein ---------- */
+function brett(c, {klasse = '', titel = ''} = {}) {
+  const wrap = Kern.el('div', 'sv-links ' + klasse);
+  wrap.style.setProperty('--c', c + 'px');
+  if (titel) wrap.insertAdjacentHTML('beforeend', `<div class="sv-titel">${titel}</div>`);
+  const b = Kern.el('div', 'sv-brett'); b.style.setProperty('--c', c + 'px');
+  b.appendChild(Kern.el('div'));
+  for (let x = 0; x < 10; x++) b.appendChild(Kern.el('div', 'sv-sl', L.SPALTEN[x]));
+  for (let y = 0; y < 10; y++) { const z = Kern.el('div', 'sv-zl', String(y + 1)); z.style.gridRow = String(y + 2); z.style.gridColumn = '1'; b.appendChild(z); }
+  const meer = Kern.el('div', 'sv-meer');
+  for (let i = 0; i < 100; i++) { const f = Kern.el('div', 'sv-feld leer'); f.dataset.i = i; f.setAttribute('aria-label', L.feldName(i)); meer.appendChild(f); }
+  b.appendChild(meer); wrap.appendChild(b);
+  return {wrap, b, meer, c, felder: [...meer.children]};
+}
+function schiffEl(c, sch, kl = '') {
+  const d = Kern.el('div', 'sv-schiff ' + kl);
+  const ins = c * .1, w = sch.r === 'h' ? sch.laenge : 1, h = sch.r === 'v' ? sch.laenge : 1;
+  Object.assign(d.style, {left: sch.x * c + ins + 'px', top: sch.y * c + ins + 'px', width: w * c - 2 * ins + 'px', height: h * c - 2 * ins + 'px'});
+  d.dataset.id = sch.id;
+  return d;
+}
+const segs = n => `<span class="sv-segs">${'<i></i>'.repeat(n)}</span>`;
+
+/* ---------- Größen ---------- */
+function masse() {
+  const W = innerWidth, H = innerHeight, hoch = W < H;
+  if (hoch) return {gross: Math.floor(Math.min((W - 40) / 10.6, (H - 470) / 10.6)), klein: Math.floor(Math.min(24, W * .3 / 10.8))};
+  return {gross: Math.floor(Math.min((H - 64) / 10.6, (W * .6) / 10.6)), klein: Math.floor(Math.min(25, (W * .34) / 10.8, (H * .3) / 10.8))};
+}
+
+/* ---------- Spielfläche ---------- */
+let B = null;
+function spielen() {
+  if (START) START.hidden = true;
+  Kern.kopf(true, 'rechts');
+  geschuetzt = false; zugFertig = false;
+  aufbauen();
+}
+function aufbauen() {
+  document.querySelectorAll('.sv-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne sv-buehne'); document.body.appendChild(B);
+  if (S.phase === 'aufstellen') return aufstellenZeichnen();
+  return gefechtZeichnen();
+}
+let RZ = null;
+addEventListener('resize', () => { clearTimeout(RZ); RZ = setTimeout(() => { if (B && S && (geschuetzt || S.phase === 'ende')) aufbauen(); }, 120); });
+
+async function schutz(i, text) {
+  B.innerHTML = '';
+  await Kern.sichtschutz({name: S.spieler[i].name, farbe: S.spieler[i].farbe, text});
+  geschuetzt = true;
+}
+
+/* ---------- Aufstellen ---------- */
+let AF = null; // {flotte, wahl}
+async function aufstellenZeichnen() {
+  const i = S.aufsteller;
+  if (!geschuetzt) {
+    AF = null;
+    await schutz(i, `${i === 0 ? 'Du stellst zuerst' : 'Jetzt stellst du'} deine Flotte auf. ${nm(1 - i)} schaut weg.`);
+    return aufbauen();
+  }
+  if (!AF) AF = {flotte: L.leereFlotte(S.optionen.flotte), wahl: 0};
+  const m = masse(), br = brett(m.gross, {klasse: 'sv-aufstell', titel: `Meer von <b>${nm(i)}</b> · geheim`});
+  const rechts = Kern.el('div', 'sv-rechts sv-aufstell');
+  B.append(br.wrap, rechts);
+  const karte = Kern.el('div', 'sv-karte');
+  karte.innerHTML = `<h2>${nm(i)}, stell deine Flotte auf</h2><p>Schiff antippen, dann ein Feld. Oder ziehen. Ein gesetztes Schiff antippen dreht es.</p>`;
+  const flotte = Kern.el('div', 'sv-flotte'); karte.appendChild(flotte);
+  const zaehler = Kern.el('div', 'sv-zaehler'); karte.appendChild(zaehler);
+  const kn = Kern.el('div', 'sv-knoepfe'); karte.appendChild(kn);
+  const dreh = Kern.el('button', 'k-btn leise', 'Drehen'); dreh.id = 'sv-drehen';
+  const zufall = Kern.el('button', 'k-btn leise', 'Zufällig aufstellen'); zufall.id = 'sv-zufall';
+  const leer = Kern.el('button', 'k-btn leise', 'Alle zurück'); leer.id = 'sv-leeren';
+  const fertig = Kern.el('button', 'k-btn gross', 'Fertig'); fertig.id = 'sv-fertig'; fertig.style.flexBasis = '100%';
+  kn.append(dreh, zufall, leer, fertig); rechts.appendChild(karte);
+  const ab = S.optionen.abstand, c = m.gross;
+  let ausrichtung = 'h';
+  const geist = Kern.el('div', 'sv-geist'); geist.hidden = true; br.meer.appendChild(geist);
+
+  function zeichnen() {
+    br.meer.querySelectorAll('.sv-schiff').forEach(e => e.remove());
+    AF.flotte.forEach(s => {
+      if (s.x == null) return;
+      const d = schiffEl(c, s, 'greif' + (AF.wahl === s.id ? ' wahl' : ''));
+      br.meer.appendChild(d); greifbar(d, s.id, 'brett');
+    });
+    flotte.innerHTML = '';
+    AF.flotte.forEach(s => {
+      const b = Kern.el('button', 'sv-boot' + (s.x != null ? ' gesetzt' : '') + (AF.wahl === s.id ? ' wahl' : ''), `${segs(s.laenge)}<b>${Kern.esc(s.name)}</b>`);
+      b.id = 'sv-boot-' + s.id; flotte.appendChild(b); greifbar(b, s.id, 'dock');
+    });
+    const offen = AF.flotte.filter(s => s.x == null).length;
+    zaehler.textContent = offen ? `Noch ${offen} ${offen === 1 ? 'Schiff' : 'Schiffe'} zu setzen · Ausrichtung: ${ausrichtung === 'h' ? 'waagerecht' : 'senkrecht'}` : 'Alle Schiffe liegen. Passt alles?';
+    fertig.disabled = !!offen;
+  }
+  const naechstesOffenes = () => { const o = AF.flotte.find(s => s.x == null); return o ? o.id : null; };
+  function setzen(id, x, y, r, still) {
+    const s = AF.flotte[id];
+    const len = s.laenge;
+    x = Math.max(0, Math.min(x, r === 'h' ? 10 - len : 9)); y = Math.max(0, Math.min(y, r === 'v' ? 10 - len : 9));
+    const kand = {...s, x, y, r}, g = L.grund(AF.flotte, kand, ab, id);
+    if (g) { if (!still) { Kern.hinweis('Geht nicht: ' + g); Kern.ton('fehler'); } return false; }
+    Object.assign(s, {x, y, r}); Kern.ton('legen');
+    AF.wahl = naechstesOffenes(); if (AF.wahl == null) AF.wahl = -1;
+    return true;
+  }
+  function drehen(id) {
+    const s = AF.flotte[id];
+    if (s.x == null) { ausrichtung = ausrichtung === 'h' ? 'v' : 'h'; Kern.ton('tipp'); zeichnen(); return; }
+    const r = s.r === 'h' ? 'v' : 'h', kand = {...s, r}, g = L.grund(AF.flotte, kand, ab, id);
+    if (g) { Kern.hinweis('Drehen geht hier nicht: ' + g); Kern.ton('fehler'); return; }
+    s.r = r; Kern.ton('tipp'); AF.wahl = id; zeichnen();
+  }
+  const zelleBei = (cx, cy) => {
+    const r = br.meer.getBoundingClientRect();
+    if (cx < r.left || cy < r.top || cx >= r.right || cy >= r.bottom) return null;
+    return {x: Math.floor((cx - r.left) / c), y: Math.floor((cy - r.top) / c)};
+  };
+  // Ziehen und Antippen (Schiff im Dock oder auf dem Brett)
+  function greifbar(el, id, herkunft) {
+    el.addEventListener('pointerdown', ev => {
+      if (beschaeftigt) return;
+      ev.preventDefault(); el.setPointerCapture && el.setPointerCapture(ev.pointerId);
+      const s = AF.flotte[id], start = {x: ev.clientX, y: ev.clientY};
+      const r = herkunft === 'brett' ? s.r : ausrichtung;
+      let versatz = 0;
+      if (herkunft === 'brett') { const z = zelleBei(ev.clientX, ev.clientY); if (z) versatz = r === 'h' ? z.x - s.x : z.y - s.y; }
+      let zieht = false, ziel = null;
+      const bewegen = e => {
+        if (!zieht && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 10) return;
+        if (!zieht) { zieht = true; if (herkunft === 'brett') el.classList.add('zieht'); }
+        const z = zelleBei(e.clientX, e.clientY);
+        if (!z) { geist.hidden = true; ziel = null; return; }
+        let x = r === 'h' ? z.x - versatz : z.x, y = r === 'v' ? z.y - versatz : z.y;
+        x = Math.max(0, Math.min(x, r === 'h' ? 10 - s.laenge : 9)); y = Math.max(0, Math.min(y, r === 'v' ? 10 - s.laenge : 9));
+        ziel = {x, y};
+        const ok = !L.grund(AF.flotte, {...s, x, y, r}, ab, id);
+        const ins = c * .1; geist.hidden = false; geist.className = 'sv-geist' + (ok ? '' : ' nein');
+        Object.assign(geist.style, {left: x * c + ins + 'px', top: y * c + ins + 'px', width: (r === 'h' ? s.laenge : 1) * c - 2 * ins + 'px', height: (r === 'v' ? s.laenge : 1) * c - 2 * ins + 'px'});
+      };
+      const los = () => {
+        el.removeEventListener('pointermove', bewegen); el.removeEventListener('pointerup', los); el.removeEventListener('pointercancel', los);
+        geist.hidden = true; el.classList.remove('zieht');
+        if (zieht) { if (ziel) setzen(id, ziel.x, ziel.y, r); zeichnen(); return; }
+        // Antippen
+        if (herkunft === 'brett') drehen(id);
+        else { AF.wahl = id; if (s.x != null) { s.x = null; s.y = null; } Kern.ton('tipp'); zeichnen(); }
+      };
+      el.addEventListener('pointermove', bewegen); el.addEventListener('pointerup', los); el.addEventListener('pointercancel', los);
+    });
+  }
+  // Feld antippen: gewähltes Schiff dort setzen
+  Kern.tap(br.meer, ev => {
+    if (beschaeftigt || ev.target.closest('.sv-schiff')) return;
+    const z = zelleBei(ev.clientX, ev.clientY); if (!z) return;
+    if (AF.wahl == null || AF.wahl < 0 || AF.flotte[AF.wahl].x != null) { Kern.hinweis('Tippe zuerst rechts ein Schiff an.'); return; }
+    setzen(AF.wahl, z.x, z.y, ausrichtung); zeichnen();
+  });
+  dreh.onclick = () => { if (AF.wahl != null && AF.wahl >= 0) drehen(AF.wahl); else { ausrichtung = ausrichtung === 'h' ? 'v' : 'h'; zeichnen(); } };
+  zufall.onclick = () => { AF.flotte = L.zufaellig(S.optionen.flotte, ab, Kern.zufall); AF.wahl = -1; Kern.ton('stein'); zeichnen(); };
+  leer.onclick = () => { AF.flotte = L.leereFlotte(S.optionen.flotte); AF.wahl = 0; Kern.ton('tipp'); zeichnen(); };
+  fertig.onclick = async () => {
+    if (beschaeftigt) return;
+    L.aufstellen(S, i, AF.flotte); speichern(); AF = null; geschuetzt = false; Kern.ton('runde');
+    B.innerHTML = '';
+    if (S.phase === 'spiel') Kern.hinweis(`Das Los sagt: ${S.spieler[S.beginner].name} schießt zuerst.`, 2600);
+    aufbauen();
+  };
+  zeichnen();
+}
+
+/* ---------- Gefecht ---------- */
+async function gefechtZeichnen() {
+  if (S.phase === 'ende') return endeZeichnen();
+  const ich = S.dran, du = L.gegner(ich);
+  if (!geschuetzt) {
+    zugFertig = false;
+    await schutz(ich, `Du schießt auf das Meer von ${nm(du)}. Gleich siehst du auch deine eigene Flotte.`);
+    return aufbauen();
+  }
+  const m = masse();
+  const ziel = brett(m.gross, {klasse: 'sv-ziel aktiv', titel: `Meer von <b>${nm(du)}</b>`});
+  const rechts = Kern.el('div', 'sv-rechts');
+  B.append(ziel.wrap, rechts);
+  const lage = Kern.el('div', 'sv-karte sv-a-lage'); rechts.appendChild(lage);
+  // gegnerische Flotte (offen: was versenkt ist, weiß jeder)
+  const fl = Kern.el('div', 'sv-karte sv-a-flotte');
+  function flotteMalen() {
+    const versenkt = L.versenkteSchiffe(S, du).map(s => s.id), alle = S.spieler[du].flotte;
+    const arten = [...new Set(alle.map(s => s.name))];
+    fl.innerHTML = `<p>Flotte von ${nm(du)} · noch ${alle.length - versenkt.length} von ${alle.length} Schiffen</p>
+      <div class="sv-gruppen">${arten.map(n => `<div class="sv-gruppe"><b>${Kern.esc(n)}</b><span>${alle.filter(s => s.name === n)
+        .sort((a, b) => versenkt.includes(a.id) - versenkt.includes(b.id)).map(s => `<span class="sv-segs${versenkt.includes(s.id) ? ' weg' : ''}" title="${versenkt.includes(s.id) ? 'versenkt' : 'schwimmt'}">${'<i></i>'.repeat(s.laenge)}</span>`).join('')}</span></div>`).join('')}</div>`;
+  }
+  flotteMalen();
+  // eigenes kleines Brett
+  const mein = brett(m.klein, {klasse: 'sv-klein sv-a-mini', titel: `Deine Flotte`});
+  rechts.append(fl, mein.wrap);
+  S.spieler[ich].flotte.forEach(s => mein.meer.appendChild(schiffEl(m.klein, s, L.istVersenkt(S, ich, s) ? 'wrack' : '')));
+  S.spieler[ich].beschossen.forEach(f => mein.felder[f].className = 'sv-feld ' + (L.schiffAuf(S, ich, f) ? 'treffer' : 'wasser'));
+  const deckel = Kern.el('div', 'sv-deckel', 'verdeckt'); deckel.hidden = true; mein.meer.appendChild(deckel);
+
+  function zielMalen() {
+    const bild = L.zielbild(S, ich);
+    ziel.meer.querySelectorAll('.sv-schiff').forEach(e => e.remove());
+    bild.forEach((art, f) => { ziel.felder[f].className = 'sv-feld ' + art; });
+    L.versenkteSchiffe(S, du).forEach(s => ziel.meer.appendChild(schiffEl(m.gross, s, 'wrack')));
+    if (S.letzter && S.letzter.schuetze === ich) ziel.felder[S.letzter.feld].classList.add('zuletzt');
+  }
+  function lageMalen(ergebnis) {
+    const txt = {wasser: 'Wasser', treffer: 'Treffer!', versenkt: `Versenkt: ${ergebnis && S.letzter.schiff ? Kern.esc(S.letzter.schiff.name) : ''}!`};
+    if (zugFertig) {
+      lage.innerHTML = `<div class="sv-lage">${L.feldName(S.letzter.feld)}: <span class="sv-ergebnis ${S.letzter.ergebnis}">${txt[S.letzter.ergebnis]}</span></div>
+        <p style="margin-top:6px">${S.phase === 'ende' ? 'Das war das letzte Schiff.' : `Jetzt ist ${nm(S.dran)} dran.`}</p>`;
+      const k = Kern.el('div', 'sv-knoepfe');
+      const w = Kern.el('button', 'k-btn gross', S.phase === 'ende' ? 'Zur Auswertung' : `Weitergeben an ${S.spieler[S.dran].name}`); w.id = 'sv-weiter';
+      w.onclick = () => { geschuetzt = false; zugFertig = false; aufbauen(); };
+      k.appendChild(w); lage.appendChild(k);
+      return;
+    }
+    lage.innerHTML = `<div class="sv-lage"><span>${nm(ich)}</span>, wohin schießt du?</div>
+      ${ergebnis ? `<span class="sv-ergebnis ${ergebnis}">${txt[ergebnis]}</span><p>${S.optionen.nachTreffer === 'weiter' ? 'Getroffen – du darfst nochmal.' : ''}</p>` : `<p style="margin-top:6px">Tippe ein freies Feld im Meer von ${nm(du)}.</p>`}`;
+  }
+  zielMalen(); lageMalen(null);
+  Kern.tap(ziel.meer, async ev => {
+    if (beschaeftigt || zugFertig || S.phase !== 'spiel' || S.dran !== ich) return;
+    const f = ev.target.closest('.sv-feld'); if (!f) return;
+    const i = Number(f.dataset.i);
+    if (S.spieler[du].beschossen.includes(i)) { Kern.hinweis('Da hast du schon hingeschossen.'); return; }
+    beschaeftigt = true;
+    const r = L.schiessen(S, i);
+    if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
+    Kern.ton(r.ergebnis === 'wasser' ? 'legen' : r.ergebnis === 'treffer' ? 'warn' : 'gong');
+    if (r.ergebnis === 'versenkt') setTimeout(() => Kern.ton('punkt'), 350);
+    zielMalen();
+    if (r.ergebnis === 'versenkt') flotteMalen();
+    const weiter = S.phase === 'spiel' && S.dran === ich;
+    if (!weiter) { zugFertig = true; deckel.hidden = false; ziel.wrap.classList.remove('aktiv'); }
+    lageMalen(r.ergebnis);
+    await Kern.warte(250); beschaeftigt = false;
+    if (S.phase === 'ende') { Kern.ton('sieg'); Kern.feier(); }
+  });
+}
+
+function endeZeichnen() {
+  const sg = S.sieger, vl = L.gegner(sg);
+  const c = Math.floor(Math.min((innerWidth - 70) / 21.6, (innerHeight - 330) / 11));
+  const a = brett(c, {titel: `Meer von <b>${nm(vl)}</b>`}), b = brett(c, {titel: `Meer von <b>${nm(sg)}</b>`});
+  const zeig = (br, i) => {
+    S.spieler[i].flotte.forEach(s => br.meer.appendChild(schiffEl(c, s, L.istVersenkt(S, i, s) ? 'wrack' : '')));
+    S.spieler[i].beschossen.forEach(f => br.felder[f].className = 'sv-feld ' + (L.schiffAuf(S, i, f) ? 'treffer' : 'wasser'));
+  };
+  zeig(a, vl); zeig(b, sg);
+  const boards = Kern.el('div'); boards.style.cssText = 'display:flex;gap:24px;justify-content:center;align-items:flex-start';
+  boards.append(a.wrap, b.wrap);
+  const karte = Kern.el('div', 'sv-karte');
+  const treffer = S.spieler[vl].beschossen.filter(f => L.schiffAuf(S, vl, f)).length, schuesse = S.spieler[vl].beschossen.length;
+  karte.innerHTML = `<h2>${nm(sg)} gewinnt!</h2><p>Alle Schiffe von ${nm(vl)} sind versenkt – mit ${schuesse} Schüssen, davon ${treffer} Treffer.
+    ${nm(vl)} hat ${L.versenkteSchiffe(S, sg).length} von ${S.spieler[sg].flotte.length} Schiffen versenkt. Jetzt sind beide Flotten offen.</p>`;
+  const k = Kern.el('div', 'sv-knoepfe');
+  const n = Kern.el('button', 'k-btn gross', 'Nochmal'); n.id = 'sv-nochmal';
+  n.onclick = () => { const alt = S; S = L.neu({namen: alt.spieler.map(p => p.name), farben: alt.spieler.map(p => p.farbe), optionen: alt.optionen, beginner: Kern.zufall(2)}); speichern(); spielen(); };
+  const nn = Kern.el('button', 'k-btn gross leise', 'Neues Spiel'); nn.onclick = () => startseite();
+  k.append(n, nn); karte.appendChild(k);
+  B.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding-top:64px';
+  B.append(boards, karte); karte.style.maxWidth = '720px';
+}
+
+window.__test = {zustand: () => S, aufstellung: () => AF};
+startseite();
+</script>
+</body>
+</html>

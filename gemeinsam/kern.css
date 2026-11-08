@@ -1,0 +1,148 @@
+/* Spieltisch – gemeinsamer Unterbau aller Spiele.
+   Look: Seekarten-Tisch (dunkles Petrol, feine Höhenlinien), helle Karten/Steine darauf.
+   Jede Seite setzt nur ihre Akzentfarbe über --akzent; alles andere kommt von hier. */
+@font-face{font-family:"Bricolage Grotesque";src:url(../fonts/bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}
+@font-face{font-family:"Atkinson Hyperlegible";src:url(../fonts/atkinson-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Atkinson Hyperlegible";src:url(../fonts/atkinson-700.woff2) format("woff2");font-weight:700;font-display:swap}
+
+:root{
+  color-scheme:dark;
+  --sea:#0c2430; --sea-hi:#16404f; --sea-tief:#081a23;
+  --panel:rgba(7,24,32,.66); --panel-fest:#0f2e3a; --panel-hell:rgba(255,255,255,.06);
+  --ink:#e8f1ee; --ink2:#9db8b8; --ink3:#6f8f92;
+  --line:rgba(170,215,215,.16); --line-stark:rgba(170,215,215,.32);
+  --akzent:#8fd3d1; --akzent-ink:#0b2229;
+  --gut:#7fd49a; --warn:#eab94c; --fehler:#ef7d6d;
+  --papier:#f4efe4; --papier-ink:#1b2a2f;
+  --f-disp:"Bricolage Grotesque", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  --f-ui:"Atkinson Hyperlegible", -apple-system, system-ui, sans-serif;
+  --r:16px; --r-klein:10px;
+  --sicher-o:env(safe-area-inset-top,0px); --sicher-u:env(safe-area-inset-bottom,0px);
+  --sicher-l:env(safe-area-inset-left,0px); --sicher-r:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--sea);color:var(--ink);overflow:hidden}
+body{font-family:var(--f-ui);font-size:17px;line-height:1.4;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,select,textarea{font:inherit;color:inherit;-webkit-user-select:text;user-select:text}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--akzent);outline-offset:2px}
+[hidden]{display:none!important}
+.chart,body.chart{background:
+  repeating-radial-gradient(circle at 50% 50%, transparent 0 46px, rgba(143,211,209,.045) 46px 47px),
+  radial-gradient(ellipse 70% 70% at 50% 50%, var(--sea-hi) 0%, var(--sea) 72%)}
+h1,h2,h3{font-family:var(--f-disp);font-weight:800;letter-spacing:-.03em;line-height:1.05;margin:0;text-wrap:balance}
+.k-zahl{font-variant-numeric:tabular-nums}
+
+/* ---------- Bühne: ganze Fläche des Spiels ---------- */
+.k-buehne{position:fixed;inset:0;overflow:hidden;touch-action:none;
+  padding:max(10px,var(--sicher-o)) max(10px,var(--sicher-r)) max(10px,var(--sicher-u)) max(10px,var(--sicher-l))}
+.k-scroll{position:fixed;inset:0;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+
+/* ---------- Knöpfe ---------- */
+.k-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:52px;padding:0 22px;border-radius:14px;border:0;
+  background:var(--akzent);color:var(--akzent-ink);font-weight:700;font-size:18px;white-space:nowrap;transition:transform .12s, filter .2s, opacity .2s}
+.k-btn:active{transform:scale(.97)}
+.k-btn.gross{min-height:62px;font-size:21px;padding:0 28px;border-radius:16px}
+.k-btn.klein{min-height:40px;font-size:15px;padding:0 14px;border-radius:11px}
+.k-btn.leise{background:var(--panel-hell);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.k-btn.gefahr{background:#b2483d;color:#fff}
+.k-btn.gut{background:var(--gut);color:#0d2416}
+.k-btn:disabled{opacity:.38;pointer-events:none}
+.k-rund{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(7,24,32,.72);display:grid;place-items:center;padding:0;color:var(--ink)}
+.k-rund svg{width:22px;height:22px}
+
+/* ---------- Kopfknöpfe (Zurück/Menü) ---------- */
+.k-kopf{position:fixed;z-index:80;display:flex;gap:8px;top:max(10px,var(--sicher-o));left:max(10px,var(--sicher-l))}
+.k-kopf.rechts{left:auto;right:max(10px,var(--sicher-r))}
+
+/* ---------- Auswahlgruppen ---------- */
+.k-lab{display:block;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);margin-bottom:10px;font-weight:700}
+.k-seg{display:flex;gap:8px;flex-wrap:wrap}
+.k-seg button{flex:1 1 0;min-width:56px;min-height:52px;padding:0 12px;border-radius:13px;border:1px solid var(--line);background:var(--panel-hell);font-weight:700;font-size:17px}
+.k-seg button[aria-pressed="true"]{background:var(--akzent);color:var(--akzent-ink);border-color:transparent}
+.k-feld{display:flex;align-items:center;gap:10px;height:52px;padding:0 14px;border-radius:13px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.k-feld:focus-within{border-color:var(--pc,var(--akzent))}
+.k-feld input{flex:1;min-width:0;background:none;border:0;color:var(--ink);font-size:18px;outline:none}
+.k-feld input::placeholder{color:var(--ink2);opacity:.7}
+.k-dot{flex:none;width:22px;height:22px;border-radius:50%;background:var(--pc,var(--akzent));color:#0f2229;font:700 12px var(--f-ui);display:grid;place-items:center}
+.k-panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:clamp(18px,2.6vw,30px)}
+.k-chip{display:inline-flex;align-items:center;gap:.35em;font-size:.82em;font-weight:700;padding:.18em .6em;border-radius:99px;background:var(--pc,var(--akzent));color:#0f2229;white-space:nowrap}
+.k-chip.leise{background:rgba(255,255,255,.1);color:var(--ink)}
+.k-chip.warn{background:var(--warn);color:#2a1f05}
+
+/* ---------- Startseite eines Spiels (Kern.setup) ---------- */
+.k-setup{min-height:100%;max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1.05fr;align-items:center;gap:clamp(24px,5vw,68px);
+  padding-block:max(70px,calc(var(--sicher-o) + 60px)) max(28px,var(--sicher-u));
+  padding-left:max(24px,var(--sicher-l));padding-right:max(24px,var(--sicher-r))}
+@media (max-aspect-ratio:1/1){.k-setup{grid-template-columns:1fr;align-content:center}}
+.k-setup .k-titel h1{font-size:clamp(48px,7.4vw,96px);letter-spacing:-.05em;line-height:.9}
+.k-setup .k-titel .k-unter{font-size:clamp(17px,1.9vw,21px);color:var(--ink2);max-width:32ch;margin:16px 0 0;line-height:1.45}
+.k-setup .k-titel .k-bild{margin-bottom:22px}
+.k-setup .k-titel .k-fakten{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.k-setup .k-panel{display:flex;flex-direction:column;gap:22px}
+.k-namen{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k-aktionen{display:flex;gap:12px}
+.k-aktionen .k-btn.gross{flex:1}
+.k-weiter{display:flex;align-items:center;gap:14px;text-align:left;width:100%;padding:16px 18px;border-radius:16px;border:1px solid var(--akzent);background:color-mix(in srgb,var(--akzent) 12%,transparent)}
+.k-weiter b{display:block;font-size:18px}
+.k-weiter small{color:var(--ink2);font-size:15px}
+.k-weiter .pfeil{margin-left:auto;font-size:26px;color:var(--akzent)}
+
+/* ---------- Ebenen (Fenster, Sichtschutz) ---------- */
+.k-ebene{position:fixed;inset:0;z-index:200;background:rgba(3,12,17,.74);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
+  display:grid;place-items:center;padding:20px;animation:k-ein .18s ease-out}
+@keyframes k-ein{from{opacity:0}}
+.k-fenster{width:min(620px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;
+  background:var(--panel-fest);border:1px solid var(--line);border-radius:24px;padding:clamp(20px,3vw,32px);box-shadow:0 30px 80px rgba(0,0,0,.5);
+  animation:k-hoch .22s cubic-bezier(.2,.8,.3,1)}
+@keyframes k-hoch{from{transform:translateY(16px) scale(.98);opacity:0}}
+.k-fenster h2{font-size:32px;margin-bottom:8px}
+.k-fenster h3{font-family:var(--f-ui);font-size:14px;letter-spacing:.09em;text-transform:uppercase;color:var(--akzent);margin:22px 0 6px}
+.k-fenster p,.k-fenster li{font-size:17px;line-height:1.5;color:#d2e2e0;max-width:62ch}
+.k-fenster p{margin:0 0 8px}.k-fenster ul,.k-fenster ol{margin:0 0 8px;padding-left:1.25em}
+.k-fenster .k-x{float:right;margin:-4px -4px 0 12px}
+.k-fenster .k-knoepfe{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.k-fenster .k-knoepfe .k-btn{flex:1 1 auto}
+.k-liste{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.k-liste .k-btn{justify-content:flex-start}
+.k-sichtschutz{position:fixed;inset:0;z-index:150;display:grid;place-items:center;text-align:center;padding:24px;
+  background:radial-gradient(ellipse at 50% 40%, #12384a, #06141b 75%);animation:k-ein .2s ease-out}
+.k-sichtschutz .k-sich-in{display:flex;flex-direction:column;align-items:center;gap:18px;max-width:560px}
+.k-sichtschutz .k-sich-in .k-dot{width:64px;height:64px;font-size:26px}
+.k-sichtschutz h2{font-size:clamp(34px,5vw,54px)}
+.k-sichtschutz p{color:var(--ink2);font-size:19px;margin:0;max-width:40ch}
+.k-toast{position:fixed;left:50%;bottom:max(24px,calc(var(--sicher-u) + 16px));z-index:300;transform:translateX(-50%);
+  background:#f4efe4;color:#14262b;font-weight:700;padding:12px 20px;border-radius:99px;box-shadow:0 10px 30px rgba(0,0,0,.4);
+  animation:k-toast .25s cubic-bezier(.2,.8,.3,1);max-width:calc(100% - 40px);text-align:center;pointer-events:none}
+@keyframes k-toast{from{transform:translate(-50%,20px);opacity:0}}
+
+/* ---------- Französische Spielkarte (Kern.karte) ---------- */
+.k-karte{position:relative;width:var(--kw,64px);height:calc(var(--kw,64px)*1.4);border-radius:calc(var(--kw,64px)*.11);flex:none;
+  background:#fbf8f1;color:#1e2a30;box-shadow:0 calc(var(--kw,64px)*.03) calc(var(--kw,64px)*.08) rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.08);
+  font-family:var(--f-disp);font-weight:800;overflow:hidden}
+.k-karte.rot{color:#c0392b}
+.k-karte .ix{position:absolute;left:8%;top:5%;display:flex;flex-direction:column;align-items:center;line-height:.95;font-size:calc(var(--kw,64px)*.27);letter-spacing:-.04em}
+.k-karte .ix i{font-style:normal;font-size:.82em}
+.k-karte .ix.u{left:auto;top:auto;right:8%;bottom:5%;transform:rotate(180deg)}
+.k-karte .mitte{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(var(--kw,64px)*.62);line-height:1}
+.k-karte .mitte.bild{font-size:calc(var(--kw,64px)*.42);font-family:var(--f-disp)}
+.k-karte.joker .mitte{font-size:calc(var(--kw,64px)*.2);letter-spacing:.08em;writing-mode:vertical-rl;text-orientation:upright}
+.k-karte.zu{background:
+  repeating-radial-gradient(circle at 28% 72%, rgba(160,220,230,0) 0 calc(var(--kw,64px)*.075), rgba(160,220,230,.17) calc(var(--kw,64px)*.075) calc(var(--kw,64px)*.09)),
+  linear-gradient(160deg,#1d4a6b,#132f4a);box-shadow:inset 0 0 0 calc(var(--kw,64px)*.045) #e8f1ee, inset 0 0 0 calc(var(--kw,64px)*.075) #10283d, 0 2px 6px rgba(0,0,0,.35)}
+.k-karte.zu > *{display:none}
+.k-karte.wahl{transform:translateY(-14%);box-shadow:0 0 0 3px var(--akzent),0 10px 20px rgba(0,0,0,.4)}
+
+/* ---------- Würfel (Kern.wuerfel) ---------- */
+.k-wuerfel{position:relative;width:var(--ww,56px);height:var(--ww,56px);border-radius:22%;background:#fbf8f1;flex:none;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.12), 0 4px 10px rgba(0,0,0,.35);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:calc(var(--ww,56px)*.14)}
+.k-wuerfel i{width:64%;height:64%;margin:auto;border-radius:50%;background:#1e2a30;visibility:hidden}
+.k-wuerfel.halten{box-shadow:0 0 0 3px var(--akzent), inset 0 -3px 0 rgba(0,0,0,.12), 0 4px 10px rgba(0,0,0,.35)}
+.k-wuerfel.rollt{animation:k-roll .55s cubic-bezier(.3,.6,.3,1)}
+@keyframes k-roll{0%{transform:rotate(0) scale(.85)}35%{transform:rotate(200deg) scale(1.08)}70%{transform:rotate(330deg) scale(.96)}100%{transform:rotate(360deg) scale(1)}}
+
+/* ---------- Konfetti ---------- */
+.k-konfetti{position:fixed;inset:0;pointer-events:none;z-index:400}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.05s!important}}

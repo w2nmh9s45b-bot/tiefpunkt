@@ -1,8 +1,8 @@
 {
-  "name": "Tiefpunkt",
-  "short_name": "Tiefpunkt",
+  "name": "Spieltisch",
+  "short_name": "Spieltisch",
   "lang": "de",
-  "description": "Kartenspiel für 2 bis 6 Leute an einem iPad.",
+  "description": "Spielesammlung für einen Tisch und ein iPad.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Funkstille · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Funkstille: 25 Papierkarten im 5×5-Raster auf dem Seekarten-Tisch. Teamfarben Koralle und Türkis, Unbeteiligte
+   in Sand, der Attentäter fast schwarz. Jede Farbe trägt zusätzlich ein Zeichen (Kreis, Raute, Strich, Kreuz),
+   damit man sie auch ohne Farbsehen unterscheidet. */
+:root{--fs-t0:#ef7d6d;--fs-t1:#6cc7d8;--fs-neutral:#d6c9ab;--fs-att:#191d20}
+
+/* ---------- Startseite ---------- */
+.fs-teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fs-team{border:1px solid var(--line);border-radius:18px;padding:12px;background:rgba(255,255,255,.03);display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 3px 0 var(--pc)}
+.fs-team .k-feld{height:46px;padding:0 6px 0 10px;gap:6px}
+.fs-team .k-feld input{font-size:17px}
+.fs-team .fs-tname{border-color:color-mix(in srgb,var(--pc) 55%,transparent)}
+.fs-team .fs-tname input{font-weight:700}
+.fs-geber{flex:none;height:34px;padding:0 10px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--ink3);font-size:12px;font-weight:700;letter-spacing:.04em}
+.fs-geber[aria-pressed="true"]{background:var(--pc);color:#0f2229;border-color:transparent}
+.fs-weg{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:var(--ink2);display:grid;place-items:center;padding:0}
+.fs-weg svg{width:13px;height:13px}
+.fs-plus{min-height:44px;border-radius:12px;border:1px dashed var(--line-stark);background:none;color:var(--ink2);font-weight:700;font-size:15px}
+.fs-hinw{font-size:14px;color:var(--ink2);margin:8px 0 0}
+
+/* ---------- Bühne ---------- */
+.fs-buehne{display:flex;flex-direction:column;gap:10px}
+.fs-oben{flex:none;min-height:46px;display:flex;align-items:center;gap:10px;padding-left:118px}
+.fs-oben.gedreht{transform:rotate(180deg);padding-left:118px;padding-right:118px}
+.fs-verlauf{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto;max-height:46px;overflow:hidden}
+.fs-verlauf .k-chip{font-size:14px}
+.fs-verlauf .k-chip.ungueltig{text-decoration:line-through;opacity:.6}
+.fs-brett{flex:1;min-height:0;display:grid;place-items:center}
+.fs-raster{display:grid;grid-template-columns:repeat(5,var(--cw));grid-template-rows:repeat(5,var(--ch));gap:var(--gap)}
+.fs-unten{flex:none;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;min-height:84px;padding:10px 14px;border-radius:20px;background:var(--panel);border:1px solid var(--line)}
+
+/* ---------- Karten ---------- */
+.fs-karte{position:relative;border:0;padding:0;border-radius:calc(var(--cw)*.07);background:var(--papier);color:var(--papier-ink);
+  box-shadow:0 4px 12px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;font-family:var(--f-disp);font-weight:800;transition:transform .15s, box-shadow .2s, background-color .35s, color .35s}
+.fs-wort{font-size:var(--fs);letter-spacing:-.02em;line-height:1.05;text-align:center;padding:0 6%;max-width:100%;overflow-wrap:anywhere;position:relative;z-index:1}
+.fs-wort.zwei{opacity:.85;transform:rotate(180deg)}
+.fs-karte .fs-trenn{width:70%;height:1px;background:rgba(27,42,47,.18);margin:6% 0;position:relative;z-index:1}
+.fs-zeichen{position:absolute;right:7%;top:12%;width:calc(var(--ch)*.24);height:calc(var(--ch)*.24);z-index:1;opacity:0;transition:opacity .25s}
+.fs-zeichen svg{width:100%;height:100%;display:block}
+/* aufgedeckt */
+.fs-karte.offen{color:#14262b}
+.fs-karte.offen .fs-zeichen{opacity:.85}
+.fs-karte.offen.art-t0{background:var(--fs-t0)}
+.fs-karte.offen.art-t1{background:var(--fs-t1)}
+.fs-karte.offen.art-neutral{background:var(--fs-neutral)}
+.fs-karte.offen.art-attentaeter{background:var(--fs-att);color:#f0e6e3;box-shadow:0 0 0 3px #c0453a,0 4px 12px rgba(0,0,0,.35)}
+.fs-karte.offen .fs-wort{font-size:calc(var(--fs)*.82)}
+.fs-karte.offen::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.12) 0 6px,transparent 6px 14px);pointer-events:none}
+.fs-karte.strafe::before{content:"Strafe";position:absolute;left:6%;top:8%;font:700 calc(var(--fs)*.5) var(--f-ui);letter-spacing:.06em;text-transform:uppercase;opacity:.75;z-index:2}
+.fs-karte.neu{animation:fs-dreh .5s cubic-bezier(.3,.7,.3,1)}
+@keyframes fs-dreh{0%{transform:rotateY(0)}50%{transform:rotateY(90deg) scale(1.05)}100%{transform:rotateY(0)}}
+/* Schlüsselkarte (nur solange gedrückt) und Spielende */
+.fs-raster.schluessel .fs-karte:not(.offen),.fs-raster.aufloesung .fs-karte:not(.offen){box-shadow:inset 0 0 0 calc(var(--cw)*.035) var(--kf),0 4px 12px rgba(0,0,0,.35);
+  background:color-mix(in srgb,var(--kf) 34%,var(--papier))}
+.fs-raster.schluessel .fs-karte:not(.offen) .fs-zeichen,.fs-raster.aufloesung .fs-karte:not(.offen) .fs-zeichen{opacity:.9}
+.fs-raster.schluessel .fs-karte.art-attentaeter:not(.offen),.fs-raster.aufloesung .fs-karte.art-attentaeter:not(.offen){background:#3a3f43;color:#f0e6e3}
+.fs-raster.schluessel .fs-karte.offen{opacity:.35}
+.fs-raster.aufloesung .fs-karte:not(.offen){opacity:.78}
+.fs-karte.art-t0{--kf:var(--fs-t0)}.fs-karte.art-t1{--kf:var(--fs-t1)}.fs-karte.art-neutral{--kf:#a99a78}.fs-karte.art-attentaeter{--kf:#c0453a}
+/* antippbar */
+.fs-raster.waehlbar .fs-karte:not(.offen){cursor:pointer;box-shadow:0 0 0 2px color-mix(in srgb,var(--zug) 70%,transparent),0 4px 12px rgba(0,0,0,.35)}
+.fs-raster.waehlbar .fs-karte:not(.offen):active{transform:scale(.96)}
+.fs-raster.strafwahl .fs-karte:not(.offen){cursor:pointer}
+
+/* ---------- Leiste ---------- */
+.fs-stand{display:flex;flex-direction:column;gap:6px}
+.fs-stand .k-chip{font-size:15px;justify-content:space-between;min-width:150px}
+.fs-stand .k-chip b{font-family:var(--f-disp);font-size:1.15em}
+.fs-mitte{min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px}
+.fs-satz{color:var(--ink2);font-size:17px;line-height:1.35;text-wrap:balance}
+.fs-satz b{color:var(--ink)}
+.fs-hinweis{display:flex;align-items:baseline;gap:14px;font-family:var(--f-disp);font-weight:800;letter-spacing:-.02em;line-height:1}
+.fs-hinweis .w{font-size:clamp(30px,3.6vw,44px);text-transform:uppercase;color:var(--zug)}
+.fs-hinweis .z{font-size:clamp(30px,3.6vw,44px);min-width:1.2em;padding:0 .25em;border-radius:12px;background:var(--zug);color:#0f2229}
+.fs-knoepfe{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.fs-knoepfe .k-btn.klein{min-height:44px}
+
+/* ---------- Hinweisgeber-Leiste ---------- */
+.fs-geberleiste{flex:none;display:grid;grid-template-columns:200px 1fr auto;grid-template-rows:auto auto;gap:10px 14px;padding:12px 14px;margin-left:118px;
+  border-radius:20px;background:var(--panel-fest);border:1px solid var(--zug)}
+.fs-halten{grid-row:span 2;min-height:110px;border-radius:18px;border:2px dashed var(--zug);background:color-mix(in srgb,var(--zug) 12%,transparent);
+  color:var(--ink);font-weight:700;font-size:17px;line-height:1.25;padding:10px;touch-action:none;-webkit-user-select:none;user-select:none}
+.fs-halten.an{background:var(--zug);color:#0f2229;border-style:solid}
+.fs-halten small{display:block;font-weight:400;font-size:13px;opacity:.8;margin-top:4px}
+.fs-eingabe{display:flex;gap:10px;align-items:center}
+.fs-eingabe .k-feld{flex:1;max-width:420px}
+.fs-eingabe .k-feld input{text-transform:uppercase;font-weight:700;letter-spacing:.02em}
+.fs-zahlen{display:flex;gap:6px;flex-wrap:wrap;grid-column:2/4}
+.fs-zahlen button{min-width:46px;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--panel-hell);font-weight:700;font-size:18px;padding:0 10px}
+.fs-zahlen button[aria-pressed="true"]{background:var(--zug);color:#0f2229;border-color:transparent}
+.fs-geberleiste .fs-satz{font-size:15px;text-align:left}
+.fs-geberknoepfe{display:flex;gap:10px;grid-row:1;grid-column:3}
+
+@media (max-aspect-ratio:1/1){
+  .fs-unten{grid-template-columns:1fr auto;grid-template-areas:"mitte mitte" "stand knoepfe"}
+  .fs-unten .fs-mitte{grid-area:mitte}.fs-unten .fs-stand{grid-area:stand;flex-direction:row}.fs-unten .fs-knoepfe{grid-area:knoepfe}
+  .fs-stand .k-chip{min-width:0}
+  .fs-geberleiste{margin-left:0;margin-top:56px;grid-template-columns:150px 1fr}
+  .fs-geberknoepfe{grid-row:auto;grid-column:2}
+  .fs-halten{grid-row:span 3}
+  .fs-zahlen{grid-column:2}
+}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="funkstille.logik.js"></script>
+<script src="funkstille.daten.js"></script>
+<script>
+'use strict';
+const L = window.FunkstilleLogik, WOERTER = window.FUNKSTILLE_WOERTER;
+const AKZENT = '#8f9cf5', TEAMFARBEN = ['#ef7d6d', '#6cc7d8'];
+const K_TEAMS = 'spieltisch.funkstille.teams', K_GESEHEN = 'spieltisch.funkstille.gesehen';
+const ls = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const esc = Kern.esc, el = Kern.el;
+const X_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const ZEICHEN = {
+  t0: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="3.4"/></svg>',
+  t1: '<svg viewBox="0 0 24 24"><path d="M12 3l9 9-9 9-9-9z" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linejoin="round"/></svg>',
+  neutral: '<svg viewBox="0 0 24 24"><path d="M4 12h16" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg>',
+  attentaeter: '<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg>'
+};
+
+const REGELN = `
+<p>Zwei Teams suchen ihre geheimen Wörter im Raster aus 25 Karten. Je Team gibt eine Person die Hinweise; nur die beiden Hinweisgeber kennen die Schlüsselkarte.</p>
+<h3>Die Schlüsselkarte</h3>
+<p>Sie legt fest, welche Wörter zu welchem Team gehören: Das Startteam hat 9 Wörter, das andere 8. Dazu kommen 7 Unbeteiligte und 1 Attentäter. Am iPad sieht der Hinweisgeber sie nur hinter dem Sichtschutz und nur, solange er den Knopf gedrückt hält.</p>
+<h3>Hinweis geben</h3>
+<ul>
+<li>Der Hinweis besteht aus genau einem Wort und einer Zahl: Die Zahl sagt, wie viele Wörter des eigenen Teams dazu passen.</li>
+<li>Verboten sind Wörter, die offen auf dem Tisch liegen, ihre Formen und Teile zusammengesetzter Wörter vom Tisch. Der Hinweis muss sich auf die Bedeutung beziehen, nicht auf Buchstaben oder die Lage im Raster.</li>
+<li>Die Zahl 0 heißt „keines unserer Wörter passt dazu“. Bei 0 und bei „unbegrenzt“ darf das Team beliebig oft tippen.</li>
+<li>Ein ungültiger Hinweis beendet den Zug sofort. Zur Strafe darf der gegnerische Hinweisgeber eines seiner eigenen Wörter abdecken. Was niemand bemerkt, gilt.</li>
+</ul>
+<h3>Raten</h3>
+<ul>
+<li>Das Team tippt Wörter an; jede Wahl wird vorher bestätigt. Mindestens einmal muss getippt werden.</li>
+<li>Eigenes Wort: Ihr dürft weiterraten, höchstens Zahl + 1 Mal.</li>
+<li>Unbeteiligter oder Wort des anderen Teams: Der Zug endet. Ein Wort des anderen Teams zählt für dieses.</li>
+<li>Attentäter: Euer Team hat sofort verloren.</li>
+<li>Ihr dürft nach dem ersten Tipp jederzeit mit „Zug beenden“ aufhören.</li>
+</ul>
+<h3>Sieg</h3>
+<p>Gewonnen hat das Team, dessen Wörter alle aufgedeckt sind – auch wenn das andere Team das letzte davon erwischt hat.</p>
+<h3>Am iPad</h3>
+<p>Die Farben tragen Zeichen: Kreis und Raute für die Teams, Strich für Unbeteiligte, Kreuz für den Attentäter. Wer sich gegenübersitzt, wählt auf der Startseite „Gegenüber sitzen“: Dann steht jedes Wort auch kopfüber auf der Karte.</p>`;
+
+let S = null, MODUS = null;   // MODUS: null | 'geber' | 'strafe' (nur am Gerät, nicht gespeichert)
+let NEU_AUFGEDECKT = -1;
+const buehne = el('div', 'k-buehne fs-buehne'); buehne.hidden = true; document.body.appendChild(buehne);
+let setupZiel = null;
+
+Kern.init({ id: 'funkstille', name: 'Funkstille', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); } });
+
+/* Rückfrage. Eigene Fassung, weil Kern.frage beim Tippen auf einen Knopf zuerst über „beimSchliessen“ mit null
+   auflöst und den gewählten Wert verliert (im Bericht als Kern-Wunsch gemeldet). */
+function frage({ titel = '', text = '', knoepfe = [] }) {
+  return new Promise(res => {
+    const box = el('div');
+    box.innerHTML = `${titel ? `<h2>${esc(titel)}</h2>` : ''}${text ? `<p>${text}</p>` : ''}`;
+    const k = el('div', 'k-knoepfe'); box.appendChild(k);
+    let wert = null;
+    const fe = Kern.fenster(box, { schliessbar: false, beimSchliessen: () => res(wert) });
+    knoepfe.forEach(b => {
+      const btn = el('button', 'k-btn' + (b.art ? ' ' + b.art : ''), esc(b.text));
+      btn.onclick = () => { wert = b.wert; fe.schliessen(); };
+      k.appendChild(btn);
+    });
+  });
+}
+
+/* ---------- Startseite ---------- */
+function teamEditor() {
+  const PLATZ = ['Koralle', 'Türkis'];
+  const g = ls.get(K_TEAMS, null);
+  const daten = (g && g.length === 2 ? g : [{ name: '', mitglieder: ['', ''], geber: 0 }, { name: '', mitglieder: ['', ''], geber: 0 }])
+    .map(t => ({ name: t.name || '', mitglieder: (t.mitglieder && t.mitglieder.length >= 2 ? t.mitglieder : ['', '']).slice(0, 5), geber: t.geber || 0 }));
+  daten.forEach(t => { if (t.geber >= t.mitglieder.length) t.geber = 0; });
+  const box = el('div'); box.innerHTML = `<span class="k-lab">Teams</span>`;
+  const reihe = el('div', 'fs-teams'); box.appendChild(reihe);
+  box.appendChild(el('p', 'fs-hinw', 'Je Team 2 bis 5 Personen. „Hinweis“ markiert, wer die Hinweise gibt.'));
+  const namen = Kern.namen.liste();
+  if (namen.length) { const dl = el('datalist'); dl.id = 'fs-namen'; dl.innerHTML = namen.map(n => `<option value="${esc(n)}">`).join(''); box.appendChild(dl); }
+  function zeichnen() {
+    reihe.innerHTML = '';
+    daten.forEach((t, ti) => {
+      const k = el('div', 'fs-team'); k.style.setProperty('--pc', TEAMFARBEN[ti]);
+      const nf = el('label', 'k-feld fs-tname'); nf.style.setProperty('--pc', TEAMFARBEN[ti]);
+      nf.innerHTML = `<span class="k-dot">${ti + 1}</span><input id="fs-team-${ti}" maxlength="14" autocomplete="off" spellcheck="false" placeholder="${PLATZ[ti]}">`;
+      const ni = nf.querySelector('input'); ni.value = t.name; ni.oninput = () => { t.name = ni.value; };
+      k.appendChild(nf);
+      t.mitglieder.forEach((m, mi) => {
+        const f = el('label', 'k-feld');
+        f.innerHTML = `<input id="fs-m-${ti}-${mi}" maxlength="14" autocomplete="off" spellcheck="false" ${namen.length ? 'list="fs-namen"' : ''} placeholder="${PLATZ[ti]} ${mi + 1}">`;
+        const inp = f.querySelector('input'); inp.value = m; inp.oninput = () => { t.mitglieder[mi] = inp.value; };
+        const gb = el('button', 'fs-geber', 'Hinweis'); gb.type = 'button'; gb.id = `fs-geber-${ti}-${mi}`;
+        gb.setAttribute('aria-pressed', t.geber === mi); gb.style.setProperty('--pc', TEAMFARBEN[ti]);
+        gb.onclick = ev => { ev.preventDefault(); t.geber = mi; zeichnen(); Kern.ton('tipp'); };
+        f.appendChild(gb);
+        if (t.mitglieder.length > 2) {
+          const x = el('button', 'fs-weg', X_ICON); x.type = 'button'; x.setAttribute('aria-label', 'Person entfernen');
+          x.onclick = ev => { ev.preventDefault(); t.mitglieder.splice(mi, 1); if (t.geber >= t.mitglieder.length || t.geber > mi) t.geber = Math.max(0, t.geber - (t.geber > mi ? 1 : 0)); if (t.geber >= t.mitglieder.length) t.geber = 0; zeichnen(); };
+          f.appendChild(x);
+        }
+        k.appendChild(f);
+      });
+      if (t.mitglieder.length < 5) {
+        const p = el('button', 'fs-plus', '+ Person'); p.type = 'button'; p.id = `fs-plus-${ti}`;
+        p.onclick = () => { t.mitglieder.push(''); zeichnen(); Kern.ton('tipp'); };
+        k.appendChild(p);
+      }
+      reihe.appendChild(k);
+    });
+  }
+  zeichnen();
+  return {
+    box,
+    lesen() {
+      ls.set(K_TEAMS, daten);
+      return daten.map((t, ti) => ({ name: t.name.trim() || PLATZ[ti], farbe: TEAMFARBEN[ti], geber: t.geber,
+        mitglieder: t.mitglieder.map((m, mi) => m.trim() || `${PLATZ[ti]} ${mi + 1}`) }));
+    }
+  };
+}
+
+const BILD = `<svg width="200" height="130" viewBox="0 0 200 130" aria-hidden="true">${[0, 1, 2, 3, 4].map(r => [0, 1, 2, 3, 4].map(c => {
+  const f = ['#ef7d6d', '#f4efe4', '#6cc7d8', '#f4efe4', '#d6c9ab', '#f4efe4', '#ef7d6d', '#f4efe4', '#191d20', '#6cc7d8', '#d6c9ab', '#f4efe4', '#6cc7d8', '#f4efe4', '#ef7d6d', '#f4efe4', '#f4efe4', '#ef7d6d', '#f4efe4', '#6cc7d8', '#6cc7d8', '#f4efe4', '#d6c9ab', '#ef7d6d', '#f4efe4'][r * 5 + c];
+  return `<rect x="${4 + c * 39}" y="${4 + r * 25}" width="35" height="21" rx="4" fill="${f}"/>${f === '#f4efe4' ? `<rect x="${12 + c * 39}" y="${12 + r * 25}" width="19" height="5" rx="2.5" fill="#1b2a2f" opacity=".3"/>` : ''}`;
+}).join('')).join('')}</svg>`;
+
+function startseite() {
+  MODUS = null; S = null; buehne.hidden = true; buehne.innerHTML = '';
+  Kern.kopf(true, 'links');
+  if (!setupZiel) { setupZiel = el('div', 'k-scroll chart'); document.body.appendChild(setupZiel); }
+  setupZiel.hidden = false;
+  const alt = Kern.speicher.laden();
+  const te = teamEditor();
+  Kern.setup({
+    ziel: setupZiel, titel: 'Funkstille', bild: BILD,
+    unter: 'Ein Wort, eine Zahl – und euer Team muss die richtigen Karten finden. Bloß nicht den Attentäter erwischen.',
+    fakten: ['4–10 Personen', '2 Teams', `${WOERTER.length} Wörter`],
+    fortsetzen: alt && alt.phase !== 'ende' && alt.karten ? `${alt.teams[0].name} noch ${L.uebrig(alt, 0)} · ${alt.teams[1].name} noch ${L.uebrig(alt, 1)}` : null,
+    onFortsetzen: () => { S = alt; spielZeigen(); },
+    extra: te.box,
+    optionen: [{ id: 'sitz', label: 'Sitzordnung', werte: [{ wert: 'seite', text: 'Alle auf einer Seite' }, { wert: 'gegenueber', text: 'Gegenüber sitzen' }], standard: 'seite' }],
+    onStart: ({ optionen }) => {
+      const teams = te.lesen();
+      Kern.namen.merken(teams.flatMap(t => t.mitglieder));
+      neuesSpiel(teams, optionen.sitz);
+    }
+  });
+}
+
+function neuesSpiel(teams, sitz) {
+  const gesehen = ls.get(K_GESEHEN, []);
+  const z = L.woerterZiehen(WOERTER, gesehen, Kern.zufall);
+  ls.set(K_GESEHEN, z.zuruecksetzen ? z.woerter : [...gesehen, ...z.woerter]);
+  S = L.neu({ teams, woerter: z.woerter, zufall: Kern.zufall });
+  S.sitz = sitz || 'seite';
+  MODUS = null; speichern(); spielZeigen();
+  Kern.ton('runde');
+}
+function speichern() { if (S) Kern.speicher.speichern(S); }
+
+/* ---------- Bühne ---------- */
+function spielZeigen() { if (setupZiel) setupZiel.hidden = true; buehne.hidden = false; zeichnen(); }
+const tf = t => S.teams[t].farbe || TEAMFARBEN[t];
+const geber = t => L.geberName(S, t);
+const zahlText = z => z === 'unbegrenzt' ? '∞' : z;
+
+function zeichnen() {
+  if (!S) return;
+  const t = S.amZug;
+  buehne.style.setProperty('--zug', tf(S.phase === 'ende' ? S.sieger : t));
+  const gegenueber = S.sitz === 'gegenueber';
+  let oben;
+  if (MODUS) oben = geberLeiste();
+  else if (gegenueber) { oben = el('div', 'fs-unten fs-oben gedreht'); oben.innerHTML = leisteHtml(true); }
+  else { oben = el('div', 'fs-oben'); oben.innerHTML = verlaufHtml(); }
+  const brett = el('div', 'fs-brett'), raster = el('div', 'fs-raster');
+  brett.appendChild(raster);
+  S.karten.forEach((k, i) => {
+    const b = el('button', `fs-karte art-${k.art}${k.offen ? ' offen' : ''}${k.strafe ? ' strafe' : ''}${i === NEU_AUFGEDECKT ? ' neu' : ''}`);
+    b.dataset.i = i; b.type = 'button';
+    b.innerHTML = `${gegenueber ? `<span class="fs-wort zwei">${esc(k.wort)}</span><span class="fs-trenn"></span>` : ''}<span class="fs-wort">${esc(k.wort)}</span><span class="fs-zeichen">${ZEICHEN[k.art]}</span>`;
+    b.setAttribute('aria-label', k.offen ? `${k.wort}, ${artName(k.art)}` : k.wort);
+    Kern.tap(b, () => karteGetippt(i));
+    raster.appendChild(b);
+  });
+  NEU_AUFGEDECKT = -1;
+  if (S.phase === 'raten' && !MODUS) raster.classList.add('waehlbar');
+  if (MODUS === 'strafe') raster.classList.add('strafwahl');
+  if (S.phase === 'ende') raster.classList.add('aufloesung');
+  buehne.innerHTML = '';
+  buehne.append(oben, brett);
+  if (!MODUS) { const u = el('div', 'fs-unten'); u.innerHTML = leisteHtml(false); buehne.appendChild(u); }
+  knoepfeVerbinden();
+  groesse();
+}
+
+function artName(a) { return a === 'neutral' ? 'Unbeteiligter' : a === 'attentaeter' ? 'Attentäter' : S.teams[+a[1]].name; }
+
+function verlaufHtml() {
+  const v = S.verlauf.slice(-8);
+  return `<div class="fs-verlauf">${v.map(h => `<span class="k-chip${h.ungueltig ? ' ungueltig' : ''}" style="--pc:${tf(h.team)}">${esc(h.wort.toUpperCase())} ${zahlText(h.zahl)}</span>`).join('')}</div>`;
+}
+
+function standHtml() {
+  return `<div class="fs-stand">${[0, 1].map(i => `<span class="k-chip" style="--pc:${tf(i)}">${esc(S.teams[i].name)} <b class="k-zahl">noch ${L.uebrig(S, i)}</b></span>`).join('')}</div>`;
+}
+
+function leisteHtml(kopie) {
+  const t = S.amZug, g = 1 - t, sfx = kopie ? '-2' : '';
+  let mitte = '', knoepfe = '';
+  if (S.phase === 'hinweis') {
+    mitte = `<div class="fs-satz"><b style="color:${tf(t)}">${esc(S.teams[t].name)}</b> ist dran. <b>${esc(geber(t))}</b> denkt sich einen Hinweis aus.</div>`;
+    knoepfe = kopie ? '' : `<button class="k-btn" id="fs-hinweis-los">Ich bin ${esc(geber(t))} – Hinweis geben</button>`;
+  } else if (S.phase === 'raten') {
+    const h = S.hinweis, rest = L.restTipps(S), unb = h.max >= L.UNBEGRENZT;
+    mitte = `<div class="fs-hinweis"><span class="w">${esc(h.wort)}</span><span class="z k-zahl">${zahlText(h.zahl)}</span></div>
+      <div class="fs-satz"><b style="color:${tf(t)}">${esc(S.teams[t].name)}</b> tippt ein Wort an · ${unb ? 'beliebig viele Tipps' : `noch ${rest} ${rest === 1 ? 'Tipp' : 'Tipps'}`}${h.tipps === 0 ? ' · mindestens einer' : ''}</div>`;
+    knoepfe = `<button class="k-btn leise klein" id="fs-ungueltig${sfx}">Hinweis ungültig?</button><button class="k-btn" id="fs-beenden${sfx}" ${L.darfBeenden(S) ? '' : 'disabled'}>Zug beenden</button>`;
+  } else if (S.phase === 'strafe') {
+    const f = S.strafeFuer;
+    mitte = `<div class="fs-satz">Ungültiger Hinweis – Zug vorbei. <b>${esc(geber(f))}</b> darf zur Strafe ein Wort von <b style="color:${tf(f)}">${esc(S.teams[f].name)}</b> abdecken.</div>`;
+    knoepfe = kopie ? '' : `<button class="k-btn leise" id="fs-verzicht">Verzichten</button><button class="k-btn" id="fs-strafe-los">Ich bin ${esc(geber(f))} – abdecken</button>`;
+  } else if (S.phase === 'ende') {
+    const w = S.sieger, l = 1 - w;
+    mitte = `<div class="fs-hinweis"><span class="w" style="color:${tf(w)}">Sieg für ${esc(S.teams[w].name)}</span></div>
+      <div class="fs-satz">${S.grund === 'attentaeter' ? `${esc(S.teams[l].name)} hat den Attentäter erwischt.` : `Alle Wörter von ${esc(S.teams[w].name)} sind gefunden.`}</div>`;
+    knoepfe = kopie ? '' : `<button class="k-btn leise" id="fs-neu">Neues Spiel</button><button class="k-btn" id="fs-nochmal">Nochmal</button>`;
+  }
+  return `${standHtml()}<div class="fs-mitte">${mitte}</div><div class="fs-knoepfe">${knoepfe}</div>`;
+}
+
+/* Hinweisgeber-Leiste (Hinweis geben oder Strafe): oben, damit die Bildschirmtastatur sie nicht verdeckt. */
+let ZAHL = null;
+function geberLeiste() {
+  const t = S.amZug, box = el('div', 'fs-geberleiste');
+  const halten = `<button class="fs-halten" id="fs-halten">Gedrückt halten: Schlüsselkarte<small>Loslassen verdeckt sie wieder</small></button>`;
+  if (MODUS === 'geber') {
+    box.innerHTML = `${halten}
+      <div class="fs-eingabe"><label class="k-feld"><input id="fs-wort" type="text" maxlength="24" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="Ein Wort"></label></div>
+      <div class="fs-geberknoepfe"><button class="k-btn leise" id="fs-abbruch">Abbrechen</button><button class="k-btn" id="fs-geben">Hinweis geben</button></div>
+      <div class="fs-zahlen">${[...'0123456789', 'unbegrenzt'].map(z => `<button id="fs-zahl-${z}" data-z="${z}" aria-pressed="${ZAHL === z}">${zahlText(z)}</button>`).join('')}</div>`;
+  } else {
+    const f = S.strafeFuer;
+    box.innerHTML = `${halten}
+      <div class="fs-satz"><b>${esc(geber(f))}</b>: Halte den Knopf gedrückt und tippe mit einem anderen Finger eines deiner Wörter an.</div>
+      <div class="fs-geberknoepfe"><button class="k-btn leise" id="fs-abbruch">Zurück</button><button class="k-btn leise" id="fs-verzicht">Verzichten</button></div>`;
+  }
+  return box;
+}
+
+function schluessel(an) {
+  const r = buehne.querySelector('.fs-raster'), h = buehne.querySelector('#fs-halten');
+  if (r) r.classList.toggle('schluessel', an); if (h) h.classList.toggle('an', an);
+}
+
+function knoepfeVerbinden() {
+  const $ = id => buehne.querySelector('#' + id);
+  const tap = (id, fn) => { const b = $(id); if (b) Kern.tap(b, fn); };
+  tap('fs-hinweis-los', geberStart);
+  ['', '-2'].forEach(s => { tap('fs-beenden' + s, zugBeenden); tap('fs-ungueltig' + s, ungueltigMelden); });
+  tap('fs-strafe-los', strafeStart);
+  tap('fs-verzicht', verzichten);
+  tap('fs-nochmal', () => neuesSpiel(L.naechsteTeams(S), S.sitz));
+  tap('fs-neu', () => { Kern.speicher.loeschen(); startseite(); });
+  tap('fs-abbruch', () => { MODUS = null; zeichnen(); });
+  tap('fs-geben', hinweisAbschicken);
+  buehne.querySelectorAll('.fs-zahlen button').forEach(b => Kern.tap(b, () => { ZAHL = b.dataset.z; Kern.ton('tipp');
+    buehne.querySelectorAll('.fs-zahlen button').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+  const w = $('fs-wort');
+  if (w) { w.value = WORT_ENTWURF; w.oninput = () => { WORT_ENTWURF = w.value; }; w.onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); w.blur(); } }; }
+  const h = $('fs-halten');
+  if (h) {
+    const an = ev => { ev.preventDefault(); if (h.setPointerCapture && ev.pointerId != null) try { h.setPointerCapture(ev.pointerId); } catch (e) {} schluessel(true); };
+    const aus = () => schluessel(false);
+    h.addEventListener('pointerdown', an); h.addEventListener('pointerup', aus); h.addEventListener('pointercancel', aus); h.addEventListener('lostpointercapture', aus);
+    h.addEventListener('keydown', ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); schluessel(true); } });
+    h.addEventListener('keyup', aus); h.addEventListener('blur', aus);
+    h.addEventListener('contextmenu', ev => ev.preventDefault());
+  }
+}
+
+/* Spielfeldgröße: 5 × 5 Karten, die so groß wie möglich in den freien Platz passen. */
+function groesse() {
+  const brett = buehne.querySelector('.fs-brett'), r = buehne.querySelector('.fs-raster'); if (!brett || !r) return;
+  const W = brett.clientWidth, H = brett.clientHeight;
+  const gap = Math.max(6, Math.min(14, W / 90));
+  const hoch = innerHeight > innerWidth, gg = S.sitz === 'gegenueber';
+  let cw = Math.min((W - 4 * gap) / 5, 240), ch = Math.min((H - 4 * gap) / 5, cw * (hoch ? (gg ? 1.1 : 1) : (gg ? .78 : .62)));
+  cw = Math.min(cw, ch * 2.1);
+  const laengstes = Math.max(...S.karten.map(k => k.wort.length));
+  const fs = Math.min(cw * 1.55 / Math.max(laengstes, 7), ch * (gg ? .2 : .3));
+  r.style.setProperty('--cw', cw + 'px'); r.style.setProperty('--ch', ch + 'px'); r.style.setProperty('--gap', gap + 'px'); r.style.setProperty('--fs', fs + 'px');
+}
+addEventListener('resize', () => { if (S && !buehne.hidden) groesse(); });
+
+/* ---------- Hinweisgeber ---------- */
+let WORT_ENTWURF = '';
+async function geberStart() {
+  const t = S.amZug;
+  await Kern.sichtschutz({ name: geber(t), farbe: tf(t), knopf: `Ich bin ${geber(t)}`,
+    text: `Hinweisgeber von ${esc(S.teams[t].name)}. Die Schlüsselkarte siehst du nur, solange du den Knopf gedrückt hältst.` });
+  if (S.phase !== 'hinweis') return;
+  MODUS = 'geber'; ZAHL = null; WORT_ENTWURF = ''; zeichnen();
+}
+
+async function hinweisAbschicken() {
+  schluessel(false);
+  const wort = WORT_ENTWURF.trim();
+  if (ZAHL == null && wort) { Kern.hinweis('Wähle noch eine Zahl.'); Kern.ton('fehler'); return; }
+  const p = L.hinweisPruefen(S, wort, ZAHL == null ? '' : ZAHL);
+  if (!p.ok) { Kern.hinweis(p.fehler, 3000); Kern.ton('fehler'); return; }
+  if (p.warnung) {
+    const w = await frage({ titel: 'Hinweis prüfen', text: esc(p.warnung) + ' Seid ihr euch sicher, dass er gilt?',
+      knoepfe: [{ text: 'Ändern', wert: false, art: 'leise' }, { text: 'Trotzdem geben', wert: true }] });
+    if (!w) return;
+  }
+  L.hinweisGeben(S, wort, ZAHL);
+  MODUS = null; WORT_ENTWURF = ''; ZAHL = null;
+  speichern(); Kern.ton('punkt'); zeichnen();
+  Kern.hinweis(`Hinweis für ${S.teams[S.amZug].name}: ${wort.toUpperCase()} ${zahlText(S.hinweis.zahl)}`, 2600);
+}
+
+/* ---------- Raten ---------- */
+let FRAGT = false;
+async function karteGetippt(i) {
+  const k = S.karten[i];
+  if (MODUS === 'strafe') return strafeGetippt(i);
+  if (MODUS || S.phase !== 'raten' || k.offen || FRAGT) return;
+  const t = S.amZug;
+  FRAGT = true;
+  const ja = await frage({ titel: `„${k.wort}“ aufdecken?`, text: `${esc(S.teams[t].name)} tippt dieses Wort für den Hinweis ${esc(S.hinweis.wort.toUpperCase())} ${zahlText(S.hinweis.zahl)}.`,
+    knoepfe: [{ text: 'Abbrechen', wert: false, art: 'leise' }, { text: 'Aufdecken', wert: true }] });
+  FRAGT = false;
+  if (!ja || S.phase !== 'raten' || k.offen) return;
+  const r = L.tippen(S, i);
+  NEU_AUFGEDECKT = i;
+  speichern();
+  if (r.ende) Kern.speicher.loeschen();
+  zeichnen();
+  if (r.art === 'attentaeter') { Kern.ton('gong'); Kern.hinweis(`Der Attentäter! ${S.teams[t].name} hat verloren.`, 3200); }
+  else if (r.eigen) { Kern.ton('punkt'); if (!r.ende) Kern.hinweis(r.zugEnde ? 'Treffer! Keine Tipps mehr – Zug vorbei.' : 'Treffer! Ihr dürft weiterraten.', 1400); }
+  else if (r.art === 'neutral') { Kern.ton('legen'); Kern.hinweis('Unbeteiligt – Zug vorbei.', 2200); }
+  else { Kern.ton('fehler'); if (!r.ende) Kern.hinweis(`Wort von ${S.teams[1 - t].name} – Zug vorbei.`, 2400); }
+  if (r.ende) { await Kern.warte(700); Kern.feier(); Kern.ton('sieg'); }
+}
+
+function zugBeenden() {
+  if (!L.darfBeenden(S)) { Kern.hinweis('Tippt zuerst mindestens ein Wort an.'); return; }
+  L.zugBeenden(S); speichern(); Kern.ton('tipp'); zeichnen();
+}
+
+async function ungueltigMelden() {
+  const t = S.amZug, g = 1 - t;
+  const ja = await frage({ titel: 'Hinweis ungültig?', text: `Nur wenn der Hinweis gegen die Regeln verstößt (z. B. Form oder Teil eines offenen Wortes, mehr als ein Wort). Der Zug von ${esc(S.teams[t].name)} endet sofort, und ${esc(geber(g))} darf zur Strafe ein Wort von ${esc(S.teams[g].name)} abdecken.`,
+    knoepfe: [{ text: 'Doch gültig', wert: false, art: 'leise' }, { text: 'Ungültig', wert: true, art: 'gefahr' }] });
+  if (!ja || S.phase !== 'raten') return;
+  L.ungueltig(S); speichern(); Kern.ton('fehler'); zeichnen();
+}
+
+/* ---------- Strafe ---------- */
+async function strafeStart() {
+  const f = S.strafeFuer;
+  await Kern.sichtschutz({ name: geber(f), farbe: tf(f), knopf: `Ich bin ${geber(f)}`, text: 'Du darfst eines deiner Wörter abdecken. Die Schlüsselkarte siehst du nur, solange du den Knopf gedrückt hältst.' });
+  if (S.phase !== 'strafe') return;
+  MODUS = 'strafe'; zeichnen();
+}
+async function strafeGetippt(i) {
+  const k = S.karten[i], f = S.strafeFuer;
+  if (k.offen) return;
+  if (k.art !== 't' + f) { schluessel(false); Kern.hinweis('Nur ein Wort deines eigenen Teams.'); Kern.ton('fehler'); return; }
+  schluessel(false);
+  const ja = await frage({ titel: `„${k.wort}“ abdecken?`, text: `Das Wort zählt dann als gefunden für ${esc(S.teams[f].name)}.`,
+    knoepfe: [{ text: 'Abbrechen', wert: false, art: 'leise' }, { text: 'Abdecken', wert: true }] });
+  if (!ja || S.phase !== 'strafe') return;
+  L.strafeAbdecken(S, i); MODUS = null; NEU_AUFGEDECKT = i;
+  if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
+  Kern.ton('punkt'); zeichnen();
+  if (S.phase === 'ende') { Kern.feier(); Kern.ton('sieg'); }
+}
+function verzichten() { if (S.phase !== 'strafe') return; L.strafeVerzichten(S); MODUS = null; speichern(); Kern.ton('tipp'); zeichnen(); }
+
+window.__test = { zustand: () => S, modus: () => MODUS };
+startseite();
+</script>
+</body>
+</html>

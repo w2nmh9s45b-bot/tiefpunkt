@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Rommé · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Rommé: oben die Personen, in der Mitte der Tisch mit allen Figuren, rechts Stapel und Ablage, unten die eigene Hand. */
+#rm{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto 1fr auto;gap:10px}
+.rm-leute{grid-column:1 / 3;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding-left:120px;min-height:46px}
+.rm-person{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 7px;border-radius:99px;background:var(--panel);border:1.5px solid var(--line);font-size:15px;white-space:nowrap}
+.rm-person.dran{border-color:var(--pc);box-shadow:0 0 0 2px color-mix(in srgb,var(--pc) 50%,transparent)}
+.rm-person b{font-weight:700}
+.rm-person .rm-mini{color:var(--ink2);font-size:13px}
+.rm-person .k-chip{font-size:11px}
+.rm-tisch{position:relative;background:rgba(5,22,28,.42);border:1px solid var(--line);border-radius:22px;padding:12px;overflow:hidden;min-height:0;
+  display:flex;flex-wrap:wrap;align-content:flex-start;gap:calc(var(--tk)*.22) calc(var(--tk)*.3)}
+.rm-tisch:empty::before{content:"Noch liegt nichts auf dem Tisch.";color:var(--ink3);margin:auto;font-size:17px}
+.rm-figur{position:relative;display:flex;padding:calc(var(--tk)*.1);border-radius:calc(var(--tk)*.18);border:1.5px solid transparent;transition:border-color .2s, background .2s}
+.rm-figur .k-karte{--kw:var(--tk);overflow:visible}
+.rm-figur .k-karte + .k-karte{margin-left:calc(var(--tk)*-.5)}
+.rm-figur.neu{border-color:color-mix(in srgb,var(--akzent) 70%,transparent);border-style:dashed;background:color-mix(in srgb,var(--akzent) 8%,transparent)}
+.rm-figur.ziel{border-color:var(--akzent);border-style:solid;background:color-mix(in srgb,var(--akzent) 16%,transparent);animation:rm-puls 1.4s ease-in-out infinite;cursor:pointer}
+.rm-figur.zuletzt{border-color:rgba(255,255,255,.25)}
+@keyframes rm-puls{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--akzent) 30%,transparent)}}
+.rm-figur .k-karte.jziel{box-shadow:0 0 0 3px var(--warn),0 4px 10px rgba(0,0,0,.4);z-index:2}
+.rm-figur .k-karte.ablagekarte{box-shadow:0 0 0 3px var(--warn)}
+.rm-figur{padding-bottom:calc(var(--tk)*.3)}
+.rm-vertritt{position:absolute;left:50%;bottom:0;transform:translate(-50%,115%);background:#1e2a30;color:#fbf8f1;font:700 calc(var(--tk)*.2) var(--f-ui);
+  padding:1px 5px;border-radius:6px;white-space:nowrap;z-index:3}
+.rm-vertritt.rot{color:#ff9b8f}
+.rm-fknopf{position:absolute;top:-10px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--panel-fest);color:var(--ink);
+  display:grid;place-items:center;font-size:15px;font-weight:700;z-index:4;padding:0}
+.rm-fknopf.zurueck{right:-8px}.rm-fknopf.dreh{right:26px}
+.rm-fpunkte{position:absolute;left:6px;top:-9px;font:700 11px var(--f-ui);background:var(--akzent);color:var(--akzent-ink);padding:1px 6px;border-radius:99px;z-index:4}
+
+.rm-seite{display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;width:calc(var(--sk)*1.3 + 24px);min-height:0}
+.rm-stapel{position:relative;width:var(--sk);height:calc(var(--sk)*1.4);border-radius:calc(var(--sk)*.11)}
+.rm-stapel .k-karte{--kw:var(--sk);position:absolute;inset:0}
+.rm-stapel.ziel::after{content:"";position:absolute;inset:-6px;border-radius:calc(var(--sk)*.16);box-shadow:0 0 0 3px var(--pc,var(--akzent));animation:rm-blink 1.5s ease-in-out infinite;pointer-events:none}
+.rm-stapel.leer{border:1.5px dashed var(--line)}
+@keyframes rm-blink{50%{opacity:.35}}
+.rm-slabel{font-size:13px;color:var(--ink2);text-align:center;line-height:1.25}
+.rm-slabel b{color:var(--ink)}
+
+.rm-unten{grid-column:1 / 3;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:10px 14px 12px;display:flex;flex-direction:column;gap:10px}
+.rm-zeile{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rm-status{flex:1 1 260px;font-size:17px;line-height:1.3;min-height:24px}
+.rm-status b{color:var(--pc,var(--akzent))}
+.rm-status .gut{color:var(--gut);font-weight:700}.rm-status .schlecht{color:var(--fehler);font-weight:700}
+.rm-hand{display:flex;justify-content:center;align-items:flex-end;padding-top:calc(var(--hk)*.18);min-height:calc(var(--hk)*1.58)}
+.rm-hand .k-karte{--kw:var(--hk);transition:transform .15s, box-shadow .15s;cursor:pointer}
+.rm-hand .k-karte.neu::after{content:"neu";position:absolute;left:50%;top:0;transform:translate(-50%,-115%);background:var(--warn);color:#2a1f05;
+  font:700 12px var(--f-ui);padding:1px 7px;border-radius:99px}
+.rm-hand .k-karte{overflow:visible}
+.rm-hand .k-karte.wahl{transform:translateY(-16%)}
+.rm-hand.zu .k-karte{cursor:default}
+.rm-knoepfe{display:flex;gap:8px;flex-wrap:wrap}
+.rm-knoepfe .k-btn{min-height:46px;padding:0 15px;font-size:16px}
+.rm-sort{display:flex;gap:6px}
+.rm-wert{table-layout:auto}
+.rm-erg table{width:100%;border-collapse:collapse;font-size:16px;margin:6px 0}
+.rm-erg td,.rm-erg th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.rm-erg th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.rm-erg .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rm-erg .rm-rest{display:flex;flex-wrap:wrap;gap:2px}
+.rm-erg .rm-rest .k-karte{--kw:26px}
+.rm-erg .rm-rest .k-karte .ix{font-size:8px}
+.rm-erg .sieg{color:var(--gut);font-weight:700}
+@media (max-aspect-ratio:1/1){
+  #rm{grid-template-columns:1fr;grid-template-rows:auto auto 1fr auto}
+  .rm-leute{grid-column:1;grid-row:1;justify-content:flex-start;padding-left:118px}
+  .rm-seite{grid-row:2;flex-direction:row;width:auto;justify-content:center;gap:22px}
+  .rm-tisch{grid-row:3}
+  .rm-unten{grid-row:4}
+  .rm-unten{grid-column:1}
+}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="romme.logik.js"></script>
+<script>
+"use strict";
+const REGELN_HTML = `
+<h3>Ziel</h3><p>Werde deine Karten los, indem du Figuren auslegst. Wer seine letzte Karte abwirft, gewinnt die Runde. Die anderen schreiben ihre Handkarten als Minuspunkte auf.</p>
+<h3>Karten</h3><p>Zwei Pakete mit je 52 Karten und sechs Joker. Alle bekommen 13 Karten, eine Karte liegt offen auf der Ablage.</p>
+<h3>Dein Zug</h3><ol><li>Zieh eine Karte vom Stapel – oder nimm die oberste Karte der Ablage, aber nur, wenn du sie im selben Zug auslegst. Mit nur einer Karte auf der Hand darfst du die Ablage nicht nehmen.</li>
+<li>Leg Figuren aus, leg an oder tausche Joker.</li><li>Wirf zum Schluss eine Karte ab. Erst damit ist der Zug fertig – vorher kannst du alles zurücknehmen.</li></ol>
+<h3>Figuren</h3><ul><li><b>Satz:</b> 3 oder 4 Karten gleichen Werts in verschiedenen Farben.</li>
+<li><b>Folge:</b> mindestens 3 Karten einer Farbe in Reihe. Das Ass liegt vor der 2 oder nach dem König, nie K-A-2.</li>
+<li><b>Joker</b> ersetzen jede Karte – aber nie mehr Joker als echte Karten in einer Figur und nie zwei Joker nebeneinander. Einen Joker darfst du nur als allerletzte Karte abwerfen.</li></ul>
+<h3>Erstmeldung</h3><p>Beim ersten Auslegen müssen deine neuen Figuren zusammen mindestens 40 Augen haben (Ass in A-2-3 = 1, sonst 11; Bilder 10; Joker zählt wie die ersetzte Karte). Erst danach darfst du anlegen und Joker tauschen.</p>
+<h3>Anlegen und Joker tauschen</h3><p>Du darfst an alle Figuren anlegen, an Folgen nur an den Enden. Einen Joker auf dem Tisch tauschst du gegen die Karte, die er vertritt (im Satz: eine fehlende Farbe). Den Joker musst du im selben Zug wieder auslegen.</p>
+<h3>Hand-Rommé</h3><p>Legst du alle Karten in einem einzigen Zug ab, ohne vorher herausgekommen zu sein, gilt keine Mindestpunktzahl (außer du legst an) – und die Minuspunkte der anderen zählen doppelt.</p>
+<h3>Wertung</h3><p>Handkarten: 2–10 nach Augen, Bube, Dame, König je 10, Ass 11, Joker 20. Nach der vereinbarten Rundenzahl gewinnt, wer die wenigsten Minuspunkte hat.</p>`;
+
+const $ = (s, r = document) => r.querySelector(s);
+const SYM = Romme.SYMBOL;
+let S = null, BUEHNE = null, SETUP = null, LAUF = 0;
+let WAHL = new Set(), OFFEN = false, NEU_GEZOGEN = null;
+const rnd = n => Kern.zufall(n);
+const kd = id => { const c = Romme.karte(id); return c.joker ? {rang: 'JOKER', farbe: c.farbe} : {rang: c.rang === 1 ? 'A' : c.rang === 11 ? 'B' : c.rang === 12 ? 'D' : c.rang === 13 ? 'K' : String(c.rang), farbe: c.farbe}; };
+const karteEl = (id, kw) => { const e = Kern.karte(Object.assign(kd(id), {kw})); e.dataset.id = id; return e; };
+
+Kern.init({id: 'romme', name: 'Rommé', akzent: '#5cc8a0', regeln: REGELN_HTML, onNeu: () => { Kern.speicher.loeschen(); startseite(); },
+  menue: [{text: 'Punktestand', aktion: () => punktestand(false)}]});
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  if (BUEHNE) { BUEHNE.remove(); BUEHNE = null; }
+  S = null; LAUF++; OFFEN = false; document.querySelectorAll('.k-sichtschutz').forEach(x => x.remove());
+  const gesp = Kern.speicher.laden();
+  const bild = `<svg width="132" height="84" viewBox="0 0 132 84">${[['7', '♥', '#c0392b', -14], ['8', '♥', '#c0392b', -4], ['9', '♥', '#c0392b', 6], ['J', '', '#1e2a30', 16]].map(([r, s, f, w], i) => `<g transform="rotate(${w} ${30 + i * 24} 70)"><rect x="${10 + i * 24}" y="10" width="40" height="58" rx="6" fill="#fbf8f1" stroke="rgba(0,0,0,.15)"/><text x="${18 + i * 24}" y="32" font-family="Bricolage Grotesque" font-weight="800" font-size="${r === 'J' ? 8.5 : 18}" fill="${f}">${r === 'J' ? 'JOKER' : r}</text><text x="${22 + i * 24}" y="56" font-size="20" fill="${f}">${s}</text></g>`).join('')}</svg>`;
+  SETUP = Kern.setup({
+    titel: 'Rommé', unter: 'Sätze und Folgen sammeln, auslegen, anlegen – und als Erste die letzte Karte abwerfen.',
+    bild, fakten: ['2–6 Personen', '110 Karten', '6 Joker'],
+    spieler: {min: 2, max: 6, standard: 3},
+    optionen: [
+      {id: 'erst', label: 'Erstmeldung mindestens', werte: [{wert: 40, text: '40 Augen'}, {wert: 31, text: '31 Augen'}, {wert: 30, text: '30 Augen'}], standard: 40},
+      {id: 'joker', label: 'Joker (Grundregel: nie nebeneinander, nie mehr Joker als echte Karten)', werte: [{wert: 'verband', text: 'Grundregel'}, {wert: 'frei', text: 'frei einsetzbar'}], standard: 'verband'},
+      {id: 'ende', label: 'Spielende', werte: [{wert: 'runden3', text: '3 Runden'}, {wert: 'runden5', text: '5 Runden'}, {wert: 'runden8', text: '8 Runden'}, {wert: 'grenze500', text: 'bis 500 Punkte'}], standard: 'runden5'}
+    ],
+    fortsetzen: gesp && gesp.phase !== 'spielende' ? `Runde ${gesp.runde} · ${gesp.spieler.map(s => s.name).join(', ')}` : null,
+    onFortsetzen: () => { S = gesp; spielStarten(); },
+    onStart: ({namen, farben, optionen}) => {
+      S = Romme.neuesSpiel({namen, farben, erst: optionen.erst, joker: optionen.joker, ende: optionen.ende}, rnd);
+      speichern(); spielStarten();
+    }
+  });
+}
+function speichern() { if (S && S.phase !== 'spielende') Kern.speicher.speichern(S); else Kern.speicher.loeschen(); }
+
+/* ---------- Spielfläche ---------- */
+function spielStarten() {
+  if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
+  if (!BUEHNE) {
+    BUEHNE = Kern.el('div', 'k-buehne'); BUEHNE.id = 'rm';
+    BUEHNE.innerHTML = `<div class="rm-leute" id="rm-leute"></div><div class="rm-tisch" id="rm-tisch"></div>
+      <div class="rm-seite" id="rm-seite"></div><div class="rm-unten" id="rm-unten"></div>`;
+    document.body.appendChild(BUEHNE);
+  }
+  OFFEN = false; WAHL.clear();
+  ablauf();
+}
+
+async function ablauf() {
+  const id = ++LAUF;
+  OFFEN = false; zeichnen();
+  if (S.phase === 'rundenende' || S.phase === 'spielende') { rundenWertung(); return; }
+  const sp = S.spieler[S.amZug];
+  await Kern.sichtschutz({name: sp.name, farbe: sp.farbe, text: S.phase === 'ziehen' ? 'Gleich siehst du deine Karten. Zieh dann vom Stapel oder nimm die Ablage.' : 'Du bist mitten in deinem Zug.'});
+  if (id !== LAUF) return;
+  OFFEN = true; WAHL.clear(); NEU_GEZOGEN = null;
+  zeichnen();
+}
+
+function maße() {
+  const W = innerWidth, H = innerHeight, hoch = W / H < 1;
+  const n = S && S.spieler[S.amZug] ? S.spieler[S.amZug].hand.length : 13;
+  const breite = W - 60;
+  let hk = Math.floor(Math.min(hoch ? 82 : 84, (breite + 8) / Math.max(n, 8) - 6));
+  hk = Math.max(46, hk);
+  const sk = hoch ? 64 : Math.max(58, Math.min(78, H / 10));
+  return {hk, sk, hoch};
+}
+
+function zeichnen() {
+  if (!S || !BUEHNE) return;
+  const m = maße();
+  BUEHNE.style.setProperty('--hk', m.hk + 'px'); BUEHNE.style.setProperty('--sk', m.sk + 'px');
+  const sp = S.spieler[S.amZug];
+  BUEHNE.style.setProperty('--pc', sp.farbe);
+  personen(); seite(); unten(); tisch();
+}
+addEventListener('resize', () => zeichnen());
+
+function personen() {
+  const l = $('#rm-leute'); l.innerHTML = '';
+  S.spieler.forEach((s, i) => {
+    const e = Kern.el('div', 'rm-person' + (i === S.amZug && S.phase !== 'rundenende' && S.phase !== 'spielende' ? ' dran' : ''));
+    e.style.setProperty('--pc', s.farbe);
+    e.innerHTML = `<span class="k-dot">${Kern.esc(s.name.charAt(0).toUpperCase())}</span><b>${Kern.esc(s.name)}</b>
+      <span class="rm-mini k-zahl">${s.hand.length} ${s.hand.length === 1 ? 'Karte' : 'Karten'} · ${s.summe} Pkt</span>${S.raus[i] ? '<span class="k-chip leise">draußen</span>' : ''}${i === S.geber ? '<span class="k-chip leise">gibt</span>' : ''}`;
+    l.appendChild(e);
+  });
+}
+
+function seite() {
+  const s = $('#rm-seite'); s.innerHTML = '';
+  const dran = OFFEN && S.phase === 'ziehen';
+  // Stapel
+  const st = Kern.el('div', 'rm-stapel' + (dran ? ' ziel' : '') + (S.talon.length ? '' : ' leer')); st.id = 'rm-talon';
+  if (S.talon.length) st.appendChild(Kern.karte({rang: 'A', farbe: 'pik', zu: true}));
+  Kern.tap(st, () => { if (!OFFEN) return; if (S.phase !== 'ziehen') { Kern.hinweis('Du hast schon gezogen.'); return; }
+    const r = Romme.ziehen(S, rnd); if (!r.ok) { Kern.hinweis(r.grund); Kern.ton('fehler'); return; }
+    NEU_GEZOGEN = r.karte; Kern.ton('ziehen'); speichern(); zeichnen(); });
+  const sw = Kern.el('div'); sw.append(st, Kern.el('div', 'rm-slabel', `Stapel<br><b class="k-zahl">${S.talon.length}</b>`));
+  s.appendChild(sw);
+  // Ablage
+  const oben = S.ablage[S.ablage.length - 1];
+  const ab = Kern.el('div', 'rm-stapel' + (oben == null ? ' leer' : ''));
+  ab.id = 'rm-ablage';
+  const abwerfZiel = OFFEN && S.phase === 'spielen' && WAHL.size === 1;
+  if (dran && Romme.darfAblageNehmen(S).ok) ab.classList.add('ziel');
+  if (abwerfZiel) ab.classList.add('ziel');
+  if (oben != null) ab.appendChild(karteEl(oben, m_sk()));
+  Kern.tap(ab, () => {
+    if (!OFFEN) return;
+    if (S.phase === 'ziehen') {
+      const r = Romme.ablageNehmen(S); if (!r.ok) { Kern.hinweis(r.grund); Kern.ton('fehler'); return; }
+      NEU_GEZOGEN = r.karte; Kern.ton('ziehen'); speichern(); zeichnen();
+      Kern.hinweis(`${Romme.name(r.karte)} musst du in diesem Zug auslegen.`, 3000);
+      return;
+    }
+    if (WAHL.size === 1) abwerfen([...WAHL][0]);
+    else Kern.hinweis('Wähle genau eine Karte zum Abwerfen.');
+  });
+  const aw = Kern.el('div'); aw.append(ab, Kern.el('div', 'rm-slabel', 'Ablage'));
+  s.appendChild(aw);
+}
+const m_sk = () => parseFloat(getComputedStyle(BUEHNE).getPropertyValue('--sk')) || 64;
+
+function tisch() {
+  const t = $('#rm-tisch'); t.innerHTML = '';
+  if (!S.tisch.length) return;
+  const lage = OFFEN && S.phase === 'spielen' ? Romme.zugLage(S) : null;
+  const neuIds = new Set(lage ? lage.neu.map(f => f.id) : []);
+  const wahl = [...WAHL];
+  const zuletzt = new Set(S.letzte && !OFFEN ? [...S.letzte.neu, ...S.letzte.geaendert] : []);
+  S.tisch.forEach(f => {
+    const e = Kern.el('div', 'rm-figur'); e.dataset.fid = f.id;
+    if (neuIds.has(f.id)) e.classList.add('neu');
+    if (zuletzt.has(f.id)) e.classList.add('zuletzt');
+    const kann = OFFEN && wahl.length && Romme.anlegenMoeglich(S, f.id, wahl);
+    if (kann) e.classList.add('ziel');
+    f.karten.forEach((id, p) => {
+      const c = karteEl(id, null);
+      if (S.zug && S.zug.ablageKarte === id) c.classList.add('ablagekarte');
+      if (Romme.istJoker(id)) {
+        const v = Romme.jokerVertritt(f, id);
+        const txt = f.art === 'folge' ? Romme.rangText(v[0].rang) + SYM[v[0].farbe] : Romme.rangText(f.rang);
+        const b = Kern.el('span', 'rm-vertritt' + (f.art === 'folge' && (v[0].farbe === 'herz' || v[0].farbe === 'karo') ? ' rot' : ''), txt);
+        c.appendChild(b);
+        if (OFFEN && wahl.length === 1 && Romme.tauschMoeglich(S, f.id, id, wahl[0])) {
+          c.classList.add('jziel');
+          Kern.tap(c, ev => { ev.stopPropagation(); aktion(Romme.tauschen(S, f.id, id, wahl[0]), 'Joker getauscht – leg ihn in diesem Zug wieder aus.'); });
+        }
+      }
+      e.appendChild(c);
+    });
+    if (neuIds.has(f.id)) {
+      e.appendChild(Kern.el('span', 'rm-fpunkte k-zahl', `${Romme.figurPunkte(f)}`));
+      const z = Kern.el('button', 'rm-fknopf zurueck', '↩'); z.title = 'Zurück auf die Hand'; z.setAttribute('aria-label', 'Zurück auf die Hand');
+      Kern.tap(z, ev => { ev.stopPropagation(); aktion(Romme.zuruecknehmen(S, f.id)); });
+      e.appendChild(z);
+      if (Romme.deutungen(f.karten, S.opt).length > 1) {
+        const d = Kern.el('button', 'rm-fknopf dreh', '⇄'); d.title = 'Anders legen'; d.setAttribute('aria-label', 'Anders legen');
+        Kern.tap(d, ev => { ev.stopPropagation(); aktion(Romme.umdeuten(S, f.id)); });
+        e.appendChild(d);
+      }
+    }
+    Kern.tap(e, () => {
+      if (!OFFEN || S.phase !== 'spielen') return;
+      if (!WAHL.size) { Kern.hinweis('Wähle erst Karten aus deiner Hand.'); return; }
+      aktion(Romme.anlegen(S, f.id, [...WAHL]));
+    });
+    t.appendChild(e);
+  });
+  einpassen(t);
+}
+// Kartengröße auf dem Tisch so wählen, dass alle Figuren hineinpassen
+function einpassen(t) {
+  let tk = Math.round(Math.min(92, t.clientHeight / 4.2, t.clientWidth / 9));
+  t.style.setProperty('--tk', tk + 'px');
+  while (tk > 30 && t.scrollHeight > t.clientHeight + 1) { tk -= 3; t.style.setProperty('--tk', tk + 'px'); }
+}
+
+function unten() {
+  const u = $('#rm-unten'); u.innerHTML = '';
+  const sp = S.spieler[S.amZug];
+  const zeile = Kern.el('div', 'rm-zeile');
+  const status = Kern.el('div', 'rm-status'); status.id = 'rm-status';
+  zeile.appendChild(status);
+  const hand = Kern.el('div', 'rm-hand'); hand.id = 'rm-hand';
+  if (!OFFEN) {
+    status.innerHTML = S.phase === 'rundenende' || S.phase === 'spielende' ? 'Runde vorbei.' : `<b>${Kern.esc(sp.name)}</b> ist dran. Gib das iPad weiter.`;
+    hand.classList.add('zu');
+    const n = Math.min(sp.hand.length, 16);
+    for (let i = 0; i < n; i++) { const c = Kern.karte({rang: 'A', farbe: 'pik', zu: true}); c.style.marginLeft = i ? 'calc(var(--hk)*-.72)' : '0'; hand.appendChild(c); }
+    u.append(zeile, hand); return;
+  }
+  // Status
+  status.innerHTML = statusText();
+  // Sortieren
+  const sort = Kern.el('div', 'rm-sort');
+  [['farbe', 'Nach Farbe'], ['wert', 'Nach Wert']].forEach(([a, t]) => { const b = Kern.el('button', 'k-btn klein leise', t); b.id = 'rm-sort-' + a; Kern.tap(b, () => { Romme.sortieren(S, S.amZug, a); Kern.ton('karte'); speichern(); zeichnen(); }); sort.appendChild(b); });
+  zeile.appendChild(sort);
+  // Hand
+  const n = sp.hand.length;
+  const m = maße(); const verfuegbar = innerWidth - 60;
+  const ueberlapp = n * (m.hk + 6) > verfuegbar ? (verfuegbar - m.hk) / (n - 1) - m.hk : 6;
+  sp.hand.forEach((id, i) => {
+    const c = karteEl(id, null);
+    if (i) c.style.marginLeft = ueberlapp + 'px';
+    if (WAHL.has(id)) c.classList.add('wahl');
+    if (id === NEU_GEZOGEN) c.classList.add('neu');
+    Kern.tap(c, () => { if (WAHL.has(id)) WAHL.delete(id); else WAHL.add(id); Kern.ton('tipp'); zeichnen(); });
+    hand.appendChild(c);
+  });
+  // Knöpfe
+  const kn = Kern.el('div', 'rm-knoepfe');
+  const knopf = (text, art, id, fn, an = true) => { const b = Kern.el('button', 'k-btn ' + (art || ''), text); b.id = id; b.disabled = !an; Kern.tap(b, () => { if (!b.disabled) fn(); }); kn.appendChild(b); return b; };
+  const wahl = [...WAHL];
+  if (S.phase === 'spielen') {
+    const p = wahl.length >= 3 ? Romme.pruefen(S, wahl) : null;
+    knopf('Prüfen', 'leise', 'rm-pruefen', () => {
+      const r = Romme.pruefen(S, wahl);
+      Kern.hinweis(r.ok ? `Gültig: ${r.text}` : r.grund, 2800); Kern.ton(r.ok ? 'punkt' : 'fehler');
+    }, wahl.length > 0);
+    knopf('Auslegen', '', 'rm-auslegen', () => aktion(Romme.auslegen(S, wahl)), !!(p && p.ok));
+    knopf('Abwerfen', 'gut', 'rm-abwerfen', () => abwerfen(wahl[0]), wahl.length === 1);
+    knopf('Schritt zurück', 'leise', 'rm-schritt', () => aktion(Romme.schrittZurueck(S)), S.zug && S.zug.schritte.length > 0);
+    knopf('Zug zurücksetzen', 'leise', 'rm-reset', () => aktion(Romme.zugZuruecksetzen(S)), S.zug && S.zug.schritte.length > 0);
+    if (S.zug && S.zug.ablageKarte != null && JSON.stringify(S.tisch) === JSON.stringify(S.zug.start.tisch))
+      knopf('Ablagekarte zurücklegen', 'leise', 'rm-ablage-zurueck', () => { const r = Romme.ablageZurueck(S); if (!r.ok) { Kern.hinweis(r.grund); return; } WAHL.clear(); NEU_GEZOGEN = null; speichern(); zeichnen(); });
+  } else {
+    knopf('Vom Stapel ziehen', '', 'rm-ziehen', () => $('#rm-talon') && ziehenKnopf());
+    const d = Romme.darfAblageNehmen(S);
+    knopf('Ablage nehmen', 'leise', 'rm-ablage-nehmen', () => { const r = Romme.ablageNehmen(S); if (!r.ok) { Kern.hinweis(r.grund); return; } NEU_GEZOGEN = r.karte; Kern.ton('ziehen'); speichern(); zeichnen(); Kern.hinweis(`${Romme.name(r.karte)} musst du in diesem Zug auslegen.`, 3000); }, d.ok);
+  }
+  u.append(zeile, hand, kn);
+}
+function ziehenKnopf() { const r = Romme.ziehen(S, rnd); if (!r.ok) { Kern.hinweis(r.grund); return; } NEU_GEZOGEN = r.karte; Kern.ton('ziehen'); speichern(); zeichnen(); }
+
+function statusText() {
+  const sp = S.spieler[S.amZug];
+  const wer = `<b>${Kern.esc(sp.name)}</b>`;
+  if (S.phase === 'ziehen') return `${wer}, zieh vom Stapel – oder nimm die offene Karte, wenn du sie gleich auslegst.`;
+  const lage = Romme.zugLage(S);
+  const wahl = [...WAHL];
+  let s = '';
+  if (wahl.length >= 3) { const p = Romme.pruefen(S, wahl); s = p.ok ? `<span class="gut">${p.text}</span> · ` : `<span class="schlecht">${Kern.esc(p.grund)}</span> · `; }
+  else if (wahl.length === 1) s = 'Eine Karte gewählt: abwerfen, anlegen oder gegen einen Joker tauschen. · ';
+  if (!lage.warRaus) {
+    const ok = lage.punkteNeu >= S.opt.erst;
+    s += `Erstmeldung: <span class="${ok ? 'gut' : ''} k-zahl">${lage.punkteNeu} von ${S.opt.erst}</span> Augen`;
+  } else s += 'Leg aus oder an, dann wirf eine Karte ab.';
+  if (S.zug.ablageKarte != null && !S.tisch.some(f => f.karten.includes(S.zug.ablageKarte))) s += ` · <b>${Romme.name(S.zug.ablageKarte)}</b> muss noch raus`;
+  if (lage.freieJoker.length) s += ' · <b>Joker</b> wieder auslegen';
+  return s;
+}
+
+function aktion(r, text) {
+  if (!r.ok) { Kern.hinweis(r.grund, 2800); Kern.ton('fehler'); return false; }
+  WAHL.clear(); Kern.ton('legen'); if (text) Kern.hinweis(text); speichern(); zeichnen(); return true;
+}
+
+async function abwerfen(id) {
+  const name = S.spieler[S.amZug].name;
+  const r = Romme.abwerfen(S, id);
+  if (!r.ok) { Kern.hinweis(r.grund, 3200); Kern.ton('fehler'); return; }
+  Kern.ton('karte'); WAHL.clear(); NEU_GEZOGEN = null; OFFEN = false;
+  speichern(); zeichnen();
+  if (r.ende) { await Kern.warte(500); Kern.ton(r.handRomme ? 'sieg' : 'runde'); if (r.handRomme) Kern.hinweis(`Hand-Rommé von ${name}!`, 3000); rundenWertung(); return; }
+  await Kern.warte(450);
+  ablauf();
+}
+
+/* ---------- Wertung ---------- */
+function rundenWertung() {
+  const e = S.ergebnis; if (!e) return;
+  zeichnen();
+  const ende = S.phase === 'spielende';
+  const box = Kern.el('div', 'rm-erg');
+  const g = S.spieler[e.gewinner];
+  let h = `<h2>${ende ? 'Spielende' : 'Runde ' + e.runde}</h2><p><b>${Kern.esc(g.name)}</b> hat ${e.handRomme ? 'mit <b>Hand-Rommé</b> ' : ''}ausgemacht.${e.handRomme ? ' Die Minuspunkte zählen doppelt.' : ''}</p>`;
+  h += '<table><tr><th>Person</th><th>Restkarten</th><th class="r">Augen</th><th class="r">Minuspunkte</th><th class="r">Summe</th></tr>';
+  e.zeilen.forEach((z, i) => {
+    const s = S.spieler[i];
+    const weg = z.karten.map(id => `${Romme.name(id)}=${Romme.handWert(id)}`).join(' + ');
+    h += `<tr><td>${Kern.esc(s.name)}</td><td><div class="rm-rest" data-i="${i}"></div><small style="color:var(--ink2)">${z.karten.length ? weg : '–'}</small></td>
+      <td class="r">${z.augen}</td><td class="r">${i === e.gewinner ? '<span class="sieg">0</span>' : (e.handRomme ? `${z.augen} × 2 = ` : '') + z.punkte}</td><td class="r"><b>${s.summe}</b></td></tr>`;
+  });
+  h += '</table>';
+  if (ende) {
+    const sieger = S.sieger.map(i => S.spieler[i].name);
+    h += `<p style="font-size:20px;margin-top:12px"><b>${Kern.esc(sieger.join(' und '))}</b> ${sieger.length > 1 ? 'gewinnen' : 'gewinnt'} mit den wenigsten Minuspunkten.</p>`;
+  }
+  box.innerHTML = h;
+  e.zeilen.forEach((z, i) => { const r = box.querySelector(`.rm-rest[data-i="${i}"]`); z.karten.forEach(id => r.appendChild(karteEl(id, 26))); });
+  const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
+  const f = Kern.fenster(box, {breit: true, schliessbar: false});
+  const knopf = (t, art, id, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { f.schliessen(); fn(); }; k.appendChild(b); };
+  if (ende) {
+    Kern.feier(); Kern.ton('sieg'); Kern.speicher.loeschen();
+    knopf('Nochmal', '', 'rm-nochmal', () => { S = Romme.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), erst: S.opt.erst, joker: S.opt.joker, ende: S.opt.ende}, rnd); speichern(); ablauf(); });
+    knopf('Neues Spiel', 'leise', 'rm-neu', startseite);
+  } else {
+    knopf('Nächste Runde', '', 'rm-weiter', () => { Romme.naechsteRunde(S, rnd); speichern(); ablauf(); });
+  }
+}
+function punktestand() {
+  if (!S) return;
+  let h = '<div class="rm-erg"><h2>Punktestand</h2><p>Minuspunkte je Runde – wer am Ende die wenigsten hat, gewinnt.</p><table><tr><th>Runde</th>' + S.spieler.map(s => `<th class="r">${Kern.esc(s.name)}</th>`).join('') + '</tr>';
+  S.runden.forEach(r => { h += `<tr><td>${r.runde}${r.handRomme ? ' · Hand-Rommé' : ''}</td>` + r.zeilen.map((z, i) => `<td class="r">${i === r.gewinner ? '<span class="sieg">0</span>' : z.punkte}</td>`).join('') + '</tr>'; });
+  h += '<tr><td><b>Gesamt</b></td>' + S.spieler.map(s => `<td class="r"><b>${s.summe}</b></td>`).join('') + '</tr></table></div>';
+  Kern.fenster(h, {breit: true});
+}
+
+/* ---------- Testzugang ---------- */
+window.__test = {get S() { return S; }, Romme, setze(st) { S = st; speichern(); zeichnen(); }, get offen() { return OFFEN; }};
+
+startseite();
+</script>
+</body>
+</html>

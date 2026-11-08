@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Schach · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Schach: Brett links (quer) bzw. mittig (hoch), daneben die beiden Spielerfelder und die Zugliste.
+   Größen setzt layout() über CSS-Variablen; --q = Feldgröße. Alle Klassen mit Präfix .sc- */
+.sc-buehne{--hell:#e8ddc6;--dunkel:#7e96a2;--q:80px}
+.sc-rahmen{position:absolute;border-radius:14px;padding:calc(var(--q)*.12);
+  background:linear-gradient(160deg,#2f3d46,#1a242a);box-shadow:0 18px 50px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08)}
+.sc-brett{position:relative;display:grid;grid-template-columns:repeat(8,var(--q));grid-template-rows:repeat(8,var(--q));
+  border-radius:6px;overflow:hidden;touch-action:none}
+.sc-f{position:relative;background:var(--hell)}
+.sc-f.d{background:var(--dunkel)}
+.sc-f .sc-k{position:absolute;font:700 calc(var(--q)*.15) var(--f-ui);color:var(--dunkel);pointer-events:none;line-height:1}
+.sc-f.d .sc-k{color:var(--hell)}
+.sc-k.l{right:5%;bottom:4%}.sc-k.r{left:5%;top:4%}
+.sc-f.letzt::before{content:"";position:absolute;inset:0;background:rgba(242,193,78,.42)}
+.sc-f.wahl::before{content:"";position:absolute;inset:0;background:rgba(242,193,78,.72)}
+.sc-f.schach::before{content:"";position:absolute;inset:0;background:radial-gradient(circle, rgba(239,80,60,.95) 0 28%, rgba(239,80,60,.5) 45%, transparent 72%)}
+.sc-f.ziel::after{content:"";position:absolute;left:50%;top:50%;width:30%;height:30%;transform:translate(-50%,-50%);border-radius:50%;
+  background:rgba(16,36,44,.34);pointer-events:none;z-index:3}
+.sc-f.ziel.schlag::after{width:88%;height:88%;background:none;box-shadow:inset 0 0 0 calc(var(--q)*.07) rgba(16,36,44,.38)}
+.sc-f.ueber::before{content:"";position:absolute;inset:0;background:rgba(255,255,255,.28)}
+.sc-fig{position:absolute;inset:0;z-index:2;pointer-events:none;transition:transform .26s cubic-bezier(.3,.7,.25,1)}
+.sc-fig svg{width:100%;height:100%;display:block;filter:drop-shadow(0 calc(var(--q)*.025) calc(var(--q)*.03) rgba(0,0,0,.35))}
+.sc-fig.ohne{transition:none}
+.sc-fig.zieht{z-index:20;transition:none}
+.sc-fig.zieht svg{transform:scale(1.14)}
+.sc-gegen .sc-fig.b svg{transform:rotate(180deg)}
+.sc-gegen .sc-fig.b.zieht svg{transform:rotate(180deg) scale(1.14)}
+.sc-fig.weg{animation:sc-weg .3s ease-out forwards}
+@keyframes sc-weg{to{opacity:0;transform:scale(.6)}}
+
+/* Spielerfelder */
+.sc-sp{position:absolute;display:flex}
+.sc-sp-in{flex:1;display:flex;flex-direction:column;gap:8px;justify-content:flex-end;padding:12px 14px;border-radius:18px;
+  background:var(--panel);border:1px solid var(--line);transition:box-shadow .3s, background-color .3s;min-width:0}
+.sc-sp.dran .sc-sp-in{background:rgba(9,32,42,.9);box-shadow:inset 0 0 0 2px var(--akzent), 0 0 30px color-mix(in srgb,var(--akzent) 25%,transparent)}
+.sc-gegen .sc-sp.s .sc-sp-in{transform:rotate(180deg)}
+.sc-kz{display:flex;align-items:center;gap:10px;min-width:0}
+.sc-stein{flex:none;width:36px;height:36px;border-radius:50%;background:rgba(232,221,198,.92);padding:2px}
+.sc-stein svg{width:100%;height:100%;display:block}
+.sc-name{font:800 22px/1.1 var(--f-disp);letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.sc-uhr{margin-left:auto;flex:none;font:800 30px/1 var(--f-disp);padding:5px 12px;border-radius:12px;background:rgba(255,255,255,.07);
+  border:0;color:var(--ink);min-width:104px;text-align:center;font-variant-numeric:tabular-nums}
+.sc-sp.dran .sc-uhr{background:var(--papier);color:var(--papier-ink)}
+.sc-uhr.knapp{background:var(--fehler)!important;color:#fff!important}
+.sc-uhr.pause{opacity:.6}
+.sc-satz{font-size:16px;color:var(--ink2);line-height:1.3;min-height:1.3em}
+.sc-sp.dran .sc-satz{color:var(--ink)}
+.sc-satz b{color:var(--fehler)}
+.sc-beute{display:flex;align-items:center;min-height:28px;flex-wrap:wrap;align-self:flex-start;max-width:100%}
+.sc-beute:not(:empty){background:rgba(232,221,198,.92);border-radius:99px;padding:1px 12px 1px 6px}
+.sc-beute svg{width:26px;height:26px;margin-right:-8px}
+.sc-beute .sc-plus{margin-left:14px;font-weight:700;color:var(--papier-ink);font-size:15px}
+.sc-knoepfe{display:flex;gap:8px;flex-wrap:wrap}
+.sc-knoepfe .k-btn{flex:1 1 auto;min-height:44px;padding:0 12px}
+.sc-zl{position:absolute;display:flex;flex-direction:column;border-radius:18px;background:var(--panel);border:1px solid var(--line);min-height:0}
+.sc-zl h3{font:700 13px var(--f-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);margin:12px 16px 6px}
+.sc-zl-in{flex:1;overflow-y:auto;touch-action:pan-y;padding:0 10px 10px;min-height:0;-webkit-overflow-scrolling:touch}
+.sc-zl table{width:100%;border-collapse:collapse;font-size:16px}
+.sc-zl td{padding:3px 6px;white-space:nowrap}
+.sc-zl td:first-child{color:var(--ink3);width:2.6em;text-align:right;font-variant-numeric:tabular-nums}
+.sc-zl td:nth-child(2),.sc-zl td:nth-child(3){width:46%}
+.sc-zl td.neu{background:color-mix(in srgb,var(--akzent) 26%,transparent);border-radius:6px}
+.sc-zl .sc-leer{color:var(--ink3);font-size:15px;padding:4px 6px}
+
+/* Umwandlung */
+.sc-umw{position:absolute;inset:0;z-index:30;background:rgba(6,18,24,.55)}
+.sc-umw-sp{position:absolute;width:var(--q);display:flex;flex-direction:column;background:#f6f1e6;border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);overflow:hidden}
+.sc-umw-sp button{width:var(--q);height:var(--q);border:0;padding:4%;background:none}
+.sc-umw-sp button:active{background:rgba(242,193,78,.6)}
+.sc-umw-sp svg{width:100%;height:100%}
+.sc-gegen .sc-umw-sp.b svg{transform:rotate(180deg)}
+
+/* Ende */
+.sc-ende{position:absolute;z-index:40;display:grid;place-items:center;pointer-events:none}
+.sc-ende-box{pointer-events:auto;background:rgba(8,26,34,.95);border:1px solid var(--line-stark);border-radius:24px;padding:26px 28px;
+  text-align:center;max-width:88%;box-shadow:0 30px 80px rgba(0,0,0,.55);animation:k-hoch .3s cubic-bezier(.2,.8,.3,1)}
+.sc-ende-box h2{font-size:clamp(30px,4.4vw,46px)}
+.sc-ende-box p{color:var(--ink2);margin:10px 0 0;font-size:18px}
+.sc-ende-box .sc-sieg{font:800 22px var(--f-disp);color:var(--akzent);margin-top:14px}
+.sc-ende-box .k-knoepfe{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;justify-content:center}
+.k-ebene.sc-kopf{transform:rotate(180deg)}
+.sc-start-bild svg{width:min(260px,44vw);height:auto}
+.k-panel > div:has(> .k-seg > #k-anzahl-2:only-child){display:none}
+@media (prefers-reduced-motion:reduce){.sc-fig{transition:none}}
+</style>
+</head>
+<body class="chart">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sc-gw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9cfba"/></linearGradient>
+    <linearGradient id="sc-gs" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#55646e"/><stop offset="1" stop-color="#161f24"/></linearGradient>
+  </defs>
+</svg>
+<div class="k-scroll chart" id="sc-start"></div>
+<div class="k-buehne sc-buehne" id="sc-spiel" hidden>
+  <div class="sc-rahmen" id="sc-rahmen"><div class="sc-brett" id="sc-brett"></div></div>
+  <div class="sc-sp s" id="sc-sp-b"></div>
+  <div class="sc-zl" id="sc-zl"><h3>Züge</h3><div class="sc-zl-in" id="sc-zl-in"></div></div>
+  <div class="sc-sp w" id="sc-sp-w"></div>
+  <div class="sc-ende" id="sc-ende" hidden></div>
+</div>
+<script src="../gemeinsam/kern.js"></script>
+<script src="schach.logik.js"></script>
+<script>
+"use strict";
+const S = window.Schach, K = window.Kern;
+const $ = s => document.querySelector(s);
+
+/* ---------- Figuren als eigene Zeichnung (viewBox 0 0 100 100) ---------- */
+const TEIL = {
+  P: ['<circle cx="50" cy="37" r="12.5"/>', '<path d="M36 79C38 68 43 62 44 55H56C57 62 62 68 64 79Z"/>',
+      '<rect x="37" y="49.5" width="26" height="7" rx="3.5"/>', '<path d="M27 88V85Q27 78.5 34 78.5H66Q73 78.5 73 85V88Z"/>'],
+  R: ['<path d="M27 41V19H37V26.5H45V19H55V26.5H63V19H73V41Z"/>', '<path d="M30 79L33.5 46H66.5L70 79Z"/>',
+      '<rect x="27" y="40" width="46" height="7.5" rx="2"/>', '<path d="M20 88V84.5Q20 78.5 27 78.5H73Q80 78.5 80 84.5V88Z"/>'],
+  B: ['<circle cx="50" cy="12" r="4.6"/><path d="M50 16.5C38 26 33 36 36 44C39 50 45 51.5 50 51.5C55 51.5 61 50 64 44C67 36 62 26 50 16.5Z"/>',
+      '<path d="M35 79C37 68 42 62 42.5 56H57.5C58 62 63 68 65 79Z"/>', '<rect x="36" y="50.5" width="28" height="7" rx="3.5"/>',
+      '<path d="M23 88V84.5Q23 78.5 30 78.5H70Q77 78.5 77 84.5V88Z"/>'],
+  N: ['', '<path d="M30 79C28.5 66 33 58 43 51.5C36.5 53.5 30 56.5 25 54.5C19.5 52.5 18 46 22 42L40 27.5C42 20 47 15 53 13L55 6L60.5 13C72.5 17 79.5 30 78.5 48C77.5 60 72.5 70 72.5 79Z"/>',
+      '', '<path d="M21 88V84.5Q21 78.5 28 78.5H72Q79 78.5 79 84.5V88Z"/>'],
+  Q: ['<path d="M29 60L19 31L32 46L35 23L44 43L50 19L56 43L65 23L68 46L81 31L71 60Z"/><circle cx="19" cy="28.5" r="4.6"/><circle cx="35" cy="20.5" r="4.6"/><circle cx="50" cy="15.5" r="4.6"/><circle cx="65" cy="20.5" r="4.6"/><circle cx="81" cy="28.5" r="4.6"/>',
+      '<path d="M32 79L35.5 61H64.5L68 79Z"/>', '<rect x="29" y="57" width="42" height="7" rx="3"/>',
+      '<path d="M20 88V84.5Q20 78.5 27 78.5H73Q80 78.5 80 84.5V88Z"/>'],
+  K: ['<path d="M46.8 6H53.2V13.5H60.5V19.5H53.2V42H46.8V19.5H39.5V13.5H46.8Z"/><path d="M30 60C23.5 48 25 38 35 35.2C42 33.4 47 38 50 44C53 38 58 33.4 65 35.2C75 38 76.5 48 70 60Z"/>',
+      '<path d="M32 79L35.5 61H64.5L68 79Z"/>', '<rect x="29" y="57" width="42" height="7" rx="3"/>',
+      '<path d="M20 88V84.5Q20 78.5 27 78.5H73Q80 78.5 80 84.5V88Z"/>']
+};
+const DETAIL = {
+  P: '', R: '<path d="M34 70H66"/>', B: '<path d="M56.5 28.5L46 40.5"/>', Q: '<path d="M36 70H64"/>',
+  K: '<path d="M36 70H64"/>', N: '<path d="M62 17.5C70.5 27 73.5 41 70.5 60"/><circle cx="50.5" cy="25.5" r="2.6" stroke="none" class="aug"/><circle cx="26.5" cy="46.5" r="1.7" stroke="none" class="aug"/>'
+};
+function figurSvg(t, f) {
+  const weiss = f === 'w';
+  const fill = weiss ? 'url(#sc-gw)' : 'url(#sc-gs)', rand = weiss ? '#24323a' : '#0b1215', fein = weiss ? '#5b6a72' : '#c9bda5';
+  const augen = weiss ? '#24323a' : '#e9dfca';
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="${fill}" stroke="${rand}" stroke-width="3.2" stroke-linejoin="round">${TEIL[t].join('')}</g>`
+    + `<g fill="none" stroke="${fein}" stroke-width="2.4" stroke-linecap="round">${DETAIL[t].replace(/class="aug"/g, `fill="${augen}"`)}</g></svg>`;
+}
+
+/* ---------- Regeltext ---------- */
+const REGELN = `
+<h3>Ziel</h3><p>Setze den gegnerischen König matt: Er steht im Schach und kann sich durch keinen Zug mehr retten.</p>
+<h3>Gangarten</h3><ul>
+<li><b>König</b> ein Feld in jede Richtung. <b>Dame</b> beliebig weit gerade und schräg. <b>Turm</b> beliebig weit gerade.
+<b>Läufer</b> beliebig weit schräg. <b>Springer</b> im Rösselsprung (zwei vor, eins zur Seite) und darf überspringen.</li>
+<li><b>Bauer</b> ein Feld vorwärts, aus der Grundstellung auch zwei. Er schlägt schräg vorwärts.</li></ul>
+<h3>Besondere Züge</h3><ul>
+<li><b>Rochade</b>: König zwei Felder zum Turm, der Turm springt über ihn. Nur wenn König und Turm noch nie gezogen haben,
+alle Felder dazwischen frei sind, der König nicht im Schach steht und kein Feld überquert oder betritt, das angegriffen ist.
+Tippe dazu den König und dann sein Zielfeld an.</li>
+<li><b>En passant</b>: Zieht ein Bauer zwei Felder an deinem Bauern vorbei, darfst du ihn im direkt folgenden Zug schlagen,
+als wäre er nur ein Feld gezogen.</li>
+<li><b>Umwandlung</b>: Erreicht ein Bauer die letzte Reihe, wird er zu Dame, Turm, Läufer oder Springer – du wählst.</li></ul>
+<h3>Remis</h3><ul>
+<li><b>Patt</b>: Wer am Zug ist, hat keinen erlaubten Zug, steht aber nicht im Schach.</li>
+<li><b>Ungenügendes Material</b>: Keine Seite kann mehr mattsetzen (z. B. König gegen König oder gegen König und Läufer).</li>
+<li><b>Dreifache Stellungswiederholung</b> und <b>50-Züge-Regel</b> (50 Züge je Seite ohne Bauernzug und ohne Schlag):
+Wer am Zug ist, darf Remis verlangen – auch mit dem Zug, der die Lage herbeiführt. Bei fünffacher Wiederholung bzw.
+nach 75 Zügen ist die Partie von selbst remis.</li>
+<li><b>Einigung</b>: Biete Remis an; die andere Seite nimmt an oder lehnt ab.</li></ul>
+<h3>Aufgeben und Bedenkzeit</h3><p>Wer aufgibt oder dessen Zeit abläuft, verliert – außer die Gegenseite könnte mit keiner Zugfolge
+mehr mattsetzen, dann ist es remis.</p>
+<h3>Zug zurücknehmen</h3><p>Geht nur, wenn die andere Person zustimmt.</p>
+<p>Regeln nach den FIDE-Schachregeln.</p>`;
+
+/* ---------- Zustand ---------- */
+let G = null;          // {namen:[w,b], opt:{zeit,gegen}, s: Logikzustand, uhr:{w,b,laeuft,pause}}
+let wahl = -1;         // gewähltes Feld
+let zieh = null;       // laufendes Ziehen mit dem Finger
+let tick = null, uhrStand = 0, umwOffen = null, endeGesehen = false;
+const FARBNAME = {w: 'Weiß', b: 'Schwarz'};
+const name = f => G.namen[f === 'w' ? 0 : 1];
+
+function speichern() {
+  if (!G || G.s.erg) return;
+  K.speicher.speichern({v: 1, namen: G.namen, opt: G.opt, liste: G.s.liste, uhr: G.uhr ? {w: G.uhr.w, b: G.uhr.b} : null});
+}
+function fortsetzText() {
+  const d = K.speicher.laden(); if (!d || !d.liste) return null;
+  return `Zug ${Math.floor(d.liste.length / 2) + 1} · ${d.namen[0]} gegen ${d.namen[1]}`;
+}
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  uhrStopp(); G = null;
+  $('#sc-spiel').hidden = true; $('#sc-start').hidden = false; K.kopf(true, 'links');
+  K.setup({
+    ziel: $('#sc-start'), titel: 'Schach', unter: 'Zwei Köpfe, ein Brett. Alle Regeln, auf Wunsch mit Uhr – und für die Person gegenüber steht alles richtig herum.',
+    bild: `<div class="sc-start-bild"><svg viewBox="0 0 200 110">${['K', 'Q'].map((t, i) => `<g transform="translate(${i * 70 + 10} 0) scale(1.05)">${figurSvg(t, i ? 'b' : 'w').replace('<svg viewBox="0 0 100 100" aria-hidden="true">', '').replace('</svg>', '')}</g>`).join('')}</svg></div>`,
+    fakten: ['2 Personen', 'FIDE-Regeln', 'Zugliste', 'Uhr wahlweise'],
+    spieler: {min: 2, max: 2, standard: 2, namenLabel: 'Namen · Weiß und Schwarz', platzhalter: i => ['Weiß', 'Schwarz'][i], farben: ['#f4efe4', '#8796a0']},
+    optionen: [
+      {id: 'zeit', label: 'Bedenkzeit je Person', werte: [{wert: 0, text: 'Aus'}, {wert: 5, text: '5 Min'}, {wert: 10, text: '10 Min'}, {wert: 15, text: '15 Min'}], standard: 0},
+      {id: 'gegen', label: 'Sitzordnung', werte: [{wert: false, text: 'Nebeneinander'}, {wert: true, text: 'Gegenüber'}], standard: false}
+    ],
+    fortsetzen: fortsetzText(),
+    onFortsetzen: () => { const d = K.speicher.laden(); try { spielAufbauen(d.namen, d.opt, d.liste, d.uhr); } catch (e) { K.speicher.loeschen(); K.hinweis('Das gespeicherte Spiel ließ sich nicht laden.'); startseite(); } },
+    onStart: ({namen, optionen}) => { K.speicher.loeschen(); spielAufbauen(namen, optionen, [], null); },
+    startText: 'Partie beginnen'
+  });
+}
+
+/* ---------- Spiel ---------- */
+function spielAufbauen(namen, opt, liste, uhr) {
+  G = {namen, opt: {zeit: +opt.zeit || 0, gegen: !!opt.gegen}, s: S.nachspielen(liste || [])};
+  if (G.opt.zeit) {
+    const voll = G.opt.zeit * 60000;
+    G.uhr = {w: uhr ? uhr.w : voll, b: uhr ? uhr.b : voll, pause: !!uhr};
+  }
+  wahl = -1; endeGesehen = false;
+  $('#sc-start').hidden = true; $('#sc-spiel').hidden = false; K.kopf(true, 'rechts');
+  $('#sc-spiel').classList.toggle('sc-gegen', G.opt.gegen);
+  brettBauen(); layout(); zeichnen();
+  uhrStart();
+  if (uhr) K.hinweis('Die Uhr ist angehalten – tippe auf deine Uhr, um weiterzuspielen.', 3200);
+  speichern();
+}
+
+function brettBauen() {
+  const b = $('#sc-brett'); b.innerHTML = '';
+  for (let zeile = 7; zeile >= 0; zeile--) for (let l = 0; l < 8; l++) {
+    const i = zeile * 8 + l, f = K.el('div', 'sc-f' + (S.feldHell(i) ? '' : ' d'));
+    f.dataset.i = i;
+    if (zeile === 0) f.appendChild(K.el('span', 'sc-k l', 'abcdefgh'[l]));
+    if (l === 0) f.appendChild(K.el('span', 'sc-k r', String(zeile + 1)));
+    b.appendChild(f);
+  }
+  ['w', 'b'].forEach(f => {
+    const sp = $('#sc-sp-' + f);
+    sp.innerHTML = `<div class="sc-sp-in"><div class="sc-kz"><span class="sc-stein">${figurSvg('K', f)}</span><span class="sc-name"></span>
+      <button class="sc-uhr" hidden></button></div><div class="sc-beute"></div><div class="sc-satz"></div><div class="sc-knoepfe"></div></div>`;
+    K.tap(sp.querySelector('.sc-uhr'), () => uhrPause());
+  });
+}
+const feldEl = i => $('#sc-brett').children[(7 - Math.floor(i / 8)) * 8 + i % 8];
+
+function layout() {
+  if (!G) return;
+  const W = innerWidth, H = innerHeight, quer = W / H > 1.12, pad = 10, gap = 12;
+  const st = $('#sc-spiel'), rah = $('#sc-rahmen');
+  let S8, rx, ry;
+  const setz = (el, x, y, w, h) => Object.assign(el.style, {left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px'});
+  if (quer) {
+    S8 = Math.min(H - 2 * pad, W - 2 * pad - gap - 320);
+    rx = pad; ry = (H - S8) / 2;
+    const sx = rx + S8 + gap, sw = W - sx - pad, hSp = Math.min(210, (H - 2 * pad - 66) / 2.6);
+    setz($('#sc-sp-b'), sx, 66, sw, hSp);
+    setz($('#sc-sp-w'), sx, H - pad - hSp, sw, hSp);
+    setz($('#sc-zl'), sx, 66 + hSp + gap, sw, H - pad - hSp - gap - (66 + hSp + gap));
+  } else {
+    const T = 176;
+    S8 = Math.min(W - 2 * pad, H - 2 * pad - 2 * gap - 2 * T);
+    rx = (W - S8) / 2; ry = pad + T + gap + Math.max(0, (H - 2 * pad - 2 * gap - 2 * T - S8) / 2);
+    setz($('#sc-sp-b'), pad, pad, W - 2 * pad - 116, T);
+    const unten = ry + S8 + gap, hU = H - pad - unten, halb = (W - 2 * pad - gap) * .56;
+    setz($('#sc-sp-w'), pad, unten, halb, hU);
+    setz($('#sc-zl'), pad + halb + gap, unten, W - 2 * pad - gap - halb, hU);
+  }
+  const qq = Math.floor(S8 / (8 + 0.24));
+  st.style.setProperty('--q', qq + 'px');
+  const echt = qq * 8 + qq * 0.24;
+  setz(rah, rx + (S8 - echt) / 2, ry + (S8 - echt) / 2, echt, echt);
+  setz($('#sc-ende'), rx, ry, S8, S8);
+  // Schwarz: Inhalt zur Bildschirmkante oben (gedreht bei „gegenüber“ steht er ohnehin dort)
+  $('#sc-sp-b').querySelector('.sc-sp-in').style.justifyContent = G.opt.gegen ? 'flex-end' : 'flex-start';
+}
+addEventListener('resize', () => { layout(); });
+
+/* ---------- Zeichnen ---------- */
+function zeichnen(anim) {
+  const s = G.s, b = $('#sc-brett');
+  const ziele = wahl >= 0 ? S.zuege(s).filter(z => z.von === wahl) : [];
+  const alt = new Map();
+  if (anim) for (const f of b.children) { const fig = f.querySelector('.sc-fig'); if (fig) alt.set(+f.dataset.i, fig); }
+  for (const f of b.children) {
+    const i = +f.dataset.i, p = s.b[i];
+    f.classList.toggle('wahl', i === wahl);
+    f.classList.toggle('letzt', !!s.letzter && (s.letzter.von === i || s.letzter.nach === i) && i !== wahl);
+    const zz = ziele.find(z => z.nach === i);
+    f.classList.toggle('ziel', !!zz); f.classList.toggle('schlag', !!zz && zz.schlag);
+    f.classList.toggle('schach', !!p && S.typ(p) === 'K' && S.farbeVon(p) === s.am && s.lage.schach && !(s.erg && s.erg.art !== 'matt'));
+    let fig = f.querySelector('.sc-fig');
+    const soll = p ? S.typ(p) + S.farbeVon(p) : '';
+    if (!p) { if (fig) fig.remove(); continue; }
+    if (!fig || fig.dataset.p !== soll) {
+      if (fig) fig.remove();
+      fig = K.el('div', 'sc-fig ' + S.farbeVon(p), figurSvg(S.typ(p), S.farbeVon(p))); fig.dataset.p = soll; f.appendChild(fig);
+    }
+  }
+  if (anim) bewegen(anim);
+  spielerZeichnen(); listeZeichnen();
+  if (s.erg && !endeGesehen) endeZeigen();
+}
+function bewegen({von, nach, rochade}) {
+  const paare = [[von, nach]];
+  if (rochade) { const g = nach < 8 ? 0 : 56; paare.push(rochade === 'k' ? [g + 7, g + 5] : [g, g + 3]); }
+  for (const [a, z] of paare) {
+    const fig = feldEl(z).querySelector('.sc-fig'); if (!fig) continue;
+    const dx = (a % 8) - (z % 8), dy = Math.floor(z / 8) - Math.floor(a / 8);
+    fig.classList.add('ohne'); fig.style.transform = `translate(${dx * 100}%, ${dy * 100}%)`;
+    void fig.offsetWidth; fig.classList.remove('ohne'); fig.style.transform = '';
+  }
+}
+function satzFuer(f) {
+  const s = G.s;
+  if (s.erg) return s.erg.sieger === f ? 'Gewonnen.' : s.erg.sieger ? 'Verloren.' : 'Remis.';
+  if (s.am !== f) return `${K.esc(name(S.gegner(f)))} ist am Zug.`;
+  if (G.uhr && G.uhr.pause) return 'Uhr angehalten – tippe auf deine Uhr.';
+  if (s.lage.schach) return '<b>Schach!</b> Bring deinen König in Sicherheit.';
+  if (wahl >= 0) return 'Tippe ein markiertes Feld an.';
+  return 'Du bist am Zug. Tippe eine Figur an.';
+}
+function spielerZeichnen() {
+  const s = G.s;
+  ['w', 'b'].forEach(f => {
+    const sp = $('#sc-sp-' + f);
+    sp.classList.toggle('dran', !s.erg && s.am === f);
+    sp.querySelector('.sc-name').textContent = name(f);
+    sp.querySelector('.sc-satz').innerHTML = satzFuer(f);
+    const beute = s.geschlagen[f].slice().sort((a, c) => S.WERT[c] - S.WERT[a]);
+    const plus = S.materialPunkte(s, f) - S.materialPunkte(s, S.gegner(f));
+    sp.querySelector('.sc-beute').innerHTML = beute.map(t => figurSvg(t, S.gegner(f))).join('') + (plus > 0 ? `<span class="sc-plus k-zahl">+${plus}</span>` : '');
+    const kn = sp.querySelector('.sc-knoepfe'); kn.innerHTML = '';
+    const knopf = (text, art, fn, id) => { const b = K.el('button', 'k-btn klein ' + art, text); if (id) b.id = id; K.tap(b, fn); kn.appendChild(b); };
+    if (!s.erg) {
+      if (s.am === f && S.remisAnspruch(s)) knopf('Remis verlangen', 'gut', () => remisVerlangen(f), 'sc-anspruch-' + f);
+      if (s.liste.length && s.am !== f) knopf('Zug zurück', 'leise', () => zurueckFragen(f), 'sc-zurueck-' + f);
+      if (!(s.am === f && S.remisAnspruch(s))) knopf('Remis bieten', 'leise', () => remisAnbieten(f), 'sc-remis-' + f);
+      knopf('Aufgeben', 'leise', () => aufgeben(f), 'sc-aufgeben-' + f);
+    } else if ($('#sc-ende').hidden) {
+      if (f === 'w') knopf('Ergebnis', '', () => { endeGesehen = false; endeZeigen(); }, 'sc-ergebnis');
+    }
+  });
+  uhrZeichnen();
+}
+function listeZeichnen() {
+  const zl = G.s.zl, box = $('#sc-zl-in');
+  if (!zl.length) { box.innerHTML = '<div class="sc-leer">Noch kein Zug. Weiß beginnt.</div>'; return; }
+  let h = '<table>';
+  for (let k = 0; k < zl.length; k += 2) {
+    const neuW = k === zl.length - 1, neuB = k + 1 === zl.length - 1;
+    h += `<tr><td>${k / 2 + 1}.</td><td class="${neuW ? 'neu' : ''}">${K.esc(zl[k])}</td><td class="${neuB ? 'neu' : ''}">${zl[k + 1] ? K.esc(zl[k + 1]) : ''}</td></tr>`;
+  }
+  box.innerHTML = h + '</table>'; box.scrollTop = box.scrollHeight;
+}
+
+/* ---------- Bedienung am Brett: antippen oder ziehen ---------- */
+function eigeneFigur(i) { const p = G.s.b[i]; return !!p && S.farbeVon(p) === G.s.am && !G.s.erg; }
+function feldUnter(x, y) {
+  const r = $('#sc-brett').getBoundingClientRect(); const q = r.width / 8;
+  if (x < r.left || y < r.top || x >= r.right || y >= r.bottom) return -1;
+  const l = Math.floor((x - r.left) / q), zeile = 7 - Math.floor((y - r.top) / q);
+  return zeile * 8 + l;
+}
+function gesperrt() { return !G || G.s.erg || umwOffen || (G.uhr && G.uhr.pause) || document.querySelector('.k-ebene'); }
+$('#sc-brett').addEventListener('pointerdown', ev => {
+  if (zieh || gesperrt()) { if (G && G.uhr && G.uhr.pause && !G.s.erg) K.hinweis('Die Uhr ist angehalten. Tippe auf deine Uhr.'); return; }
+  const i = feldUnter(ev.clientX, ev.clientY); if (i < 0) return;
+  zieh = {id: ev.pointerId, start: i, x: ev.clientX, y: ev.clientY, fig: null, warSchon: wahl === i, aktiv: false};
+  if (eigeneFigur(i) && wahl !== i) { wahl = i; K.ton('tipp'); zeichnen(); }
+  if (eigeneFigur(i)) zieh.fig = feldEl(i).querySelector('.sc-fig');
+  try { $('#sc-brett').setPointerCapture(ev.pointerId); } catch (e) {}
+});
+$('#sc-brett').addEventListener('pointermove', ev => {
+  if (!zieh || ev.pointerId !== zieh.id || !zieh.fig) return;
+  const dx = ev.clientX - zieh.x, dy = ev.clientY - zieh.y;
+  if (!zieh.aktiv && Math.hypot(dx, dy) > 8) { zieh.aktiv = true; zieh.fig.classList.add('zieht'); }
+  if (zieh.aktiv) {
+    zieh.fig.style.transform = `translate(${dx}px, ${dy}px)`;
+    const u = feldUnter(ev.clientX, ev.clientY);
+    for (const f of $('#sc-brett').children) f.classList.toggle('ueber', +f.dataset.i === u && f.classList.contains('ziel'));
+  }
+});
+function ziehEnde(ev, abbruch) {
+  if (!zieh || ev.pointerId !== zieh.id) return;
+  const z = zieh; zieh = null;
+  for (const f of $('#sc-brett').children) f.classList.remove('ueber');
+  if (z.aktiv) {
+    const ziel = abbruch ? -1 : feldUnter(ev.clientX, ev.clientY);
+    z.fig.classList.remove('zieht');
+    if (ziel >= 0 && ziel !== z.start && S.zuege(G.s).some(m => m.von === z.start && m.nach === ziel)) {
+      z.fig.classList.add('ohne'); z.fig.style.transform = ''; versuche(z.start, ziel, false);
+    } else { z.fig.style.transform = ''; }
+    return;
+  }
+  if (abbruch) return;
+  const i = z.start;
+  if (wahl >= 0 && i !== wahl && S.zuege(G.s).some(m => m.von === wahl && m.nach === i)) { versuche(wahl, i, true); return; }
+  if (eigeneFigur(i)) {
+    if (z.warSchon) { wahl = -1; zeichnen(); }
+    else if (!S.zuege(G.s).some(m => m.von === i)) K.hinweis('Diese Figur kann gerade nicht ziehen.');
+    return;
+  }
+  if (wahl >= 0) { wahl = -1; zeichnen(); K.hinweis(G.s.lage.schach ? 'Dorthin geht es nicht – dein König steht im Schach.' : 'Dorthin kann diese Figur nicht ziehen.'); return; }
+  if (G.s.b[i] && S.farbeVon(G.s.b[i]) !== G.s.am) K.hinweis(`${name(G.s.am)} ist am Zug.`);
+}
+$('#sc-brett').addEventListener('pointerup', ev => ziehEnde(ev, false));
+$('#sc-brett').addEventListener('pointercancel', ev => ziehEnde(ev, true));
+
+async function versuche(von, nach, anim) {
+  let zs = S.zuege(G.s).filter(z => z.von === von && z.nach === nach);
+  if (!zs.length) return;
+  let umw = '';
+  if (zs[0].umw) { umw = await umwandlungWaehlen(von, nach); if (!umw) { wahl = -1; zeichnen(); return; } }
+  const z = zs.find(y => (y.umw || '') === umw);
+  const anspruch = S.remisAnspruch(G.s, z);
+  if (anspruch) {
+    const r = await frageAn(G.s.am, {titel: 'Remis möglich',
+      text: anspruch === 'wiederholung' ? 'Mit diesem Zug stünde dieselbe Stellung zum dritten Mal auf dem Brett. Du darfst jetzt Remis verlangen – der Zug wird dann nicht mehr ausgeführt.'
+        : 'Mit diesem Zug sind 50 Züge je Seite ohne Bauernzug und ohne Schlag gespielt. Du darfst jetzt Remis verlangen – der Zug wird dann nicht mehr ausgeführt.',
+      knoepfe: [{text: 'Nur ziehen', wert: 'zug', art: 'leise'}, {text: 'Remis verlangen', wert: 'remis', art: 'gut'}]});
+    if (r === 'remis') { uhrBuchen(); G.s = S.beenden(G.s, anspruch); wahl = -1; nachZug(); return; }
+  }
+  ausfuehren(z, anim);
+}
+function ausfuehren(z, anim) {
+  uhrBuchen();
+  G.s = S.ziehen(G.s, z); wahl = -1;
+  K.ton(z.schlag ? 'stein' : 'legen');
+  if (G.s.lage.schach && !G.s.erg) setTimeout(() => K.ton('warn'), 160);
+  zeichnen(anim ? {von: z.von, nach: z.nach, rochade: z.rochade} : (z.rochade ? {von: z.nach, nach: z.nach, rochade: z.rochade} : null));
+  nachZug();
+}
+function nachZug() { if (G.s.erg) { uhrStopp(); K.speicher.loeschen(); } else speichern(); zeichnen(); }
+
+function umwandlungWaehlen(von, nach) {
+  return new Promise(res => {
+    const f = G.s.am, rah = $('#sc-rahmen'), q = parseFloat(getComputedStyle($('#sc-spiel')).getPropertyValue('--q'));
+    const d = K.el('div', 'sc-umw'); umwOffen = d;
+    const sp = K.el('div', 'sc-umw-sp ' + f);
+    const l = nach % 8, oben = f === 'w';
+    sp.style.left = (q * .12 + l * q) + 'px';
+    if (oben) sp.style.top = (q * .12) + 'px'; else sp.style.bottom = (q * .12) + 'px';
+    const reihe = ['Q', 'N', 'R', 'B'];
+    (oben ? reihe : reihe.slice().reverse()).forEach(t => {
+      const b = K.el('button', '', figurSvg(t, f)); b.id = 'sc-umw-' + t;
+      b.setAttribute('aria-label', {Q: 'Dame', R: 'Turm', B: 'Läufer', N: 'Springer'}[t]);
+      K.tap(b, ev => { ev.stopPropagation(); fertig(t); }); sp.appendChild(b);
+    });
+    d.appendChild(sp); rah.appendChild(d);
+    K.tap(d, ev => { if (ev.target === d) fertig(''); });
+    function fertig(t) { d.remove(); umwOffen = null; res(t); }
+  });
+}
+
+/* ---------- Rückfragen (für Schwarz gedreht, wenn gegenüber) ---------- */
+/* Eigene Rückfrage: Kern.frage liefert derzeit immer null (schliessen() löst vor dem Knopfwert mit null auf). */
+function frage({titel = '', text = '', knoepfe = []}) {
+  return new Promise(res => {
+    const box = K.el('div'); box.innerHTML = `${titel ? `<h2>${K.esc(titel)}</h2>` : ''}${text ? `<p>${text}</p>` : ''}`;
+    const k = K.el('div', 'k-knoepfe'); box.appendChild(k);
+    let wert = null;
+    const fe = K.fenster(box, {schliessbar: false, beimSchliessen: () => res(wert)});
+    knoepfe.forEach(b => { const btn = K.el('button', 'k-btn' + (b.art ? ' ' + b.art : ''), K.esc(b.text)); btn.onclick = () => { wert = b.wert; fe.schliessen(); }; k.appendChild(btn); });
+  });
+}
+function frageAn(f, o) {
+  const p = frage(o);
+  if (G && G.opt.gegen && f === 'b') { const e = [...document.querySelectorAll('.k-ebene')].pop(); if (e) e.classList.add('sc-kopf'); }
+  return p;
+}
+async function zurueckFragen(f) {
+  const letzt = G.s.zl[G.s.zl.length - 1];
+  const ja = await frageAn(S.gegner(f), {titel: 'Zug zurücknehmen?', text: `${K.esc(name(f))} möchte den letzten Zug <b>${K.esc(letzt)}</b> zurücknehmen. Bist du einverstanden, ${K.esc(name(S.gegner(f)))}?`,
+    knoepfe: [{text: 'Nein', wert: false, art: 'leise'}, {text: 'Ja, zurücknehmen', wert: true}]});
+  if (!ja || !G || G.s.erg) return;
+  uhrBuchen();
+  G.s = S.nachspielen(G.s.liste.slice(0, -1)); wahl = -1; K.ton('ziehen'); speichern(); zeichnen();
+}
+async function remisAnbieten(f) {
+  const ja = await frageAn(S.gegner(f), {titel: 'Remis?', text: `${K.esc(name(f))} bietet Remis an. Nimmst du an, ${K.esc(name(S.gegner(f)))}?`,
+    knoepfe: [{text: 'Ablehnen', wert: false, art: 'leise'}, {text: 'Remis annehmen', wert: true, art: 'gut'}]});
+  if (!G || G.s.erg) return;
+  if (!ja) { K.hinweis('Remis abgelehnt – es geht weiter.'); return; }
+  uhrBuchen(); G.s = S.beenden(G.s, 'einigung'); nachZug();
+}
+async function aufgeben(f) {
+  const ja = await frageAn(f, {titel: 'Aufgeben?', text: 'Die Partie ist dann sofort zu Ende.', knoepfe: [{text: 'Weiterspielen', wert: false, art: 'leise'}, {text: 'Aufgeben', wert: true, art: 'gefahr'}]});
+  if (!ja || !G || G.s.erg) return;
+  uhrBuchen(); G.s = S.beenden(G.s, 'aufgabe', f); nachZug();
+}
+function remisVerlangen(f) {
+  const a = S.remisAnspruch(G.s); if (!a || G.s.am !== f) return;
+  uhrBuchen(); G.s = S.beenden(G.s, a); nachZug();
+}
+
+/* ---------- Uhr ---------- */
+function uhrStart() {
+  clearInterval(tick); uhrStand = performance.now();
+  if (!G.uhr) { ['w', 'b'].forEach(f => $('#sc-sp-' + f + ' .sc-uhr').hidden = true); return; }
+  ['w', 'b'].forEach(f => $('#sc-sp-' + f + ' .sc-uhr').hidden = false);
+  tick = setInterval(uhrTakt, 100); uhrZeichnen();
+}
+function uhrStopp() { clearInterval(tick); tick = null; }
+function uhrBuchen() {
+  if (!G || !G.uhr || G.uhr.pause || G.s.erg) { uhrStand = performance.now(); return; }
+  const jetzt = performance.now(); G.uhr[G.s.am] = Math.max(0, G.uhr[G.s.am] - (jetzt - uhrStand)); uhrStand = jetzt;
+}
+let warnGespielt = {};
+function uhrTakt() {
+  if (!G || !G.uhr || G.s.erg) return;
+  uhrBuchen();
+  const f = G.s.am;
+  if (G.uhr[f] <= 10000 && !warnGespielt[f] && !G.uhr.pause) { warnGespielt[f] = true; K.ton('warn'); }
+  if (G.uhr[f] <= 0) {
+    G.s = S.beenden(G.s, 'zeit', f); wahl = -1; if (umwOffen) { umwOffen.remove(); umwOffen = null; }
+    nachZug(); return;
+  }
+  uhrZeichnen();
+}
+function uhrText(ms) {
+  if (ms < 10000) { const z = Math.max(0, Math.ceil(ms / 100) / 10); return z.toFixed(1).replace('.', ','); }
+  const s = Math.ceil(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+function uhrZeichnen() {
+  if (!G || !G.uhr) return;
+  ['w', 'b'].forEach(f => {
+    const u = $('#sc-sp-' + f + ' .sc-uhr');
+    u.textContent = uhrText(G.uhr[f]);
+    u.classList.toggle('knapp', G.uhr[f] < 10000 && !G.s.erg);
+    u.classList.toggle('pause', !!G.uhr.pause);
+    u.setAttribute('aria-label', (G.uhr.pause ? 'Uhr angehalten, ' : '') + 'Restzeit ' + u.textContent);
+  });
+}
+function uhrPause() {
+  if (!G || !G.uhr || G.s.erg) return;
+  uhrBuchen(); G.uhr.pause = !G.uhr.pause; uhrStand = performance.now();
+  K.ton('tipp'); K.hinweis(G.uhr.pause ? 'Uhr angehalten.' : 'Die Uhr läuft weiter.'); speichern(); spielerZeichnen();
+}
+
+/* ---------- Spielende ---------- */
+function endeZeigen() {
+  const e = G.s.erg, box = $('#sc-ende');
+  const sieg = e.sieger ? `${K.esc(name(e.sieger))} gewinnt mit ${FARBNAME[e.sieger]}.` : 'Die Partie endet unentschieden.';
+  const titel = e.sieger ? (e.art === 'matt' ? 'Schachmatt' : e.art === 'zeit' ? 'Zeit abgelaufen' : 'Aufgegeben') : 'Remis';
+  const grund = e.art === 'matt' ? '' : S.ERGTEXT[e.art];
+  box.innerHTML = `<div class="sc-ende-box"><h2>${titel}</h2>${grund && titel !== grund ? `<p>${K.esc(grund)}</p>` : ''}<div class="sc-sieg">${sieg}</div>
+    <p class="k-zahl">${Math.ceil(G.s.zl.length / 2)} ${Math.ceil(G.s.zl.length / 2) === 1 ? 'Zug' : 'Züge'}${G.s.zl.length ? ' · letzter Zug ' + K.esc(G.s.zl[G.s.zl.length - 1]) : ''}</p>
+    <div class="k-knoepfe"><button class="k-btn leise" id="sc-ansehen">Brett ansehen</button><button class="k-btn leise" id="sc-neu">Neues Spiel</button>
+    <button class="k-btn" id="sc-nochmal">Nochmal · Farben tauschen</button></div></div>`;
+  box.hidden = false;
+  K.tap($('#sc-ansehen'), () => { box.hidden = true; endeGesehen = true; spielerZeichnen(); });
+  K.tap($('#sc-neu'), () => { box.hidden = true; startseite(); });
+  K.tap($('#sc-nochmal'), () => { box.hidden = true; const n = [G.namen[1], G.namen[0]]; spielAufbauen(n, G.opt, [], null); });
+  if (e.sieger) { K.ton('sieg'); K.feier(); } else K.ton('gong');
+  endeGesehen = true;
+}
+
+/* ---------- Start ---------- */
+K.init({id: 'schach', name: 'Schach', akzent: '#a9c3d1', regeln: REGELN, onNeu: () => { uhrStopp(); K.speicher.loeschen(); startseite(); }});
+startseite();
+
+window.__test = {
+  zustand: () => G && {fen: S.fen(G.s), zl: G.s.zl.slice(), erg: G.s.erg, am: G.s.am, uhr: G.uhr && {w: G.uhr.w, b: G.uhr.b, pause: G.uhr.pause}},
+  feld: n => { const r = feldEl(S.feldIndex(n)).getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; },
+  laden: liste => { G.s = S.nachspielen(liste); wahl = -1; endeGesehen = false; $('#sc-ende').hidden = true; speichern(); zeichnen(); },
+  uhrSetzen: (w, b) => { G.uhr.w = w; G.uhr.b = b; uhrStand = performance.now(); }
+};
+</script>
+</body>
+</html>

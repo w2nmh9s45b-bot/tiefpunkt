@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Vier in einer Reihe · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+.vr-stage{display:flex;flex-direction:column;align-items:center;gap:6px}
+.vr-bar{flex:none;width:min(680px,calc(100% - 250px));min-height:72px;padding:8px 16px;border-radius:18px;background:var(--panel);border:2px solid var(--line);
+  display:grid;grid-template-columns:1fr auto auto;grid-template-rows:auto auto;column-gap:14px;row-gap:2px;align-items:center;transition:border-color .3s,background-color .3s,box-shadow .3s}
+.vr-bar.am{border-color:var(--pc);background:rgba(9,32,42,.9);box-shadow:0 0 28px color-mix(in srgb,var(--pc) 35%,transparent)}
+.vr-bar.dreh{transform:rotate(180deg)}
+.vr-nm{font-family:var(--f-disp);font-weight:800;font-size:22px;display:flex;align-items:center;gap:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vr-pkt{font-family:var(--f-disp);font-weight:800;font-size:34px;line-height:1;min-width:1.6em;text-align:center}
+.vr-pkt small{display:block;font-family:var(--f-ui);font-weight:400;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-top:2px}
+.vr-msg{grid-column:1/-1;font-size:18px;line-height:1.25;min-height:24px;color:var(--ink2)}
+.vr-bar.am .vr-msg{color:var(--ink);font-weight:700}
+.vr-bar .k-btn{min-height:40px;font-size:15px;padding:0 14px}
+.vr-mitte{flex:1;min-height:0;width:100%;position:relative;display:grid;place-items:center}
+.vr-svg{width:100%;height:100%;display:block;touch-action:none}
+.vr-rahmen{fill:#2f7c93}
+.vr-rand{fill:none;stroke:#8fd3d1;stroke-opacity:.5;stroke-width:3}
+.vr-platte{fill:#0a1c25}
+.vr-scheibe .k{stroke:rgba(0,0,0,.35);stroke-width:3}
+.vr-scheibe .m{fill:none;stroke:rgba(0,0,0,.34);stroke-width:7}
+.vr-scheibe .i{fill:none;stroke:rgba(255,255,255,.3);stroke-width:3}
+.vr-schwach{opacity:.38}
+.vr-pfeil{fill:var(--akzent);animation:vr-puls 1.4s ease-in-out infinite;pointer-events:none}
+.vr-hit{fill:transparent;cursor:pointer}
+.vr-gewinn{fill:none;stroke:#fff;stroke-width:8;animation:vr-puls .9s ease-in-out infinite;pointer-events:none}
+@keyframes vr-puls{0%,100%{opacity:1}50%{opacity:.35}}
+.vr-ende{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);display:flex;gap:10px;z-index:5}
+@media (max-aspect-ratio:1/1){.vr-bar{width:min(680px,calc(100% - 250px))}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="vierreihe.logik.js"></script>
+<script>
+"use strict";
+const V = window.Vierreihe;
+const REGELN = `
+<h3>Ziel</h3><p>Bringe vier deiner Scheiben in eine Reihe: waagerecht, senkrecht oder schräg.</p>
+<h3>Ablauf</h3><p>Ihr werft abwechselnd eine Scheibe in eine der sieben Spalten. Die Scheibe fällt bis ganz nach unten oder auf die oberste Scheibe in der Spalte. Eine volle Spalte ist gesperrt.</p>
+<h3>Ende</h3><p>Wer zuerst vier in einer Reihe hat, gewinnt die Partie. Ist das Brett voll und niemand hat vier, endet sie unentschieden. In der nächsten Partie beginnt die andere Person. Der Spielstand zählt über alle Partien.</p>
+<h3>Bedienung</h3><p>Tippe auf eine Spalte, in die die Scheibe fallen soll. Pfeile oben zeigen die möglichen Spalten. Direkt nach deinem Zug kannst du ihn mit „Zug zurück“ zurücknehmen, solange die andere Person noch nicht gezogen hat.</p>`;
+const SVGNS = 'http://www.w3.org/2000/svg';
+const X = c => 50 + c * 100, Y = r => 100 + (5 - r) * 100 + 50;
+let S = null, namen = ['Spieler 1', 'Spieler 2'], farben = Kern.farben.slice(0, 2), opt = {}, stand = {1: 0, 2: 0, remis: 0, partie: 1}, busy = false, stage = null, setupZiel = null;
+const $ = id => document.getElementById(id);
+
+function bild() { return `<svg width="150" height="130" viewBox="0 0 150 130"><rect x="5" y="5" width="140" height="120" rx="14" fill="#2f7c93"/>${[0, 1, 2, 3].map(c => [0, 1, 2, 3].map(r => `<circle cx="${28 + c * 31}" cy="${28 + r * 25}" r="10" fill="${(c + r === 3 && r > 0) ? '#f2c14e' : (c === 0 && r === 3 || c === 1 && r === 2) ? '#ef7d6d' : '#0a1c25'}"/>`).join('')).join('')}</svg>`; }
+
+function startseite() {
+  if (stage) { stage.remove(); stage = null; }
+  document.querySelectorAll('.k-scroll').forEach(e => e.remove());
+  const g = Kern.speicher.laden(), ok = g && g.S;
+  const s = Kern.setup({
+    titel: 'Vier in einer Reihe', unter: 'Wirf abwechselnd Scheiben in die Spalten. Wer zuerst vier in einer Reihe hat, gewinnt.',
+    bild: bild(), fakten: ['2 Personen', 'ca. 5 Minuten'],
+    spieler: {min: 2, max: 2, standard: 2, frage: 'Zwei Personen spielen'},
+    optionen: [
+      {id: 'gegenueber', label: 'Sitzt ihr gegenüber?', standard: 'an', werte: [{wert: 'an', text: 'Ja, gegenüber'}, {wert: 'aus', text: 'Nein, nebeneinander'}]},
+      {id: 'start', label: 'Wer beginnt die erste Partie?', standard: '1', werte: [{wert: '1', text: 'Spieler 1'}, {wert: '2', text: 'Spieler 2'}, {wert: 'zufall', text: 'Zufall'}]}
+    ],
+    fortsetzen: ok ? `Partie ${g.stand.partie} · ${g.namen[0]} ${g.stand[1]} : ${g.stand[2]} ${g.namen[1]}` : null,
+    onFortsetzen: () => beginnen(g),
+    onStart: ({namen: n, farben: f, optionen}) => {
+      const start = optionen.start === 'zufall' ? 1 + Kern.zufall(2) : Number(optionen.start);
+      beginnen({S: V.neu({start}), namen: n, farben: f, opt: optionen, stand: {1: 0, 2: 0, remis: 0, partie: 1}});
+    }
+  });
+  setupZiel = s.ziel;
+  const a2 = $('k-anzahl-2'); if (a2) a2.parentElement.parentElement.hidden = true;
+}
+function beginnen(d) {
+  S = d.S; namen = d.namen; farben = d.farben; opt = d.opt; stand = d.stand; busy = false;
+  if (setupZiel) { setupZiel.remove(); setupZiel = null; }
+  speichern(); aufbauen(); zeichne();
+}
+const speichern = () => Kern.speicher.speichern({S, namen, farben, opt, stand});
+
+function aufbauen() {
+  if (stage) stage.remove();
+  stage = Kern.el('div', 'k-buehne vr-stage');
+  stage.innerHTML = '<div class="vr-bar" id="vr-b2"></div><div class="vr-mitte" id="vr-mitte"></div><div class="vr-bar" id="vr-b1"></div>';
+  document.body.appendChild(stage);
+  const svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('viewBox', '0 0 700 710'); svg.setAttribute('class', 'vr-svg'); svg.id = 'vr-svg';
+  let löcher = '';
+  for (let c = 0; c < 7; c++) for (let r = 0; r < 6; r++) löcher += `<circle cx="${X(c)}" cy="${Y(r)}" r="41" fill="#000"/>`;
+  svg.innerHTML = `<defs><mask id="vr-mask"><rect x="0" y="0" width="700" height="710" fill="#fff"/>${löcher}</mask></defs>
+    <rect class="vr-platte" x="0" y="100" width="700" height="600" rx="26"/><g id="vr-scheiben"></g>
+    <rect class="vr-rahmen" x="0" y="100" width="700" height="600" rx="26" mask="url(#vr-mask)"/><rect class="vr-rand" x="1.5" y="101.5" width="697" height="597" rx="25"/>
+    <g id="vr-pfeile"></g><g id="vr-gewinn"></g><g id="vr-hits"></g>`;
+  $('vr-mitte').appendChild(svg);
+  const hits = svg.querySelector('#vr-hits');
+  for (let c = 0; c < 7; c++) {
+    const k = document.createElementNS(SVGNS, 'rect');
+    k.setAttribute('class', 'vr-hit'); k.setAttribute('x', c * 100); k.setAttribute('y', 0); k.setAttribute('width', 100); k.setAttribute('height', 710); k.dataset.c = c;
+    Kern.tap(k, () => wirf(c)); hits.appendChild(k);
+  }
+}
+function scheibeSvg(c, r, p, extra = '') {
+  const x = X(c), y = Y(r);
+  return `<g class="vr-scheibe ${extra}" data-c="${c}" data-r="${r}"><circle class="k" cx="${x}" cy="${y}" r="39" fill="${farben[p - 1]}"/><circle class="i" cx="${x}" cy="${y}" r="29"/>${p === 2 ? `<circle class="m" cx="${x}" cy="${y}" r="15"/>` : ''}</g>`;
+}
+function leiste(el, p, unten) {
+  const am = !S.sieger && S.am === p, f = farben[p - 1];
+  el.className = 'vr-bar' + (am ? ' am' : '') + (!unten && opt.gegenueber === 'an' ? ' dreh' : ''); el.style.setProperty('--pc', f);
+  let msg = '';
+  if (am) msg = `${namen[p - 1]}, wirf eine Scheibe in eine Spalte.`;
+  else if (S.sieger === p) msg = 'Gewonnen: vier in einer Reihe!';
+  else if (S.sieger === 'remis') msg = 'Unentschieden.';
+  const zurueck = !S.sieger && S.am !== p && S.zuege.length > 0 && !busy;
+  el.innerHTML = `<div class="vr-nm"><span class="k-dot" style="--pc:${f}">${Kern.esc(namen[p - 1].charAt(0).toUpperCase())}</span>${Kern.esc(namen[p - 1])}</div>
+    <div>${zurueck ? '<button class="k-btn leise" data-z="1">Zug zurück</button>' : ''}</div><div class="vr-pkt k-zahl" title="Gewonnene Partien">${stand[p]}<small>${stand[p] === 1 ? 'Sieg' : 'Siege'}</small></div><div class="vr-msg">${Kern.esc(msg)}</div>`;
+  const b = el.querySelector('[data-z]'); if (b) Kern.tap(b, rueck);
+}
+function zeichne() {
+  leiste($('vr-b1'), 1, true); leiste($('vr-b2'), 2, false);
+  let h = '';
+  const gew = new Set(S.linie.map(([c, r]) => c + ',' + r));
+  S.sp.forEach((l, c) => l.forEach((p, r) => { h += scheibeSvg(c, r, p, S.sieger && S.sieger !== 'remis' && !gew.has(c + ',' + r) ? 'vr-schwach' : ''); }));
+  $('vr-scheiben').innerHTML = h;
+  $('vr-pfeile').innerHTML = V.zuege(S).map(c => `<path class="vr-pfeil" d="M${X(c) - 18} 52L${X(c) + 18} 52L${X(c)} 82Z"/>`).join('');
+  $('vr-gewinn').innerHTML = S.linie.map(([c, r]) => `<circle class="vr-gewinn" cx="${X(c)}" cy="${Y(r)}" r="46"/>`).join('');
+  document.getElementById('vr-pfeile').style.fill = farben[S.am - 1];
+}
+async function wirf(c) {
+  if (busy || S.sieger) return;
+  if (!V.zuege(S).includes(c)) { Kern.ton('fehler'); return Kern.hinweis('Diese Spalte ist voll. Nimm eine andere.'); }
+  busy = true;
+  try {
+    S = V.setzen(S, c); speichern();
+    const r = S.letzter[1], p = S.sp[c][r];
+    zeichne();
+    const e = document.querySelector(`#vr-scheiben [data-c="${c}"][data-r="${r}"]`), d = Y(r) + 70;
+    if (e && e.animate) { const dauer = 280 + d * 0.55;
+      e.animate([{transform: `translateY(${-d}px)`, easing: 'cubic-bezier(.5,0,.9,.55)'}, {transform: 'translateY(0)', offset: .72}, {transform: 'translateY(-16px)', offset: .84, easing: 'ease-out'}, {transform: 'translateY(0)'}], {duration: dauer});
+      Kern.ton('legen'); await new Promise(res => setTimeout(res, dauer));
+    } else Kern.ton('legen');
+    if (S.sieger) { await Kern.warte(250); await ende(); }
+  } finally { busy = false; if (S && stage && $('vr-b1')) zeichne(); }
+}
+function rueck() {
+  if (busy || S.sieger || !S.zuege.length) return;
+  S = V.zurueck(S); speichern(); zeichne(); Kern.ton('tipp');
+}
+async function ende() {
+  const remis = S.sieger === 'remis';
+  if (remis) stand.remis++; else stand[S.sieger]++;
+  const alt = S;
+  const naechste = V.neu({start: V.gegner(alt.start)});
+  const gesehen = S; S = naechste; stand.partie++; speichern(); S = gesehen; stand.partie--; // gespeichert wird die nächste Partie samt Stand
+  zeichne();
+  if (!remis) { Kern.ton('sieg'); Kern.feier(); }
+  const t = remis ? 'Unentschieden' : `${namen[alt.sieger - 1]} gewinnt!`;
+  const stText = `Stand: ${Kern.esc(namen[0])} ${stand[1]} : ${stand[2]} ${Kern.esc(namen[1])}${stand.remis ? ` (${stand.remis} unentschieden)` : ''}`;
+  const w = await dialog(t, (remis ? 'Das Brett ist voll, niemand hat vier in einer Reihe.<br>' : '') + stText, [{text: `Nächste Partie (${namen[V.gegner(alt.start) - 1]} beginnt)`, wert: 'weiter', art: 'gut'}, {text: 'Brett ansehen', wert: 'sehen', art: 'leise'}, {text: 'Spiel beenden', wert: 'neu', art: 'leise'}]);
+  if (w === 'weiter') return naechsterGang();
+  if (w === 'neu') { Kern.speicher.loeschen(); return startseite(); }
+  const l = Kern.el('div', 'vr-ende'), a = Kern.el('button', 'k-btn gut', 'Nächste Partie'), b = Kern.el('button', 'k-btn leise', 'Spiel beenden');
+  a.onclick = naechsterGang; b.onclick = () => { Kern.speicher.loeschen(); startseite(); }; l.append(a, b); $('vr-mitte').appendChild(l);
+}
+function naechsterGang() { stand.partie++; S = V.neu({start: V.gegner(S.start)}); speichern(); aufbauen(); zeichne(); }
+
+
+// Eigene Rückfrage statt Kern.frage: Kern.frage löst beim Schließen zuerst mit null auf, die gewählte Antwort ginge verloren.
+function dialog(titel, text, knoepfe) {
+  return new Promise(res => {
+    const box = Kern.el('div', '', `<h2>${Kern.esc(titel)}</h2><p>${text}</p>`), zeile = Kern.el('div', 'k-knoepfe'); box.appendChild(zeile);
+    const fe = Kern.fenster(box, {schliessbar: false});
+    knoepfe.forEach(b => { const k = Kern.el('button', 'k-btn' + (b.art ? ' ' + b.art : ''), Kern.esc(b.text)); k.onclick = () => { fe.schliessen(); res(b.wert); }; zeile.appendChild(k); });
+  });
+}
+
+Kern.init({id: 'vierreihe', name: 'Vier in einer Reihe', akzent: '#6cc7d8', regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+startseite();
+window.__test = {zustand: () => S, stand: () => stand, laden: (s, st) => { S = s; if (st) stand = st; zeichne(); }};
+</script>
+</body>
+</html>

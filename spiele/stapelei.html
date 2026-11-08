@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Stapelei · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Stapelei: Papierkarten mit Farbband nach Zahlenbereich (1–4 Flachwasser, 5–8 Sand, 9–12 Koralle), Joker als Stern.
+   Oben alle Personen kompakt, in der Mitte die vier Aufbaustapel, unten Vorrat, Ablagen und Hand der Person am Zug. */
+.sb-buehne{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px}
+.sb-oben{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 12px 0 118px;align-content:flex-start;min-height:56px}
+.sb-person{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 7px;border-radius:14px;background:var(--panel);border:1px solid var(--line);--w:var(--ow)}
+.sb-person.dran{background:rgba(9,32,42,.92);box-shadow:inset 0 0 0 2px var(--pc),0 0 22px color-mix(in srgb,var(--pc) 35%,transparent)}
+.sb-person .k-dot{width:28px;height:28px;font-size:13px}
+.sb-person .wer{display:flex;flex-direction:column;min-width:0}
+.sb-person b{font-size:14px;max-width:7.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-person small{font-size:12px;color:var(--ink2);white-space:nowrap}
+.sb-person small i{font-style:normal;color:var(--ink);font-weight:700}
+.sb-person .vr{position:relative}
+.sb-person .vr .sb-n{position:absolute;right:-7px;top:-7px;min-width:22px;height:20px;padding:0 5px;border-radius:99px;background:#e8f1ee;color:#132f4a;font:700 11px var(--f-ui);display:grid;place-items:center;z-index:2}
+.sb-person .abl{display:flex;gap:3px}
+.sb-leer{width:var(--w);height:calc(var(--w)*1.42);border-radius:calc(var(--w)*.12);box-shadow:inset 0 0 0 1px var(--line);background:rgba(255,255,255,.025);flex:none;position:relative}
+
+.sb-mitte{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:0}
+.sb-satz{font-size:clamp(16px,1.9vw,21px);text-align:center;line-height:1.3;max-width:min(760px,96vw);text-wrap:balance}
+.sb-satz b{color:var(--pc,var(--akzent));font-family:var(--f-disp);font-weight:800}
+.sb-tisch{display:flex;align-items:flex-start;gap:calc(var(--pw)*.28)}
+.sb-zieh{margin-right:calc(var(--pw)*.25)}
+.sb-pile{position:relative;width:var(--pw);height:calc(var(--pw)*1.42);--w:var(--pw)}
+.sb-pile .sb-k,.sb-pile .sb-leer{position:absolute;left:0;top:0}
+.sb-cap{position:absolute;left:50%;top:calc(100% + 7px);transform:translateX(-50%);white-space:nowrap;text-align:center;line-height:1.3;font:700 12px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.sb-cnt{position:absolute;right:-9px;top:-9px;z-index:3;min-width:28px;height:28px;padding:0 6px;border-radius:99px;background:#e8f1ee;color:#132f4a;font:700 13px var(--f-ui);display:grid;place-items:center}
+.sb-ziel{cursor:pointer}
+.sb-ziel::after{content:"";position:absolute;inset:-6px;border-radius:calc(var(--w)*.18);box-shadow:0 0 0 3px var(--akzent);animation:sb-puls 1.5s ease-in-out infinite;pointer-events:none;z-index:4}
+.sb-ueber::after{content:"";position:absolute;inset:-8px;border-radius:calc(var(--w)*.2);box-shadow:0 0 0 5px var(--akzent);pointer-events:none;z-index:4}
+@keyframes sb-puls{0%,100%{opacity:1}50%{opacity:.35}}
+.sb-log{font-size:14px;color:var(--ink2);text-align:center;min-height:1.3em;max-width:min(760px,96vw);margin-top:14px}
+
+.sb-unten{display:flex;flex-direction:column;gap:8px}
+.sb-leiste{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;min-height:46px}
+.sb-leiste .sb-tipp{font-size:15px;color:var(--ink2);text-align:center;max-width:36em}
+.sb-platz{display:flex;justify-content:center;align-items:flex-end;gap:calc(var(--hw)*.32);flex-wrap:wrap}
+.sb-hoch .sb-platz{row-gap:14px}
+.sb-gruppe{display:flex;flex-direction:column;align-items:center;gap:12px}
+.sb-gruppe > span{font:700 11px var(--f-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--ink2)}
+.sb-reihe{display:flex;gap:calc(var(--hw)*.12);align-items:flex-end}
+.sb-vorrat{position:relative;width:var(--hw);height:calc(var(--hw)*1.42);--w:var(--hw)}
+.sb-vorrat .sb-k{position:absolute;left:0;top:0}
+.sb-vorrat::before{content:"";position:absolute;inset:0;border-radius:calc(var(--hw)*.12);transform:translate(5px,5px);background:#2a1a0e;box-shadow:inset 0 0 0 2px rgba(255,255,255,.2)}
+.sb-fach{position:relative;width:var(--hw);--w:var(--hw);height:calc(var(--hw)*1.42 + var(--hw)*.22*3)}
+.sb-fach .sb-k,.sb-fach .sb-leer{position:absolute;left:0}
+.sb-hand{display:flex;gap:calc(var(--hw)*.1);--w:var(--hw);min-height:calc(var(--hw)*1.42)}
+.sb-wahl{transform:translateY(-8px);outline:3px solid var(--akzent);outline-offset:2px}
+.sb-matt{filter:grayscale(.4) brightness(.68)}
+.sb-weg{opacity:.25}
+.sb-greif{cursor:pointer;touch-action:none;transition:transform .15s}
+.sb-geist{position:fixed;left:0;top:0;z-index:120;pointer-events:none}
+.sb-zu .sb-k{cursor:default}
+
+/* ---------- Karte ---------- */
+.sb-k{position:relative;width:var(--w);height:calc(var(--w)*1.42);border-radius:calc(var(--w)*.12);background:#fbf8f1;color:var(--fc);flex:none;overflow:hidden;
+  font-family:var(--f-disp);font-weight:800;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1),0 calc(var(--w)*.03) calc(var(--w)*.08) rgba(0,0,0,.38)}
+.sb-k::before{content:"";position:absolute;left:0;right:0;top:0;height:22%;background:var(--fc)}
+.sb-k::after{content:"";position:absolute;left:0;right:0;bottom:0;height:22%;background:var(--fc)}
+.sb-k .ix{position:absolute;left:calc(var(--w)*.1);top:calc(var(--w)*.04);z-index:1;color:#fff;font-size:calc(var(--w)*.21);line-height:1}
+.sb-k .ix.u{left:auto;top:auto;right:calc(var(--w)*.1);bottom:calc(var(--w)*.04);transform:rotate(180deg)}
+.sb-k .mi{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(var(--w)*.56);letter-spacing:-.06em;line-height:1}
+.sb-k .mi.ul{text-decoration:underline;text-decoration-thickness:calc(var(--w)*.04);text-underline-offset:calc(var(--w)*.05)}
+.sb-k.joker{background:#4a2a12;color:#ffd27a}
+.sb-k.joker::before,.sb-k.joker::after{background:#df7a2e}
+.sb-k.joker svg{width:calc(var(--w)*.58);height:calc(var(--w)*.58)}
+.sb-k.joker .als{position:absolute;left:0;right:0;bottom:24%;text-align:center;font-size:calc(var(--w)*.17);color:#fbe3c4;letter-spacing:.02em}
+.sb-k.zu{background:linear-gradient(160deg,#8f4515,#5a2a0c)}
+.sb-k.zu::before,.sb-k.zu::after{display:none}
+.sb-k.zu > *{display:none}
+.sb-k.zu .zm{display:grid;position:absolute;inset:0;place-items:center}
+.sb-k.zu .zm svg{width:calc(var(--w)*.5);height:calc(var(--w)*.5);opacity:.85}
+.sb-k.zu{box-shadow:inset 0 0 0 calc(var(--w)*.05) #f4efe4,0 2px 6px rgba(0,0,0,.35)}
+
+.sb-tab{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:16px}
+.sb-tab td,.sb-tab th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}
+.sb-tab th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.sb-tab .r{text-align:right;font-variant-numeric:tabular-nums}
+.sb-tab .sieg td{color:var(--akzent);font-weight:700}
+.sb-meldung{position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:300;pointer-events:none;background:#f4efe4;color:#14262b;font-weight:700;
+  padding:11px 20px;border-radius:99px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100% - 40px);text-align:center;animation:k-hoch .25s cubic-bezier(.2,.8,.3,1)}
+.sb-start{display:flex;align-items:flex-end}
+.sb-start .sb-k{--w:66px}
+@media (prefers-reduced-motion:reduce){.sb-greif{transition:none!important}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="stapelei.logik.js"></script>
+<script>
+"use strict";
+(() => {
+const SL = window.Stapelei;
+const AKZENT = '#f2a25c';
+const esc = Kern.esc;
+const TEST = {rnd: null};
+const R = n => TEST.rnd ? TEST.rnd(n) : Kern.zufall(n);
+let S = null, OFFEN = null, BUSY = false, WAHL = null, START = null, B = null, FAKTOR = 1;
+
+const REGELN = `
+<p>Spiele deinen <b>Vorrat</b> leer. Wer zuerst die letzte Karte seines Vorratsstapels ablegt, gewinnt.</p>
+<h3>Karten und Aufbau</h3>
+<p>162 Karten: die Zahlen 1 bis 12 je zwölfmal und 18 <b>Joker</b>. Jede Person bekommt einen verdeckten Vorrat – 30 Karten bei 2 bis 4 Personen, 20 bei 5 oder 6 (im kurzen Spiel 10). Die oberste Vorratskarte liegt immer offen.</p>
+<h3>Aufbaustapel</h3>
+<p>In der Mitte gibt es Platz für vier gemeinsame Aufbaustapel. Ein Stapel beginnt nur mit einer <b>1</b> oder einem Joker und wächst lückenlos bis <b>12</b>. Joker gelten als jede Zahl. Ein fertiger Stapel (12 Karten) kommt beiseite, und der Platz ist wieder frei.</p>
+<h3>Dein Zug</h3>
+<ol><li>Zu Beginn füllst du deine Hand auf fünf Karten auf (das macht das Spiel für dich).</li>
+<li>Lege so viele Karten auf Aufbaustapel, wie du kannst und willst: von der Hand, die oberste Vorratskarte oder die oberste Karte eines deiner Ablagestapel. Tippe die Karte an, dann einen leuchtenden Aufbaustapel – oder ziehe sie hin.</li>
+<li>Hast du alle fünf Handkarten gelegt, bekommst du sofort fünf neue und spielst weiter.</li>
+<li>Dein Zug endet, wenn du eine Handkarte auf einen deiner vier <b>Ablagestapel</b> legst. Dort darf jede Karte auf jede liegen, gespielt wird aber nur die oberste. Karten wandern nie zwischen Ablagestapeln.</li></ol>
+<h3>Nachziehen</h3>
+<p>Ist der Nachziehstapel leer, werden die beiseitegelegten fertigen Aufbaustapel gemischt und bilden den neuen Nachziehstapel.</p>
+<h3>Spielende</h3>
+<p>Wer die letzte Vorratskarte spielt, gewinnt sofort. Mit der Option „Bis 500 Punkte“ werden mehrere Partien gespielt: Die Siegerin einer Partie bekommt 25 Punkte plus 5 für jede Karte, die noch in den Vorräten der anderen liegt. Wer zuerst 500 Punkte hat, gewinnt.</p>`;
+
+Kern.init({id: 'stapelei', name: 'Stapelei', akzent: AKZENT, regeln: REGELN,
+  onNeu: () => { Kern.speicher.loeschen(); startseite(); }, menue: [{text: 'Punktestand', aktion: () => punkteFenster()}]});
+
+/* ---------- Karten ---------- */
+const STERN = '<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z" fill="currentColor"/></svg>';
+const fc = w => w <= 4 ? '#1f8f8c' : w <= 8 ? '#c4850f' : '#cf4f3a';
+function karteHtml(k, cls = '', als = null, extra = '') {
+  if (!k) return '';
+  if (k.w === 'J') return `<div class="sb-k joker ${cls}" data-id="${k.id}" aria-label="Joker" ${extra}><div class="mi">${STERN}</div>${als ? `<div class="als">als ${als}</div>` : ''}</div>`;
+  return `<div class="sb-k ${cls}" style="--fc:${fc(k.w)}" data-id="${k.id}" aria-label="${k.w}" ${extra}><div class="ix">${k.w}</div><div class="mi${k.w === 6 || k.w === 9 ? ' ul' : ''}">${k.w}</div><div class="ix u">${k.w}</div></div>`;
+}
+const rueck = (cls = '') => `<div class="sb-k zu ${cls}"><div class="zm">${STERN.replace('currentColor', '#f4efe4')}</div></div>`;
+const leer = (cls = '', extra = '') => `<div class="sb-leer ${cls}" ${extra}></div>`;
+
+function hinweis(text, ms = 2600) {
+  document.querySelectorAll('.sb-meldung').forEach(e => e.remove());
+  const m = Kern.el('div', 'sb-meldung', esc(text)); document.body.appendChild(m);
+  const t = B && B.querySelector('.sb-tisch'); if (t) m.style.top = (t.getBoundingClientRect().bottom + 30) + 'px';
+  setTimeout(() => m.remove(), ms);
+}
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  document.querySelectorAll('.sb-buehne').forEach(e => e.remove());
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null; OFFEN = null;
+  const alt = Kern.speicher.laden(), lauf = alt && alt.s && alt.s.phase !== 'spielende' ? alt.s : null;
+  Kern.setup({
+    ziel: START, titel: 'Stapelei', unter: 'Eins, zwei, drei … bis zwölf. Baue gemeinsam auf – und spiele als Erste deinen Vorrat leer.',
+    bild: `<div class="sb-start" style="margin-bottom:12px">${[1, 2, 3, 'J', 5].map((w, i) => `<div style="margin-left:${i ? -20 : 0}px;transform:translateY(${-i * 9}px)">${karteHtml({id: -i, w}, '', w === 'J' ? 4 : null)}</div>`).join('')}</div>`,
+    fakten: ['2–6 Personen', '162 Karten', 'ca. 30–60 Minuten'],
+    spieler: {min: 2, max: 6, standard: 3},
+    optionen: [
+      {id: 'kurz', label: 'Vorrat je Person', werte: [{wert: false, text: 'Offiziell (30, ab 5 Personen 20)'}, {wert: true, text: 'Kurzes Spiel (10)'}], standard: false},
+      {id: 'ziel', label: 'Spieldauer', werte: [{wert: 0, text: 'Eine Partie'}, {wert: 500, text: 'Bis 500 Punkte'}], standard: 0}],
+    fortsetzen: lauf ? `Partie ${lauf.partie} · ${lauf.namen.map((n, i) => `${n} (${lauf.vorrat[i].length})`).join(', ')}` : null,
+    onFortsetzen: () => { S = lauf; spielen(); },
+    onStart: ({namen, farben, optionen}) => neuesSpiel(namen, farben, optionen)
+  });
+}
+function neuesSpiel(namen, farben, optionen) { S = SL.neu({namen, ziel: optionen.ziel, kurz: optionen.kurz}, R); S.farben = farben; speichern(); spielen(); }
+const speichern = () => Kern.speicher.speichern({s: S});
+
+/* ---------- Spielfläche ---------- */
+function spielen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.sb-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne sb-buehne');
+  B.innerHTML = `<div class="sb-oben"></div><div class="sb-mitte"></div><div class="sb-unten"><div class="sb-leiste"></div><div class="sb-platz"></div></div>`;
+  document.body.appendChild(B);
+  OFFEN = null; WAHL = null; zeichnen(); weiterAn();
+}
+function masse() {
+  const W = innerWidth, H = innerHeight, hoch = H > W * 1.05;
+  B.classList.toggle('sb-hoch', hoch);
+  const hw = Math.round(FAKTOR * Math.max(50, Math.min(hoch ? 112 : 100, hoch ? W / 6.6 : W / 12.4, H * (hoch ? .095 : .12))));
+  const pw = Math.round(FAKTOR * Math.max(58, Math.min(hoch ? 130 : 118, H * (hoch ? .11 : .15), W / (hoch ? 7.4 : 9.5))));
+  const ow = Math.round(Math.max(22, Math.min(34, W / 40)));
+  B.style.setProperty('--hw', hw + 'px'); B.style.setProperty('--pw', pw + 'px'); B.style.setProperty('--ow', ow + 'px');
+}
+addEventListener('resize', () => { FAKTOR = 1; if (B && S) zeichnen(); });
+const nm = i => esc(S.namen[i]);
+const farbe = i => S.farben[i];
+const amZug = () => OFFEN !== null && OFFEN === S.dran && S.phase === 'zug';
+const oben = a => a[a.length - 1];
+const quelleSchl = q => q.art === 'hand' ? 'h' + q.id : q.art === 'vorrat' ? 'v' : 'a' + q.nr;
+
+function zeichnen() {
+  if (!B || !S) return;
+  for (let i = 0; i < 8; i++) {
+    zeichnenEinmal();
+    const m = B.querySelector('.sb-mitte'), u = B.querySelector('.sb-unten');
+    if (m.scrollHeight <= m.clientHeight + 1 && u.getBoundingClientRect().bottom <= innerHeight - 2 || FAKTOR < .5) break;
+    FAKTOR *= .92; // passt nicht: alles etwas kleiner
+  }
+}
+function zeichnenEinmal() {
+  masse();
+  const offen = amZug(), ich = S.dran;
+  // Alle Personen kompakt
+  B.querySelector('.sb-oben').innerHTML = S.namen.map((n, i) => `<div class="sb-person${i === S.dran && S.phase === 'zug' ? ' dran' : ''}" style="--pc:${farbe(i)}">
+    <span class="k-dot">${esc(n.charAt(0).toUpperCase())}</span><span class="wer"><b>${esc(n)}</b><small>Vorrat <i class="k-zahl">${S.vorrat[i].length}</i>${S.ziel ? ` · <i class="k-zahl">${S.punkte[i]}</i> P` : ''}</small></span>
+    <span class="vr">${S.vorrat[i].length ? karteHtml(oben(S.vorrat[i])) : leer()}<span class="sb-n k-zahl">${S.vorrat[i].length}</span></span>
+    <span class="abl">${S.ablagen[i].map(a => a.length ? karteHtml(oben(a)) : leer()).join('')}</span></div>`).join('');
+  // Mitte: Nachziehstapel und Aufbaustapel
+  const ziele = offen && WAHL ? SL.ziele(S, WAHL) : [];
+  const m = B.querySelector('.sb-mitte');
+  m.innerHTML = `<div class="sb-satz">${satz(offen)}</div>
+    <div class="sb-tisch">
+      <div class="sb-pile sb-zieh">${S.stapel.length ? rueck() : leer()}<span class="sb-cnt k-zahl">${S.stapel.length}</span><span class="sb-cap">Nachziehen${S.fertig.length ? `<br><span style="font-weight:400;letter-spacing:0;text-transform:none">${S.fertig.length} beiseite</span>` : ''}</span></div>
+      ${S.aufbau.map((a, i) => `<div class="sb-pile${ziele.includes(i) ? ' sb-ziel' : ''}" data-ziel="b${i}" id="sb-aufbau-${i}">${a.length ? karteHtml(oben(a), '', oben(a).w === 'J' ? oben(a).als : null) : leer()}
+        <span class="sb-cap">${a.length ? (a.length === 12 ? 'fertig' : 'weiter mit ' + (a.length + 1)) : 'frei · 1'}</span></div>`).join('')}
+    </div><div class="sb-log">${esc(S.log.slice(-2).join(' '))}</div>`;
+  m.querySelectorAll('[data-ziel^="b"]').forEach(p => Kern.tap(p, () => aufAufbau(+p.dataset.ziel.slice(1))));
+  leiste(offen);
+  platz(offen, ich);
+}
+function satz(offen) {
+  const wer = `<b style="--pc:${farbe(S.dran)}">${nm(S.dran)}</b>`;
+  if (S.phase !== 'zug') return 'Die Partie ist vorbei.';
+  if (!offen) return `Gleich ist ${wer} dran.`;
+  if (WAHL) return `${wer}, tippe einen leuchtenden Stapel an.`;
+  return `${wer}, baue auf – und lege zum Schluss eine Handkarte ab.`;
+}
+function leiste(offen) {
+  const l = B.querySelector('.sb-leiste'); l.innerHTML = '';
+  if (!offen) return;
+  const h = S.haende[S.dran];
+  if (!h.length) {
+    l.innerHTML = '<span class="sb-tipp">Keine Handkarte mehr und nichts zum Nachziehen.</span>';
+    const b = Kern.el('button', 'k-btn', 'Zug beenden'); b.id = 'sb-passen'; b.onclick = () => { SL.passen(S, R); nachZug(); }; l.appendChild(b);
+    return;
+  }
+  const tipp = !WAHL ? 'Tippe eine Karte an: Hand, Vorrat oder die oberste Karte einer Ablage.'
+    : WAHL.art === 'hand' ? 'Auf einen Aufbaustapel legen – oder auf eine deiner Ablagen, dann ist dein Zug vorbei.'
+    : SL.ziele(S, WAHL).length ? 'Tippe einen leuchtenden Aufbaustapel an.' : 'Diese Karte passt gerade auf keinen Aufbaustapel.';
+  l.appendChild(Kern.el('span', 'sb-tipp', tipp));
+  if (WAHL) { const b = Kern.el('button', 'k-btn leise klein', 'Auswahl aufheben'); b.id = 'sb-leeren'; b.onclick = () => { WAHL = null; zeichnen(); }; l.appendChild(b); }
+}
+function platz(offen, ich) {
+  const p = B.querySelector('.sb-platz');
+  const vk = oben(S.vorrat[ich]);
+  const passt = q => SL.ziele(S, q).length > 0;
+  const kl = q => offen ? 'sb-greif' + (WAHL && quelleSchl(WAHL) === quelleSchl(q) ? ' sb-wahl' : '') + (passt(q) ? '' : ' sb-matt') : '';
+  const abwerfZiel = offen && WAHL && WAHL.art === 'hand';
+  const fach = (a, nr) => {
+    const sicht = a.slice(-4), dy = parseFloat(B.style.getPropertyValue('--hw')) * .22;
+    const inhalt = sicht.length ? sicht.map((k, i) => {
+      const top = i === sicht.length - 1, q = {art: 'ablage', nr};
+      return `<div style="position:absolute;left:0;top:${i * dy}px">${karteHtml(k, top ? kl(q) : '', null, top ? `data-q="a${nr}"` : '')}</div>`;
+    }).join('') : `<div style="position:absolute;left:0;top:0">${leer()}</div>`;
+    return `<div class="sb-fach${abwerfZiel ? ' sb-ziel' : ''}" data-ziel="a${nr}" id="sb-ablage-${nr}">${inhalt}${a.length > 4 ? `<span class="sb-cnt k-zahl" style="top:auto;bottom:-9px">${a.length}</span>` : ''}</div>`;
+  };
+  p.innerHTML = `
+    <div class="sb-gruppe"><span>Vorrat · ${S.vorrat[ich].length}</span><div class="sb-vorrat" id="sb-vorrat">${vk ? karteHtml(vk, kl({art: 'vorrat'}), null, 'data-q="v"') : leer()}</div></div>
+    <div class="sb-gruppe"><span>Ablagen</span><div class="sb-reihe">${S.ablagen[ich].map(fach).join('')}</div></div>
+    <div class="sb-gruppe"><span>${offen ? 'Hand' : 'Hand (verdeckt)'}</span><div class="sb-hand${offen ? '' : ' sb-zu'}" id="sb-hand">${offen
+      ? S.haende[ich].map(k => karteHtml(k, kl({art: 'hand', id: k.id}), null, `data-q="h${k.id}"`)).join('')
+      : Array.from({length: Math.max(S.haende[ich].length, 0)}, () => rueck()).join('')}</div></div>`;
+  if (!offen) return;
+  p.querySelectorAll('[data-q]').forEach(el => greifbar(el, quelleAus(el.dataset.q)));
+  p.querySelectorAll('.sb-fach').forEach(f => Kern.tap(f, () => aufAblage(+f.dataset.ziel.slice(1))));
+}
+function quelleAus(s) { return s === 'v' ? {art: 'vorrat'} : s[0] === 'a' ? {art: 'ablage', nr: +s.slice(1)} : {art: 'hand', id: +s.slice(1)}; }
+
+/* Antippen wählt die Karte, Ziehen legt sie direkt ab. */
+function greifbar(el, q) {
+  let st = null, geist = null, ueber = null;
+  el.addEventListener('pointerdown', e => { if (st || BUSY) return; e.stopPropagation(); st = {p: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), zieht: false}; try { el.setPointerCapture(e.pointerId); } catch (_) {} });
+  el.addEventListener('pointermove', e => {
+    if (!st || e.pointerId !== st.p) return;
+    if (!st.zieht && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 16) {
+      st.zieht = true; WAHL = q;
+      const zl = SL.ziele(S, q);
+      B.querySelectorAll('[data-ziel^="b"]').forEach(p => p.classList.toggle('sb-ziel', zl.includes(+p.dataset.ziel.slice(1))));
+      if (q.art === 'hand') B.querySelectorAll('.sb-fach').forEach(f => f.classList.add('sb-ziel'));
+      el.classList.add('sb-weg');
+      geist = Kern.el('div', 'sb-geist', karteHtml(SL.karteVon(S, q))); geist.style.setProperty('--w', B.style.getPropertyValue('--hw')); B.appendChild(geist);
+    }
+    if (st.zieht) {
+      geist.style.transform = `translate(${e.clientX - 40}px,${e.clientY - 60}px) rotate(-4deg)`;
+      ueber = [...B.querySelectorAll('.sb-ziel')].find(z => { const r = z.getBoundingClientRect(); return e.clientX > r.left - 14 && e.clientX < r.right + 14 && e.clientY > r.top - 14 && e.clientY < r.bottom + 14; }) || null;
+      B.querySelectorAll('.sb-ziel').forEach(z => z.classList.toggle('sb-ueber', z === ueber));
+    }
+  });
+  const ende = (e, abbruch) => {
+    if (!st || e.pointerId !== st.p) return; const s = st; st = null;
+    if (s.zieht) {
+      geist && geist.remove(); const z = !abbruch && ueber; ueber = null;
+      if (z) { const t = z.dataset.ziel; if (t[0] === 'b') aufAufbau(+t.slice(1)); else aufAblage(+t.slice(1)); } else { WAHL = null; zeichnen(); }
+      return;
+    }
+    if (!abbruch && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 28 && performance.now() - s.t < 900) {
+      if (WAHL && WAHL.art === 'hand' && q.art === 'ablage') { aufAblage(q.nr); return; } // Handkarte gewählt: Tipp auf eine Ablage = ablegen
+      WAHL = WAHL && quelleSchl(WAHL) === quelleSchl(q) ? null : q; Kern.ton('tipp'); zeichnen();
+    }
+  };
+  el.addEventListener('pointerup', e => ende(e, false));
+  el.addEventListener('pointercancel', e => ende(e, true));
+}
+
+/* ---------- Züge ---------- */
+function aufAufbau(nr) {
+  if (!amZug() || BUSY) return;
+  if (!WAHL) { hinweis('Wähle zuerst eine Karte.'); return; }
+  const r = SL.legen(S, WAHL, nr, R);
+  if (!r.ok) { Kern.ton('fehler'); hinweis(r.grund || 'Passt hier nicht.'); return; }
+  WAHL = null; Kern.ton(r.fertig ? 'punkt' : 'legen');
+  speichern();
+  if (r.sieg) { OFFEN = null; zeichnen(); setTimeout(wertung, 700); return; }
+  zeichnen();
+  if (r.fertig) hinweis('Stapel bis 12 fertig – er kommt beiseite.');
+  else if (r.nachgezogen) hinweis('Alle Handkarten gelegt: fünf neue!');
+}
+function aufAblage(nr) {
+  if (!amZug() || BUSY) return;
+  if (!WAHL || WAHL.art !== 'hand') { hinweis('Auf deine Ablagen kommt nur eine Handkarte – damit endet dein Zug.'); return; }
+  const r = SL.abwerfen(S, WAHL.id, nr, R);
+  if (!r.ok) { Kern.ton('fehler'); hinweis(r.grund); return; }
+  WAHL = null; Kern.ton('karte'); nachZug();
+}
+async function nachZug() {
+  speichern(); OFFEN = null; WAHL = null; zeichnen();
+  if (S.phase !== 'zug') { await Kern.warte(700); wertung(); return; }
+  await Kern.warte(700); weiterAn();
+}
+async function weiterAn() {
+  if (S.phase !== 'zug') { wertung(); return; }
+  OFFEN = null; WAHL = null; zeichnen();
+  const sp = S.dran, was = S.log.slice(-2).join(' ');
+  await Kern.sichtschutz({name: S.namen[sp], farbe: farbe(sp), text: (was ? esc(was) + '<br>' : '') + 'Nur du schaust jetzt auf deine Handkarten.'});
+  OFFEN = sp; zeichnen();
+}
+
+/* ---------- Wertung ---------- */
+function wertung() {
+  document.querySelectorAll('.sb-meldung').forEach(m => m.remove());
+  const e = S.ergebnis, ende = S.phase === 'spielende', box = Kern.el('div');
+  const titel = e.festgefahren ? 'Nichts geht mehr' : ende ? `${nm(e.spielSieger)} gewinnt!` : `${nm(e.sieger)} gewinnt Partie ${S.partie}`;
+  const text = e.festgefahren ? 'Niemand kann noch etwas ziehen oder legen. Die Partie endet ohne Siegerin.'
+    : `${nm(e.sieger)} hat den Vorrat leer gespielt.` + (S.ziel ? ` Dafür gibt es 25 + 5 × ${e.rest.reduce((a, x, i) => a + (i === e.sieger ? 0 : x), 0)} = <b>${e.punkte} Punkte</b>.` : '');
+  box.innerHTML = `<h2>${titel}</h2><p>${text}</p><table class="sb-tab"><tr><th>Name</th><th class="r">Karten im Vorrat</th>${S.ziel ? '<th class="r">Punkte</th>' : ''}</tr>
+    ${S.namen.map((n, i) => `<tr class="${e.sieger === i ? 'sieg' : ''}"><td><span class="k-dot" style="--pc:${farbe(i)};display:inline-grid;margin-right:8px;vertical-align:-5px">${esc(n.charAt(0))}</span>${esc(n)}</td>
+      <td class="r">${e.rest[i]}</td>${S.ziel ? `<td class="r"><b>${S.punkte[i]}</b></td>` : ''}</tr>`).join('')}</table><div class="k-knoepfe"></div>`;
+  const fe = Kern.fenster(box, {breit: true, schliessbar: false}), kn = box.querySelector('.k-knoepfe');
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { fe.schliessen(); fn(); }; kn.appendChild(b); };
+  if (ende) {
+    Kern.speicher.loeschen(); if (!e.festgefahren) { Kern.ton('sieg'); Kern.feier(); }
+    knopf('Neues Spiel', 'sb-neu', 'leise', () => startseite());
+    knopf('Nochmal', 'sb-nochmal', '', () => neuesSpiel(S.namen, S.farben, {ziel: S.ziel, kurz: S.kurz}));
+  } else {
+    Kern.ton('runde');
+    knopf('Nächste Partie', 'sb-weiter', '', () => { SL.naechstePartie(S, R); speichern(); weiterAn(); });
+  }
+}
+function punkteFenster() {
+  if (!S) return;
+  Kern.fenster(`<h2>Stand</h2><p>Partie ${S.partie}${S.ziel ? ' · bis 500 Punkte' : ' · eine Partie'}</p><table class="sb-tab"><tr><th>Name</th><th class="r">Vorrat</th>${S.ziel ? '<th class="r">Punkte</th>' : ''}</tr>
+    ${S.namen.map((n, i) => `<tr><td>${esc(n)}</td><td class="r">${S.vorrat[i].length}</td>${S.ziel ? `<td class="r">${S.punkte[i]}</td>` : ''}</tr>`).join('')}</table>`);
+}
+
+window.__test = {
+  S: () => S, offen: () => OFFEN, logik: SL,
+  zufall(seed) { let s = seed >>> 0; TEST.rnd = n => { s = (s * 1664525 + 1013904223) >>> 0; return s % n; }; },
+  setze(fn) { fn(S); speichern(); zeichnen(); }
+};
+startseite();
+})();
+</script>
+</body>
+</html>

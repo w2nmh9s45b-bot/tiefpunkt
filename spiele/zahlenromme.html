@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Zahlenrommé · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Zahlenrommé: oben Personen und Pool, in der Mitte der Tisch mit Serien, unten das eigene Brett (nur nach Sichtschutz).
+   Steine: Porzellan mit Farbkante unten, Zahl in der Farbe und einer Form je Farbe (Kreis, Raute, Dreieck, Quadrat),
+   Joker dunkel mit goldenem Stern. */
+#zr{display:grid;grid-template-rows:auto 1fr auto;gap:10px}
+.zr-kopf{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;padding-left:120px;min-height:46px}
+.zr-person{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 7px;border-radius:99px;background:var(--panel);border:1.5px solid var(--line);font-size:15px;white-space:nowrap}
+.zr-person.dran{border-color:var(--pc);box-shadow:0 0 0 2px color-mix(in srgb,var(--pc) 50%,transparent)}
+.zr-person small{color:var(--ink2);font-size:13px}
+.zr-pool{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:15px;white-space:nowrap}
+.zr-pool b{font-family:var(--f-disp)}
+.zr-uhr{font:800 20px var(--f-disp);padding:4px 14px;border-radius:99px;background:var(--panel-fest);border:1.5px solid var(--line);min-width:72px;text-align:center}
+.zr-uhr.knapp{background:var(--fehler);color:#fff;border-color:transparent;animation:zr-puls 1s ease-in-out infinite}
+@keyframes zr-puls{50%{transform:scale(1.07)}}
+
+.zr-tisch{position:relative;background:rgba(5,22,28,.42);border:1px solid var(--line);border-radius:22px;padding:12px;overflow:hidden;min-height:0;
+  display:flex;flex-wrap:wrap;align-content:flex-start;gap:calc(var(--tt)*.28) calc(var(--tt)*.34)}
+.zr-reihe{position:relative;display:flex;gap:calc(var(--tt)*.06);padding:calc(var(--tt)*.14);border-radius:calc(var(--tt)*.26);
+  background:rgba(255,255,255,.035);border:1.5px solid rgba(255,255,255,.07);transition:border-color .15s, background .15s}
+.zr-reihe .zr-stein{--tw:var(--tt)}
+.zr-reihe.falsch{border-color:var(--fehler);background:color-mix(in srgb,var(--fehler) 14%,transparent)}
+.zr-reihe.falsch::after{content:"ungültig";position:absolute;left:8px;top:-9px;font:700 11px var(--f-ui);background:var(--fehler);color:#fff;padding:1px 7px;border-radius:99px}
+.zr-reihe.neu{border-style:dashed;border-color:color-mix(in srgb,var(--akzent) 70%,transparent)}
+.zr-reihe.ziel,.zr-neu.ziel,.zr-bank.ziel{border-color:var(--akzent);border-style:solid;background:color-mix(in srgb,var(--akzent) 15%,transparent)}
+.zr-reihe.falsch.neu{border-color:var(--fehler);border-style:solid}
+.zr-reihe.gesperrt .zr-stein{filter:saturate(.75) brightness(.9)}
+.zr-plus{width:calc(var(--tt)*.62);border-radius:calc(var(--tt)*.18);border:2px dashed var(--akzent);display:grid;place-items:center;color:var(--akzent);
+  font:800 calc(var(--tt)*.5) var(--f-disp);animation:zr-blink 1.4s ease-in-out infinite;cursor:pointer}
+@keyframes zr-blink{50%{opacity:.4}}
+.zr-neu{display:flex;align-items:center;justify-content:center;gap:8px;min-width:calc(var(--tt)*3.2);height:calc(var(--tt)*1.32 + var(--tt)*.28 + 3px);
+  padding:0 16px;border-radius:calc(var(--tt)*.26);border:2px dashed var(--line-stark);color:var(--ink2);font-weight:700;font-size:16px;cursor:pointer}
+.zr-neu.an{border-color:var(--akzent);color:var(--akzent)}
+
+.zr-stein{position:relative;width:var(--tw,52px);height:calc(var(--tw,52px)*1.32);border-radius:calc(var(--tw,52px)*.16);flex:none;
+  background:linear-gradient(180deg,#fdfbf6,#efe9dc);box-shadow:inset 0 calc(var(--tw,52px)*-.09) 0 var(--sf), inset 0 0 0 1px rgba(0,0,0,.08), 0 2px 5px rgba(0,0,0,.35);
+  color:var(--sf);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--tw,52px)*.02);
+  font:800 calc(var(--tw,52px)*.56) var(--f-disp);letter-spacing:-.04em;line-height:1;touch-action:none;cursor:grab;transition:transform .12s, box-shadow .12s, opacity .12s}
+.zr-stein i{display:block;width:calc(var(--tw,52px)*.18);height:calc(var(--tw,52px)*.18);background:var(--sf);margin-bottom:calc(var(--tw,52px)*.08)}
+.zr-stein.f0{--sf:#cf3e33}.zr-stein.f0 i{border-radius:50%}
+.zr-stein.f1{--sf:#2a64c4}.zr-stein.f1 i{transform:rotate(45deg) scale(.85)}
+.zr-stein.f2{--sf:#c98a0c}.zr-stein.f2 i{clip-path:polygon(50% 0,100% 100%,0 100%);width:calc(var(--tw,52px)*.2)}
+.zr-stein.f3{--sf:#26343b}.zr-stein.f3 i{border-radius:1px}
+.zr-stein.joker{--sf:#e6b74a;background:linear-gradient(180deg,#2c3f48,#18262d);color:#e6b74a;font-size:calc(var(--tw,52px)*.62)}
+.zr-stein.joker i{display:none}
+.zr-stein.wahl{transform:translateY(-12%);box-shadow:0 0 0 3px var(--akzent), inset 0 calc(var(--tw,52px)*-.09) 0 var(--sf), 0 8px 16px rgba(0,0,0,.45)}
+.zr-stein.zuletzt{box-shadow:0 0 0 2.5px rgba(255,255,255,.75), inset 0 calc(var(--tw,52px)*-.09) 0 var(--sf), 0 2px 5px rgba(0,0,0,.35)}
+.zr-stein.vonmir::before{content:"";position:absolute;right:calc(var(--tw,52px)*.08);top:calc(var(--tw,52px)*.08);width:calc(var(--tw,52px)*.13);height:calc(var(--tw,52px)*.13);border-radius:50%;background:var(--akzent)}
+.zr-stein.neu::after{content:"neu";position:absolute;top:0;left:50%;transform:translate(-50%,-110%);background:var(--warn);color:#2a1f05;font:700 11px var(--f-ui);padding:0 6px;border-radius:99px;letter-spacing:0}
+.zr-stein.fliegt{opacity:.25}
+.zr-geist{position:fixed;z-index:120;pointer-events:none;display:flex;gap:4px;transform:translate(-50%,-60%) rotate(-3deg);filter:drop-shadow(0 12px 18px rgba(0,0,0,.5))}
+
+.zr-unten{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:10px 14px 12px;display:flex;flex-direction:column;gap:10px}
+.zr-zeile{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.zr-status{flex:1 1 280px;font-size:17px;line-height:1.3}
+.zr-status b{color:var(--pc,var(--akzent))}
+.zr-status .gut{color:var(--gut);font-weight:700}.zr-status .schlecht{color:var(--fehler);font-weight:700}
+.zr-bank{display:flex;flex-wrap:wrap;gap:6px 5px;justify-content:center;align-content:flex-start;padding:12px 10px 10px;border-radius:16px;min-height:calc(var(--tw)*1.32*2 + 30px);
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1.5px solid var(--line)}
+.zr-bank .zr-stein{--tw:var(--bw)}
+.zr-bank.zu{align-items:center;color:var(--ink2);font-size:17px}
+.zr-knoepfe{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.zr-knoepfe .k-btn{min-height:48px;padding:0 16px;font-size:16px}
+.zr-erg table{width:100%;border-collapse:collapse;font-size:16px;margin:6px 0}
+.zr-erg td,.zr-erg th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.zr-erg th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.zr-erg .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.zr-erg .rest{display:flex;flex-wrap:wrap;gap:3px}
+.zr-erg .rest .zr-stein{--tw:24px}
+.zr-erg .plus{color:var(--gut);font-weight:700}.zr-erg .minus{color:var(--fehler)}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="zahlenromme.logik.js"></script>
+<script>
+"use strict";
+const REGELN_HTML = `
+<h3>Ziel</h3><p>Leg als Erste alle Steine von deinem Brett auf den Tisch.</p>
+<h3>Steine</h3><p>106 Steine: die Zahlen 1 bis 13 in vier Farben, jede doppelt, dazu zwei Joker. Alle bekommen 14 Steine, der Rest ist der Pool.</p>
+<h3>Serien</h3><ul><li><b>Gruppe:</b> 3 oder 4 Steine mit gleicher Zahl in verschiedenen Farben.</li>
+<li><b>Reihe:</b> mindestens 3 Steine einer Farbe mit aufeinanderfolgenden Zahlen. Die 1 folgt nie auf die 13.</li>
+<li><b>Joker</b> ersetzen jeden Stein und zählen so viel wie der ersetzte Stein.</li></ul>
+<h3>Erste Auslage</h3><p>Beim ersten Mal legst du Serien nur aus eigenen Steinen, zusammen mindestens 30 Punkte. In diesem Zug darfst du am Tisch nichts umbauen und nirgends anlegen.</p>
+<h3>Dein Zug</h3><p>Leg mindestens einen eigenen Stein aus – dabei darfst du alle Serien auf dem Tisch umbauen, teilen, ergänzen und Joker herauslösen. Am Ende müssen alle Serien gültig sein, und kein Stein vom Tisch darf zurück auf dein Brett. Kannst oder willst du nichts legen, ziehst du einen Stein.</p>
+<p>Ist der Tisch am Zugende ungültig (oder läuft die Zeit ab), kommt alles an seinen alten Platz und du nimmst <b>3 Strafsteine</b>. Mit „Zug zurücksetzen“ kannst du vorher selbst alles zurücklegen und normal ziehen.</p>
+<h3>Bedienung</h3><p>Steine antippen und dann das Ziel antippen (Serie, „Neue Reihe“ oder dein Brett) – oder einfach hinziehen. Ungültige Serien sind rot.</p>
+<h3>Wertung</h3><p>Wer ausgemacht hat, bekommt die Summe aller übrigen Steine als Pluspunkte; die anderen schreiben ihre Summe als Minuspunkte auf (Joker = 30). Ist der Pool leer, darf jede Person – beginnend mit der, die den letzten Stein zog – noch einmal legen. Schafft es niemand, gewinnt die kleinste Summe; dann schreiben alle ihre Summe als Minuspunkte auf.</p>
+<p>Nach der letzten Runde gewinnt die höchste Gesamtpunktzahl.</p>`;
+
+const $ = (s, r = document) => r.querySelector(s);
+const Z = Zahlenromme;
+let S = null, BUEHNE = null, SETUP = null, LAUF = 0, OFFEN = false;
+let WAHL = new Set();
+let UHR = null, UHR_ENDE = 0;
+const rnd = n => Kern.zufall(n);
+
+Kern.init({id: 'zahlenromme', name: 'Zahlenrommé', akzent: '#e9ad45', regeln: REGELN_HTML, onNeu: () => { Kern.speicher.loeschen(); startseite(); },
+  menue: [{text: 'Punktestand', aktion: () => punktestand()}]});
+
+function steinEl(id) {
+  const s = Z.stein(id), e = Kern.el('div', 'zr-stein');
+  if (s.joker) { e.classList.add('joker'); e.innerHTML = '★'; e.setAttribute('aria-label', 'Joker'); }
+  else { e.classList.add('f' + s.fi); e.innerHTML = `<span>${s.zahl}</span><i></i>`; e.setAttribute('aria-label', Z.name(id)); }
+  e.dataset.id = id; return e;
+}
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  if (BUEHNE) { BUEHNE.remove(); BUEHNE = null; }
+  uhrStopp(); S = null; LAUF++; OFFEN = false; document.querySelectorAll('.k-sichtschutz').forEach(x => x.remove());
+  const gesp = Kern.speicher.laden();
+  const t = (x, z, f, j) => `<g transform="translate(${x} 18)"><rect width="30" height="40" rx="5" fill="${j ? '#22343c' : '#fbf8f1'}"/><rect y="34" width="30" height="6" rx="2" fill="${f}"/><text x="15" y="25" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="${j ? 20 : 18}" fill="${f}">${z}</text></g>`;
+  const bild = `<svg width="148" height="76" viewBox="0 0 148 76">${t(4, 7, '#cf3e33')}${t(38, 8, '#cf3e33')}${t(72, '★', '#e6b74a', true)}${t(106, 10, '#cf3e33')}</svg>`;
+  SETUP = Kern.setup({
+    titel: 'Zahlenrommé', unter: 'Zahlensteine zu Reihen und Gruppen legen, den Tisch umbauen und als Erste das Brett leer spielen.',
+    bild, fakten: ['2–4 Personen', '106 Steine', 'Tisch umbauen'],
+    spieler: {min: 2, max: 4, standard: 3},
+    optionen: [
+      {id: 'zeit', label: 'Zeit je Zug', werte: [{wert: 0, text: 'ohne Zeitlimit'}, {wert: 60, text: '1 Minute (wie im Original)'}, {wert: 120, text: '2 Minuten'}], standard: 60},
+      {id: 'runden', label: 'Runden', werte: [{wert: 1, text: '1'}, {wert: 3, text: '3'}, {wert: 5, text: '5'}, {wert: 0, text: 'offen'}], standard: 3}
+    ],
+    fortsetzen: gesp && gesp.phase !== 'spielende' ? `Runde ${gesp.runde} · ${gesp.spieler.map(s => s.name).join(', ')}` : null,
+    onFortsetzen: () => { S = gesp; spielStarten(); },
+    onStart: ({namen, farben, optionen}) => {
+      S = Z.neuesSpiel({namen, farben, zeit: optionen.zeit, runden: optionen.runden}, rnd);
+      S.neu = {}; speichern(); spielStarten();
+    }
+  });
+}
+function speichern() { if (S && S.phase !== 'spielende') Kern.speicher.speichern(S); else Kern.speicher.loeschen(); }
+
+/* ---------- Spielfläche ---------- */
+function spielStarten() {
+  if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
+  if (!BUEHNE) {
+    BUEHNE = Kern.el('div', 'k-buehne'); BUEHNE.id = 'zr';
+    BUEHNE.innerHTML = `<div class="zr-kopf" id="zr-kopf"></div><div class="zr-tisch" id="zr-tisch"></div><div class="zr-unten" id="zr-unten"></div>`;
+    document.body.appendChild(BUEHNE);
+  }
+  S.neu = S.neu || {};
+  ablauf();
+}
+async function ablauf() {
+  const id = ++LAUF; OFFEN = false; WAHL.clear(); uhrStopp(); zeichnen();
+  if (S.phase === 'rundenende' || S.phase === 'spielende') { wertung(); return; }
+  const sp = S.spieler[S.amZug];
+  let text = 'Gleich siehst du dein Brett.';
+  if (S.schluss) text = 'Der Pool ist leer – das ist dein letzter Versuch, Steine auszulegen.';
+  if (S.opt.zeit) text += ` Du hast ${S.opt.zeit === 60 ? 'eine Minute' : S.opt.zeit / 60 + ' Minuten'}.`;
+  await Kern.sichtschutz({name: sp.name, farbe: sp.farbe, text});
+  if (id !== LAUF) return;
+  OFFEN = true; zeichnen();
+  if (S.opt.zeit) uhrStart(S.opt.zeit);
+}
+
+/* ---------- Uhr (Option) ---------- */
+function uhrStart(sek) {
+  uhrStopp(); UHR_ENDE = performance.now() + sek * 1000;
+  let letzte = -1;
+  UHR = setInterval(() => {
+    const rest = Math.max(0, Math.ceil((UHR_ENDE - performance.now()) / 1000));
+    const u = $('#zr-uhr'); if (u) { u.textContent = `${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, '0')}`; u.classList.toggle('knapp', rest <= 10); }
+    if (rest !== letzte && rest <= 10 && rest > 0) Kern.ton('zeit');
+    letzte = rest;
+    if (rest <= 0) { uhrStopp(); zeitUm(); }
+  }, 250);
+}
+function uhrStopp() { if (UHR) clearInterval(UHR); UHR = null; }
+async function zeitUm() {
+  if (!OFFEN) return;
+  const name = S.spieler[S.amZug].name;
+  OFFEN = false; drag = null; document.querySelectorAll('.zr-geist').forEach(g => g.remove());
+  const r = Z.strafe(S, 'Zeit abgelaufen');
+  Kern.ton('warn'); merkeNeu(r.gezogen); speichern(); zeichnen();
+  await Kern.frage({titel: 'Zeit abgelaufen', text: `${Kern.esc(name)} bekommt den Tisch wie zu Zugbeginn zurück und nimmt ${r.gezogen.length} Strafsteine.`, knoepfe: [{text: 'Weiter', wert: 1}]});
+  ablauf();
+}
+function merkeNeu(ids) { const i = S.letzte ? S.letzte.spieler : S.amZug; S.neu[i] = (ids || []).slice(); }
+
+/* ---------- Zeichnen ---------- */
+function zeichnen() {
+  if (!S || !BUEHNE) return;
+  const sp = S.spieler[S.amZug];
+  BUEHNE.style.setProperty('--pc', sp ? sp.farbe : 'var(--akzent)');
+  kopf(); unten(); tisch();
+}
+addEventListener('resize', () => zeichnen());
+
+function kopf() {
+  const k = $('#zr-kopf'); k.innerHTML = '';
+  const imSpiel = S.phase === 'zug';
+  S.spieler.forEach((s, i) => {
+    const e = Kern.el('div', 'zr-person' + (i === S.amZug && imSpiel ? ' dran' : '')); e.style.setProperty('--pc', s.farbe);
+    e.innerHTML = `<span class="k-dot">${Kern.esc(s.name.charAt(0).toUpperCase())}</span><b>${Kern.esc(s.name)}</b><small class="k-zahl">${s.bank.length} Steine · ${s.summe > 0 ? '+' : s.summe < 0 ? '−' : ''}${Math.abs(s.summe)}</small>${s.raus ? '' : '<span class="k-chip leise">ohne Auslage</span>'}`;
+    k.appendChild(e);
+  });
+  k.appendChild(Kern.el('div', 'zr-pool', `Pool <b class="k-zahl">${S.pool.length}</b>${S.schluss ? ' · letzte Runde' : ''}`));
+  if (S.opt.zeit && OFFEN) { const u = Kern.el('div', 'zr-uhr k-zahl'); u.id = 'zr-uhr'; u.textContent = '–'; k.appendChild(u); }
+}
+
+function tisch() {
+  const t = $('#zr-tisch'); t.innerHTML = '';
+  const L = OFFEN ? Z.lage(S) : null;
+  const ungueltig = new Set(L ? L.ungueltig : []);
+  const startIds = new Set(OFFEN ? S.zug.start.tisch.map(r => r.id) : []);
+  const vonMir = new Set(L ? L.gelegt : []);
+  const zuletzt = new Set(!OFFEN && S.letzte && S.letzte.art !== 'gezogen' && S.letzte.art !== 'strafe' ? S.letzte.steine : []);
+  const raus = S.spieler[S.amZug] && S.spieler[S.amZug].raus;
+  const wahl = [...WAHL];
+  S.tisch.forEach(r => {
+    const e = Kern.el('div', 'zr-reihe'); e.dataset.reihe = r.id;
+    if (OFFEN) {
+      if (ungueltig.has(r.id)) e.classList.add('falsch');
+      if (!startIds.has(r.id)) e.classList.add('neu');
+      if (!raus && startIds.has(r.id)) e.classList.add('gesperrt');
+    }
+    r.steine.forEach(id => {
+      const s = steinEl(id);
+      if (WAHL.has(id)) s.classList.add('wahl');
+      if (vonMir.has(id)) s.classList.add('vonmir');
+      if (zuletzt.has(id)) s.classList.add('zuletzt');
+      steinBedienung(s, id);
+      e.appendChild(s);
+    });
+    if (OFFEN && wahl.length && Z.zielErlaubt(S, wahl, {art: 'reihe', id: r.id}).ok && !wahl.every(id => r.steine.includes(id))) {
+      const p = Kern.el('div', 'zr-plus', '+'); e.appendChild(p);
+    }
+    Kern.tap(e, ev => { if (ev.target.closest('.zr-stein')) return; if (OFFEN && WAHL.size) bewegen([...WAHL], {art: 'reihe', id: r.id}); });
+    t.appendChild(e);
+  });
+  if (OFFEN) {
+    const n = Kern.el('div', 'zr-neu' + (wahl.length ? ' an' : ''), '＋ Neue Reihe'); n.id = 'zr-neu';
+    Kern.tap(n, () => { if (!WAHL.size) { Kern.hinweis('Wähle erst Steine aus.'); return; } bewegen([...WAHL], {art: 'neu'}); });
+    t.appendChild(n);
+  } else if (!S.tisch.length) {
+    t.appendChild(Kern.el('div', '', '<span style="color:var(--ink3);font-size:17px">Noch liegt nichts auf dem Tisch.</span>'));
+  }
+  einpassen(t);
+}
+function einpassen(t) {
+  let tt = Math.round(Math.min(60, t.clientHeight / 4.4, t.clientWidth / 14));
+  t.style.setProperty('--tt', tt + 'px');
+  while (tt > 26 && t.scrollHeight > t.clientHeight + 1) { tt -= 2; t.style.setProperty('--tt', tt + 'px'); }
+}
+
+function unten() {
+  const u = $('#zr-unten'); u.innerHTML = '';
+  const sp = S.spieler[S.amZug];
+  const zeile = Kern.el('div', 'zr-zeile'); const st = Kern.el('div', 'zr-status'); st.id = 'zr-status'; zeile.appendChild(st);
+  const bank = Kern.el('div', 'zr-bank'); bank.id = 'zr-bank';
+  const n = sp ? sp.bank.length : 14;
+  const spalten = Math.max(10, Math.ceil(n / 2));
+  const bw = Math.max(34, Math.min(58, (innerWidth - 70) / spalten - 5));
+  BUEHNE.style.setProperty('--bw', bw + 'px'); BUEHNE.style.setProperty('--tw', bw + 'px');
+  if (!OFFEN) {
+    st.innerHTML = letzteText() + (S.phase === 'zug' ? ` <b>${Kern.esc(sp.name)}</b> ist dran – gib das iPad weiter.` : '');
+    bank.classList.add('zu'); bank.textContent = 'Das Brett ist verdeckt.';
+    u.append(zeile, bank); return;
+  }
+  const L = Z.lage(S);
+  st.innerHTML = statusText(L);
+  // Sortieren
+  const sort = Kern.el('div', 'zr-knoepfe');
+  [['farbe', 'Nach Farbe'], ['zahl', 'Nach Zahl']].forEach(([a, t]) => { const b = Kern.el('button', 'k-btn klein leise', t); b.id = 'zr-sort-' + a; Kern.tap(b, () => { Z.sortieren(S, S.amZug, a); Kern.ton('stein'); speichern(); zeichnen(); }); sort.appendChild(b); });
+  zeile.appendChild(sort);
+  const neu = new Set(S.neu[S.amZug] || []);
+  sp.bank.forEach(id => { const s = steinEl(id); if (WAHL.has(id)) s.classList.add('wahl'); if (neu.has(id)) s.classList.add('neu'); steinBedienung(s, id); bank.appendChild(s); });
+  Kern.tap(bank, ev => { if (ev.target.closest('.zr-stein')) return; if (WAHL.size) bewegen([...WAHL], {art: 'bank'}); });
+  // Knöpfe
+  const kn = Kern.el('div', 'zr-knoepfe');
+  const knopf = (text, art, id, fn, an = true) => { const b = Kern.el('button', 'k-btn ' + (art || ''), text); b.id = id; b.disabled = !an; Kern.tap(b, () => { if (!b.disabled) fn(); }); kn.appendChild(b); return b; };
+  const geaendert = L.tischGeaendert || L.gelegt.length > 0;
+  if (Z.darfNeuMischen(S)) knopf('Neu mischen verlangen', 'leise', 'zr-mischen', neuMischen);
+  knopf('Zug zurücksetzen', 'leise', 'zr-reset', () => { Z.zuruecksetzen(S); WAHL.clear(); Kern.ton('stein'); speichern(); zeichnen(); }, geaendert);
+  knopf(S.pool.length ? 'Stein ziehen' : 'Passen', 'leise', 'zr-ziehen', ziehen, !geaendert);
+  knopf('Zug beenden', 'gut', 'zr-fertig', fertig, L.gelegt.length > 0);
+  u.append(zeile, bank, kn);
+}
+function letzteText() {
+  const l = S.letzte; if (!l) return '';
+  const w = Kern.esc(S.spieler[l.spieler].name);
+  if (l.art === 'gezogen') return `${w} hat einen Stein gezogen.`;
+  if (l.art === 'passt') return `${w} passt.`;
+  if (l.art === 'strafe') return `${w}: ${Kern.esc(l.grund || '')} – ${l.steine.length} Strafsteine.`;
+  if (l.art === 'erste') return `${w} hat zum ersten Mal ausgelegt (${l.steine.length} Steine).`;
+  return `${w} hat ${l.steine.length} ${l.steine.length === 1 ? 'Stein' : 'Steine'} gelegt.`;
+}
+function statusText(L) {
+  const sp = S.spieler[S.amZug];
+  let s = `<b>${Kern.esc(sp.name)}</b>: `;
+  const wahl = [...WAHL];
+  if (wahl.length) s += `${wahl.length} ${wahl.length === 1 ? 'Stein' : 'Steine'} gewählt – tippe das Ziel an oder zieh sie hin. `;
+  if (!L.raus) {
+    s += `Erste Auslage: <span class="${L.erstwert >= 30 ? 'gut' : ''} k-zahl">${L.erstwert} von 30</span> Punkten, nur eigene Steine.`;
+  } else if (!L.gelegt.length) s += 'Leg mindestens einen eigenen Stein – oder zieh einen.';
+  else s += `${L.gelegt.length} eigene ${L.gelegt.length === 1 ? 'Stein' : 'Steine'} gelegt.`;
+  if (L.ungueltig.length) s += ` <span class="schlecht">${L.ungueltig.length === 1 ? 'Eine Serie ist' : L.ungueltig.length + ' Serien sind'} ungültig.</span>`;
+  if (S.schluss) s += ' Pool leer: letzter Versuch.';
+  return s;
+}
+
+/* ---------- Bedienung: antippen und ziehen ---------- */
+let drag = null;
+function steinBedienung(el, id) {
+  el.addEventListener('pointerdown', ev => {
+    if (!OFFEN || (ev.button !== undefined && ev.button > 0)) return;
+    drag = {id, x: ev.clientX, y: ev.clientY, el, pid: ev.pointerId, aktiv: false};
+  });
+}
+document.addEventListener('pointermove', ev => {
+  if (!drag || ev.pointerId !== drag.pid) return;
+  if (!drag.aktiv) {
+    if (Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) < 10) return;
+    const ids = WAHL.has(drag.id) ? [...WAHL] : [drag.id];
+    if (!ids.every(i => Z.beweglich(S, i))) { Kern.hinweis(S.spieler[S.amZug].raus ? 'Diese Steine kannst du nicht bewegen.' : 'Vor deiner ersten Auslage darfst du den Tisch nicht umbauen.'); drag = null; return; }
+    drag.aktiv = true; drag.ids = ids;
+    const g = Kern.el('div', 'zr-geist'); ids.forEach(i => { const s = steinEl(i); s.style.setProperty('--tw', (parseFloat(getComputedStyle(BUEHNE).getPropertyValue('--bw')) || 50) + 'px'); g.appendChild(s); });
+    document.body.appendChild(g); drag.geist = g;
+    ids.forEach(i => document.querySelectorAll(`.zr-stein[data-id="${i}"]`).forEach(e => e.classList.add('fliegt')));
+    Kern.ton('stein');
+  }
+  drag.geist.style.left = ev.clientX + 'px'; drag.geist.style.top = ev.clientY + 'px';
+  document.querySelectorAll('.ziel').forEach(e => e.classList.remove('ziel'));
+  const z = zielUnter(ev.clientX, ev.clientY); if (z && z.el) z.el.classList.add('ziel');
+});
+document.addEventListener('pointerup', ev => {
+  if (!drag || ev.pointerId !== drag.pid) return;
+  const d = drag; drag = null;
+  if (d.aktiv) {
+    d.geist.remove(); document.querySelectorAll('.ziel').forEach(e => e.classList.remove('ziel'));
+    const z = zielUnter(ev.clientX, ev.clientY);
+    if (z) bewegen(d.ids, z.ziel); else zeichnen();
+    return;
+  }
+  // Antippen: auswählen
+  if (!Z.beweglich(S, d.id)) { Kern.hinweis(S.spieler[S.amZug].raus ? 'Diesen Stein kannst du nicht bewegen.' : 'Vor deiner ersten Auslage darfst du nur eigene Steine legen.'); Kern.ton('fehler'); return; }
+  if (WAHL.has(d.id)) WAHL.delete(d.id); else WAHL.add(d.id);
+  Kern.ton('tipp'); zeichnen();
+});
+document.addEventListener('pointercancel', () => { if (drag && drag.geist) drag.geist.remove(); drag = null; if (S && BUEHNE) zeichnen(); });
+function zielUnter(x, y) {
+  const el = document.elementFromPoint(x, y); if (!el) return null;
+  const r = el.closest('.zr-reihe'); if (r) return {el: r, ziel: {art: 'reihe', id: +r.dataset.reihe}};
+  const n = el.closest('.zr-neu'); if (n) return {el: n, ziel: {art: 'neu'}};
+  const b = el.closest('.zr-bank'); if (b) return {el: b, ziel: {art: 'bank'}};
+  const t = el.closest('.zr-tisch'); if (t) return {el: $('#zr-neu'), ziel: {art: 'neu'}};
+  return null;
+}
+function bewegen(ids, ziel) {
+  const r = Z.verschieben(S, ids, ziel);
+  if (!r.ok) { Kern.hinweis(r.grund, 2800); Kern.ton('fehler'); zeichnen(); return; }
+  WAHL.clear(); Kern.ton('stein'); speichern(); zeichnen();
+}
+
+/* ---------- Zug abschließen ---------- */
+async function fertig() {
+  const p = Z.pruefeZug(S);
+  if (p.ok) {
+    const name = S.spieler[S.amZug].name;
+    uhrStopp(); const r = Z.zugBeenden(S); OFFEN = false; S.neu[S.letzte.spieler] = [];
+    Kern.ton(r.ende ? 'sieg' : 'legen'); speichern(); zeichnen();
+    if (r.ende) { Kern.hinweis(`${name} hat alle Steine gelegt!`, 2600); await Kern.warte(700); }
+    else await Kern.warte(400);
+    ablauf(); return;
+  }
+  if (p.ziehen) { Kern.hinweis(p.grund); return; }
+  Kern.ton('warn');
+  const w = await Kern.frage({titel: 'So geht der Zug nicht', text: `${Kern.esc(p.grund)}<br><br>Du kannst weiterbauen. Gibst du auf, kommt alles an seinen alten Platz und du nimmst <b>3 Strafsteine</b>.`,
+    knoepfe: [{text: 'Weiterbauen', wert: 'weiter', art: 'gut'}, {text: 'Aufgeben: 3 Strafsteine', wert: 'strafe', art: 'gefahr'}]});
+  if (w !== 'strafe' || !OFFEN) return;
+  uhrStopp(); const r = Z.strafe(S, 'Tisch ungültig'); OFFEN = false; merkeNeu(r.gezogen); Kern.ton('fehler'); speichern(); zeichnen();
+  await Kern.warte(400); ablauf();
+}
+async function ziehen() {
+  uhrStopp();
+  const r = Z.ziehen(S); if (!r.ok) { Kern.hinweis(r.grund); return; }
+  OFFEN = false; merkeNeu(r.gezogen); Kern.ton(r.passt ? 'tipp' : 'ziehen'); speichern(); zeichnen();
+  if (S.schluss && S.pool.length === 0 && r.gezogen.length) Kern.hinweis('Das war der letzte Stein im Pool!', 2600);
+  await Kern.warte(400); ablauf();
+}
+async function neuMischen() {
+  const w = await Kern.frage({titel: 'Neu mischen?', text: 'Du hast drei gleiche Paare. Zeig sie den anderen – dann werden alle Steine neu gemischt und neu verteilt.', knoepfe: [{text: 'Abbrechen', wert: 0, art: 'leise'}, {text: 'Neu mischen', wert: 1}]});
+  if (!w) return;
+  uhrStopp(); Z.neuMischen(S, rnd); S.neu = {}; OFFEN = false; speichern(); Kern.ton('wuerfel'); ablauf();
+}
+
+/* ---------- Wertung ---------- */
+function wertung() {
+  uhrStopp(); zeichnen();
+  const e = S.ergebnis; const ende = S.phase === 'spielende';
+  const box = Kern.el('div', 'zr-erg');
+  const gew = e.gewinner.map(i => Kern.esc(S.spieler[i].name)).join(' und ');
+  let h = `<h2>${ende ? 'Spielende' : 'Runde ' + e.runde}</h2>`;
+  if (e.art === 'aus') {
+    const summen = e.zeilen.map((z, i) => i === e.gewinner[0] ? null : z.summe).filter(x => x !== null);
+    h += `<p><b>${gew}</b> hat alle Steine gelegt und bekommt ${summen.join(' + ')} = <b>${e.zeilen[e.gewinner[0]].punkte}</b> Pluspunkte.</p>`;
+  } else h += `<p>Der Pool ist leer und niemand ist fertig geworden. <b>${gew}</b> ${e.gewinner.length > 1 ? 'haben' : 'hat'} die kleinste Summe – alle schreiben ihre Summe als Minuspunkte auf.</p>`;
+  h += '<table><tr><th>Person</th><th>Steine auf dem Brett</th><th class="r">Summe</th><th class="r">Runde</th><th class="r">Gesamt</th></tr>';
+  e.zeilen.forEach((z, i) => {
+    const s = S.spieler[i]; const pk = z.punkte;
+    h += `<tr><td>${Kern.esc(s.name)}</td><td><div class="rest" data-i="${i}"></div></td><td class="r">${z.steine.length ? z.summe : '–'}</td>
+      <td class="r ${pk > 0 ? 'plus' : pk < 0 ? 'minus' : ''}">${pk > 0 ? '+' : pk < 0 ? '−' : ''}${Math.abs(pk)}</td><td class="r"><b>${s.summe > 0 ? '+' : s.summe < 0 ? '−' : ''}${Math.abs(s.summe)}</b></td></tr>`;
+  });
+  h += '</table>';
+  if (ende) { const sg = S.sieger.map(i => Kern.esc(S.spieler[i].name)).join(' und '); h += `<p style="font-size:20px;margin-top:10px"><b>${sg}</b> ${S.sieger.length > 1 ? 'gewinnen' : 'gewinnt'} mit den meisten Punkten.</p>`; }
+  box.innerHTML = h;
+  e.zeilen.forEach((z, i) => { const r = box.querySelector(`.rest[data-i="${i}"]`); z.steine.forEach(id => r.appendChild(steinEl(id))); if (!z.steine.length) r.textContent = 'leer'; });
+  const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
+  const f = Kern.fenster(box, {breit: true, schliessbar: false});
+  const knopf = (t, art, id, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { f.schliessen(); fn(); }; k.appendChild(b); };
+  if (ende) {
+    Kern.feier(); Kern.ton('sieg'); Kern.speicher.loeschen();
+    knopf('Nochmal', '', 'zr-nochmal', () => { S = Z.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), zeit: S.opt.zeit, runden: S.opt.runden}, rnd); S.neu = {}; speichern(); ablauf(); });
+    knopf('Neues Spiel', 'leise', 'zr-neues', startseite);
+  } else {
+    Kern.ton('runde');
+    knopf('Nächste Runde', '', 'zr-weiter', () => { Z.naechsteRunde(S, rnd); S.neu = {}; speichern(); ablauf(); });
+    if (S.opt.runden === 0) knopf('Spiel beenden', 'leise', 'zr-beenden', () => { Z.spielBeenden(S); speichern(); wertung(); });
+  }
+}
+function punktestand() {
+  if (!S) return;
+  let h = '<div class="zr-erg"><h2>Punktestand</h2><table><tr><th>Runde</th>' + S.spieler.map(s => `<th class="r">${Kern.esc(s.name)}</th>`).join('') + '</tr>';
+  S.runden.forEach(r => { h += `<tr><td>${r.runde}${r.art === 'poolLeer' ? ' · Pool leer' : ''}</td>` + r.zeilen.map(z => `<td class="r ${z.punkte > 0 ? 'plus' : z.punkte < 0 ? 'minus' : ''}">${z.punkte > 0 ? '+' : z.punkte < 0 ? '−' : ''}${Math.abs(z.punkte)}</td>`).join('') + '</tr>'; });
+  h += '<tr><td><b>Gesamt</b></td>' + S.spieler.map(s => `<td class="r"><b>${s.summe > 0 ? '+' : s.summe < 0 ? '−' : ''}${Math.abs(s.summe)}</b></td>`).join('') + '</tr></table></div>';
+  Kern.fenster(h, {breit: true});
+}
+
+/* ---------- Testzugang ---------- */
+window.__test = {get S() { return S; }, Z, setze(st) { S = st; speichern(); zeichnen(); }, get offen() { return OFFEN; }, uhr(ms) { UHR_ENDE = performance.now() + ms; }};
+
+startseite();
+</script>
+</body>
+</html>
