@@ -68,10 +68,59 @@
 @keyframes fp-puls{50%{box-shadow:0 0 0 4px rgba(240,138,108,.35)}}
 .fp-bonusoffen{font-family:var(--f-ui);font-weight:700;font-size:11px;color:#8a9694}
 @media (max-aspect-ratio:1/1){.fp-block{grid-template-rows:auto repeat(17,minmax(30px,1fr))}}
+/* Handy hoch (iPhone): alles auf einen Bildschirm – Kopf neben den Kernknöpfen, kompakte Würfelschale,
+   Block füllt den Rest und rollt notfalls in sich. Beschreibungen der Felder per Antippen der Zeile. */
+@media (max-width:700px){
+  .fp-buehne{gap:10px;grid-template-rows:auto minmax(0,1fr)}
+  .fp-links{gap:10px}
+  .fp-kopf{padding-left:112px;min-height:46px;flex-wrap:nowrap;gap:8px}
+  .fp-kopf .k-dot{width:30px;height:30px;font-size:15px}
+  .fp-kopf h2{font-size:22px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fp-kopf .fp-runde{font-size:13px;letter-spacing:.02em;white-space:nowrap}
+  .fp-schale{min-height:0;padding:12px 10px;gap:8px;border-radius:20px}
+  .fp-w small{font-size:13px;letter-spacing:0;text-transform:none}
+  .fp-w{gap:4px}
+  .fp-w.gehalten{transform:translateY(-6px)}
+  .fp-satz{font-size:16px}
+  .fp-satz.leise{font-size:15px}
+  .fp-wurfzahl{font-size:13px}
+  .fp-knoepfe .k-btn.gross{min-height:54px;font-size:19px;padding:0 14px}
+  .fp-zusatz{font-size:13px;padding:6px 10px}
+  .fp-block{grid-template-columns:minmax(98px,1.15fr) repeat(var(--n),minmax(0,1fr));grid-template-rows:auto repeat(17,minmax(28px,1fr));
+    padding:6px 6px 8px;border-radius:18px;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .fp-z{padding:0 3px}
+  .fp-lab{padding-left:6px}
+  .fp-lab small{display:none}
+  .fp-lab b{font-size:14px}
+  .fp-lab b[style]{font-size:16px!important}
+  .fp-summe.fp-lab b{font-size:13px}
+  .fp-kopfz{padding:2px 1px 5px}
+  .fp-kopfz .k-dot{width:22px;height:22px}
+  .fp-kopfz span.nm{font-size:13px}
+  .fp-block.fp-eng .fp-kopfz span.nm{writing-mode:vertical-rl;transform:rotate(180deg);max-height:78px;line-height:1.1}
+  .fp-wert{font-size:17px}
+  .fp-gesamt.fp-wert{font-size:18px}
+  .fp-moeglich{padding:2px 1px}
+  .fp-moeglich span{border-radius:7px}
+  .fp-moeglich.streichen span{font-size:13px;letter-spacing:-.02em}
+  .fp-block.fp-eng .fp-moeglich.streichen span{font-size:0}
+  .fp-block.fp-eng .fp-moeglich.streichen span::after{content:"0";font-size:17px;font-family:var(--f-disp)}
+  .fp-bonusoffen{font-size:13px;line-height:1.05;text-align:center}
+  .fp-tab{font-size:15px!important}
+  .fp-tab td{padding:6px 3px!important}
+  .fp-tab tr td:first-child{white-space:nowrap;max-width:9.5em;overflow:hidden;text-overflow:ellipsis}
+  .fp-tab tr td:first-child .k-dot{margin-right:5px!important}
+  .fp-tab tr:first-child td{font-size:12.5px;letter-spacing:0!important}
+}
+/* Netzspiel: rechts oben sitzt die Plakette mit dem Code; die eigene Spalte trägt „du“ */
+.fp-netz .fp-kopf{padding-right:96px}
+@media (min-aspect-ratio:1/1) and (min-width:701px){.fp-netz .fp-block{margin-top:46px}}
+.fp-du{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7d1f1a;line-height:1}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="fuenferpasch.logik.js"></script>
 <script>
 "use strict";
@@ -102,6 +151,10 @@ const TEST = {wuerfe: []};
 const w6 = () => TEST.wuerfe.length ? TEST.wuerfe.shift() : 1 + Kern.zufall(6);
 const speichern = () => Kern.speicher.speichern(S);
 const nm = i => Kern.esc(S.spieler[i].name);
+const HANDY = matchMedia('(max-width:700px)'); // Handy hoch: Feldbeschreibung per Antippen statt Unterzeile
+// Am selben Gerät bedient immer die Person am Zug. Im Netzspiel bedient jedes Gerät nur seinen eigenen Sitz.
+const meinZug = () => !Netz.laeuft || Netz.meinSitz === S.dran;
+const leitet = () => !Netz.laeuft || Netz.istHost;   // Nochmal / Neues Spiel: nur Gastgeber (bzw. am selben Gerät)
 
 Kern.init({id: 'fuenferpasch', name: 'Fünferpasch', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
 
@@ -162,7 +215,7 @@ let B = null, WE = [];
 function spielen() {
   if (START) START.hidden = true;
   document.querySelectorAll('.fp-buehne').forEach(e => e.remove());
-  B = Kern.el('div', 'k-buehne fp-buehne');
+  B = Kern.el('div', 'k-buehne fp-buehne' + (Netz.laeuft ? ' fp-netz' : ''));
   B.innerHTML = `<div class="fp-links"><div class="fp-kopf"></div><div class="fp-schale"><div class="fp-wuerfel"></div><div class="fp-wurfzahl"></div><div class="fp-satz"></div></div>
     <div class="fp-zusatzbox"></div><div class="fp-knoepfe"></div></div><div class="fp-block"></div>`;
   document.body.appendChild(B);
@@ -170,11 +223,12 @@ function spielen() {
   for (let i = 0; i < 5; i++) {
     const b = Kern.el('button', 'fp-w'); b.id = 'fp-w' + i; b.setAttribute('aria-label', 'Würfel ' + (i + 1));
     const w = Kern.wuerfel(S.wuerfel[i]); b.appendChild(w); b.insertAdjacentHTML('beforeend', '<small>behalten</small>');
-    b.onclick = () => halten(i); reihe.appendChild(b); WE.push({b, w});
+    b.onclick = () => { if (!beschaeftigt && meinZug()) Netz.tun('halten', {i}); }; reihe.appendChild(b); WE.push({b, w});
   }
   wahl = null; zeichnen();
   if (S.phase === 'ende') ende();
 }
+let ENDE_FE = null; // offenes Ergebnisfenster (im Netzspiel schließt es, sobald der Gastgeber neu startet)
 
 function zeichnen() {
   const p = S.spieler[S.dran], ende = S.phase === 'ende';
@@ -186,7 +240,7 @@ function zeichnen() {
   schale.classList.toggle('leer', S.wurf === 0 || ende);
   WE.forEach(({b, w}, i) => {
     Kern.wuerfelSetzen(w, S.wuerfel[i]);
-    const kannHalten = !ende && S.wurf > 0 && S.wurf < 3;
+    const kannHalten = !ende && S.wurf > 0 && S.wurf < 3 && meinZug();
     b.disabled = !kannHalten;
     b.classList.toggle('gehalten', S.wurf > 0 && S.halten[i]);
     w.classList.toggle('halten', S.wurf > 0 && S.halten[i]);
@@ -194,9 +248,11 @@ function zeichnen() {
   });
   B.querySelector('.fp-wurfzahl').innerHTML = ende ? '' : `${[0, 1, 2].map(k => `<i class="${k < 3 - S.wurf ? '' : 'weg'}"></i>`).join('')}<span>${3 - S.wurf === 1 ? 'noch 1 Wurf' : `noch ${3 - S.wurf} Würfe`}</span>`;
   const m = ende ? {} : F.moeglich(S);
+  if (wahl && (!meinZug() || !m[wahl])) wahl = null;
   const satz = B.querySelector('.fp-satz');
   satz.className = 'fp-satz';
   if (ende) satz.textContent = 'Alle Felder sind voll.';
+  else if (!meinZug()) satz.innerHTML = `<span style="color:var(--akzent)">${nm(S.dran)}</span> ist dran${S.wurf ? ` · Wurf ${S.wurf} von 3` : ' und würfelt gleich'}.`;
   else if (S.wurf === 0) satz.innerHTML = `${S.spieler.length > 1 ? `<span style="color:var(--akzent)">${nm(S.dran)}</span> ist dran. ` : ''}Würfle mit allen fünf.`;
   else if (wahl) satz.innerHTML = `${m[wahl].art === 'streichen' ? `${F.TITEL[wahl]} streichen (0 Punkte)` : `${m[wahl].punkte} Punkte für ${F.TITEL[wahl]} eintragen`}?`;
   else if (S.wurf < 3) { satz.className = 'fp-satz leise'; satz.textContent = 'Tippe Würfel an, die du behalten willst – oder trag im Block ein.'; }
@@ -208,10 +264,12 @@ function zeichnen() {
   const k = B.querySelector('.fp-knoepfe'); k.innerHTML = '';
   if (ende) {
     const n = Kern.el('button', 'k-btn gross', 'Ergebnis'); n.onclick = () => ende_fenster(); k.appendChild(n);
-  } else {
+  } else if (meinZug()) {
     const r = Kern.el('button', 'k-btn gross' + (wahl ? ' leise' : ''), S.wurf === 0 ? 'Würfeln' : 'Nochmal würfeln'); r.id = 'fp-wuerfeln';
-    r.disabled = S.wurf >= 3 || (S.wurf > 0 && S.halten.every(Boolean)); r.onclick = wuerfeln; k.appendChild(r);
-    if (wahl) { const e = Kern.el('button', 'k-btn gross', 'Eintragen'); e.id = 'fp-eintragen'; e.onclick = () => eintragen(wahl); k.appendChild(e); }
+    r.disabled = S.wurf >= 3 || (S.wurf > 0 && S.halten.every(Boolean));
+    r.onclick = () => { if (beschaeftigt) return; if (S.wurf > 0 && S.halten.every(Boolean)) { Kern.hinweis('Alle Würfel behalten – tippe einen an, um ihn freizugeben.'); return; } gesendet(k); Netz.tun('wuerfeln'); };
+    k.appendChild(r);
+    if (wahl) { const e = Kern.el('button', 'k-btn gross', 'Eintragen'); e.id = 'fp-eintragen'; e.onclick = () => { if (beschaeftigt || !wahl) return; const feld = wahl; gesendet(k); Netz.tun('eintragen', {feld}); }; k.appendChild(e); }
   }
   blockZeichnen(m);
 }
@@ -219,15 +277,16 @@ function ende_fenster() { ende(); }
 
 function blockZeichnen(m) {
   const bl = B.querySelector('.fp-block'); bl.innerHTML = ''; bl.style.setProperty('--n', S.spieler.length);
+  bl.classList.toggle('fp-eng', S.spieler.length >= 4); // nur im Handy-CSS wirksam: Namen senkrecht
   const zelle = (kl, html, extra) => { const z = Kern.el('div', 'fp-z ' + kl, html); if (extra) extra(z); bl.appendChild(z); return z; };
   const dranSp = (z, i) => { z.style.setProperty('--pc', S.spieler[i].farbe); if (i === S.dran && S.phase !== 'ende') z.classList.add('fp-spalte-dran'); };
   zelle('fp-lab fp-kopfz', '<b style="align-self:flex-start;font-family:var(--f-disp);font-size:20px">Wertung</b>');
-  S.spieler.forEach((p, i) => zelle('fp-kopfz', `<span class="k-dot" style="--pc:${p.farbe}">${Kern.esc(p.name.charAt(0).toUpperCase())}</span><span class="nm">${Kern.esc(p.name)}</span>`, z => dranSp(z, i)));
+  S.spieler.forEach((p, i) => zelle('fp-kopfz', `<span class="k-dot" style="--pc:${p.farbe}">${Kern.esc(p.name.charAt(0).toUpperCase())}</span><span class="nm">${Kern.esc(p.name)}</span>${Netz.laeuft && i === Netz.meinSitz ? '<span class="fp-du">du</span>' : ''}`, z => dranSp(z, i)));
   const feldZeile = f => {
-    zelle('fp-lab', `<b>${F.TITEL[f]}</b><small>${BESCHR[f]}</small>`);
+    zelle('fp-lab', `<b>${F.TITEL[f]}</b><small>${BESCHR[f]}</small>`, z => Kern.tap(z, () => { if (HANDY.matches) Kern.hinweis(`${F.TITEL[f]}: ${BESCHR[f]}`, 2200); }));
     S.spieler.forEach((p, i) => {
       const v = p.block[f];
-      if (i === S.dran && v == null && m[f]) {
+      if (i === S.dran && v == null && m[f] && meinZug()) {
         const z = zelle('fp-wert fp-moeglich' + (m[f].art === 'streichen' ? ' streichen' : '') + (wahl === f ? ' wahl' : ''),
           `<span>${m[f].art === 'streichen' ? 'streichen' : m[f].punkte}</span>`, z => dranSp(z, i));
         z.dataset.feld = f; z.setAttribute('role', 'button'); z.setAttribute('aria-label', `${F.TITEL[f]}: ${m[f].punkte}`);
@@ -236,13 +295,13 @@ function blockZeichnen(m) {
     });
   };
   F.OBEN.forEach(feldZeile);
-  zelle('fp-lab fp-summe', '<b>Oben</b><small>Bonus ab 63</small>');
+  zelle('fp-lab fp-summe', '<b>Oben</b><small>Bonus ab 63</small>', z => Kern.tap(z, () => { if (HANDY.matches) Kern.hinweis('Oben: Bonus ab 63', 2200); }));
   S.spieler.forEach((p, i) => zelle('fp-wert fp-summe', F.wertung(p).oben, z => dranSp(z, i)));
-  zelle('fp-lab fp-summe', '<b>Bonus</b><small>+35</small>');
+  zelle('fp-lab fp-summe', '<b>Bonus</b><small>+35</small>', z => Kern.tap(z, () => { if (HANDY.matches) Kern.hinweis('Bonus: +35', 2200); }));
   S.spieler.forEach((p, i) => { const w = F.wertung(p), fertig = F.OBEN.every(f => p.block[f] != null);
     zelle('fp-wert fp-summe', w.bonus ? '35' : fertig ? '–' : `<span class="fp-bonusoffen">noch ${w.fehltBonus}</span>`, z => dranSp(z, i)); });
   F.UNTEN.forEach(feldZeile);
-  zelle('fp-lab fp-summe', '<b>Zusatz</b><small>je weiterer Fünferpasch 50</small>');
+  zelle('fp-lab fp-summe', '<b>Zusatz</b><small>je weiterer Fünferpasch 50</small>', z => Kern.tap(z, () => { if (HANDY.matches) Kern.hinweis('Zusatz: je weiterer Fünferpasch 50', 2200); }));
   S.spieler.forEach((p, i) => zelle('fp-wert fp-summe', p.zusatz ? p.zusatz * 50 : '', z => dranSp(z, i)));
   zelle('fp-lab fp-gesamt', '<b style="font-family:var(--f-disp);font-size:18px">Gesamt</b>');
   S.spieler.forEach((p, i) => zelle('fp-wert fp-gesamt', F.wertung(p).gesamt));
@@ -251,11 +310,13 @@ function blockZeichnen(m) {
 /* ---------- Aktionen ---------- */
 function halten(i) {
   if (beschaeftigt || S.phase !== 'zug' || S.wurf === 0 || S.wurf >= 3) return;
-  F.halten(S, i); speichern(); Kern.ton('tipp'); zeichnen();
+  F.halten(S, i); speichern(); Netz.melden(); Kern.ton('tipp'); zeichnen();
 }
+// Mitspieler: nach dem Antippen Knöpfe sperren, bis der neue Stand vom Gastgeber da ist.
+function gesendet(k) { if (Netz.istGast) k.querySelectorAll('button').forEach(b => { b.disabled = true; }); }
 function waehlen(f) {
-  if (beschaeftigt) return;
-  if (wahl === f) { eintragen(f); return; } // zweites Antippen trägt ein
+  if (beschaeftigt || !meinZug()) return;
+  if (wahl === f) { Netz.tun('eintragen', {feld: f}); return; } // zweites Antippen trägt ein
   wahl = f; Kern.ton('tipp'); zeichnen();
 }
 async function wuerfeln() {
@@ -264,12 +325,13 @@ async function wuerfeln() {
   beschaeftigt = true; wahl = null;
   const frei = S.wurf === 0 ? [0, 1, 2, 3, 4] : S.halten.map((h, i) => h ? -1 : i).filter(i => i >= 0);
   const neue = frei.map(() => w6());
-  F.wuerfeln(S, neue); speichern();
-  B.querySelector('.fp-schale').classList.remove('leer');
-  B.querySelector('#fp-wuerfeln').disabled = true;
-  Kern.ton('wuerfel');
-  await Promise.all(frei.map((i, k) => Kern.wuerfelRollen(WE[i].w, neue[k])));
-  beschaeftigt = false;
+  try {
+    F.wuerfeln(S, neue); speichern(); Netz.melden();
+    B.querySelector('.fp-schale').classList.remove('leer');
+    const knopf = B.querySelector('#fp-wuerfeln'); if (knopf) knopf.disabled = true;
+    Kern.ton('wuerfel');
+    await Promise.all(frei.map((i, k) => Kern.wuerfelRollen(WE[i].w, neue[k])));
+  } finally { beschaeftigt = false; }
   if (F.istFuenferpasch(S.wuerfel)) { Kern.ton('sieg'); Kern.hinweis('Fünferpasch!'); }
   zeichnen();
 }
@@ -277,8 +339,11 @@ async function eintragen(f) {
   if (beschaeftigt) return;
   const r = F.eintragen(S, f); wahl = null;
   if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
+  Netz.melden();
+  const text = `${S.spieler[r.spieler].name}: ${r.art === 'streichen' ? F.TITEL[f] + ' gestrichen' : `${r.punkte} Punkte für ${F.TITEL[f]}`}${r.zusatz ? ' · +50 Zusatz' : ''}`;
   Kern.ton(r.punkte > 0 ? 'punkt' : 'legen');
-  Kern.hinweis(`${S.spieler[r.spieler].name}: ${r.art === 'streichen' ? F.TITEL[f] + ' gestrichen' : `${r.punkte} Punkte für ${F.TITEL[f]}`}${r.zusatz ? ' · +50 Zusatz' : ''}`, 1800);
+  Kern.hinweis(text, 1800);
+  Netz.ereignis({hinweis: text, ton: r.punkte > 0 ? 'punkt' : 'legen'});
   zeichnen();
   if (S.phase === 'ende') { await Kern.warte(700); ende(); }
 }
@@ -296,16 +361,82 @@ function ende() {
       <td class="k-zahl">${x.oben}</td><td class="k-zahl">${x.bonus ? '+35' : '–'}</td><td class="k-zahl">${x.unten}</td><td class="k-zahl">${x.zusatz ? '+' + x.zusatz : '–'}</td>
       <td class="k-zahl" style="font-family:var(--f-disp);font-weight:800;font-size:22px">${x.gesamt}</td></tr>`).join('')}</table></div>`;
   const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
-  const fe = Kern.fenster(box, {schliessbar: true, breit: true});
-  const b1 = Kern.el('button', 'k-btn', 'Nochmal'); b1.id = 'fp-nochmal';
-  b1.onclick = async () => { fe.schliessen(); const alt = S; const namen = alt.spieler.map(p => p.name), farben = alt.spieler.map(p => p.farbe);
-    const beginner = namen.length > 1 ? await werBeginnt(namen, farben) : 0; S = F.neu({namen, farben, optionen: {regel: alt.regel}, beginner}); speichern(); spielen(); };
-  const b2 = Kern.el('button', 'k-btn leise', 'Neues Spiel'); b2.onclick = () => { fe.schliessen(); startseite(); };
+  if (ENDE_FE) ENDE_FE.schliessen();
+  const fe = ENDE_FE = Kern.fenster(box, {schliessbar: true, breit: true});
   const b3 = Kern.el('button', 'k-btn leise', 'Block ansehen'); b3.onclick = () => fe.schliessen();
+  if (!leitet()) { // Mitspieler im Netzspiel: über das Weiterspielen entscheidet der Gastgeber
+    box.insertBefore(Kern.el('p', '', `${Kern.esc(S.spieler[0].name)} entscheidet, wie es weitergeht.`), k);
+    k.append(b3); return;
+  }
+  const b1 = Kern.el('button', 'k-btn', 'Nochmal'); b1.id = 'fp-nochmal';
+  b1.onclick = () => { fe.schliessen(); Netz.tun('nochmal'); };
+  const b2 = Kern.el('button', 'k-btn leise', 'Neues Spiel'); b2.onclick = () => { fe.schliessen(); neuesSpiel(); };
   k.append(b1, b2, b3);
 }
+async function nochmal() {
+  const alt = S; const namen = alt.spieler.map(p => p.name), farben = alt.spieler.map(p => p.farbe);
+  let beginner = 0;
+  if (namen.length > 1) {
+    if (Netz.laeuft) { beginner = F.werBeginnt(namen.length, w6).beginner; beginnerMelden(namen[beginner]); }
+    else beginner = await werBeginnt(namen, farben);
+  }
+  S = F.neu({namen, farben, optionen: {regel: alt.regel}, beginner}); speichern(); spielen(); Netz.melden();
+}
+// „Neues Spiel“: am selben Gerät zur Startseite, im Netzspiel beendet der Gastgeber es für alle.
+function neuesSpiel() { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); }
+function beginnerMelden(name) { const t = `${name} beginnt – höchster Wurf mit einem Würfel.`; Kern.hinweis(t, 2600); Netz.ereignis({hinweis: t}); }
 
-window.__test = {zustand: () => S, wuerfe: (...w) => { TEST.wuerfe.push(...w); }, setze: f => { f(S); speichern(); if (B) zeichnen(); }};
+/* ---------- Netzspiel ----------
+   Gastgeber = Sitz 0, er würfelt und hält den echten Zustand. Alles ist offen (Würfel und Block sehen alle),
+   bedienen darf nur das Gerät der Person am Zug; Nochmal/Neues Spiel nur der Gastgeber. */
+let STAND_NR = 0;
+Netz.einrichten({
+  spiel: 'fuenferpasch', min: 2, max: 6,
+  starten(spieler, o) {
+    const namen = spieler.map(p => p.name), farben = spieler.map(p => p.farbe);
+    const beginner = F.werBeginnt(namen.length, w6).beginner;
+    S = F.neu({namen, farben, optionen: {regel: o.regel === 'meister' ? 'meister' : 'grund'}, beginner});
+    spielen(); beginnerMelden(namen[beginner]);
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    if (sitz !== null && (name === 'nochmal' ? sitz !== 0 : sitz !== S.dran)) return Netz.melden();
+    try {
+      if (name === 'halten') { const i = Number(d.i); if (!(Number.isInteger(i) && i >= 0 && i < 5)) return Netz.melden(); return halten(i); }
+      if (name === 'wuerfeln') return wuerfeln();
+      if (name === 'eintragen') { if (!F.FELDER.includes(d.feld)) return Netz.melden(); return eintragen(d.feld); }
+      if (name === 'nochmal') return nochmal();
+    } catch (e) { Kern.ton('fehler'); Netz.melden(); }
+  },
+  zustand: () => JSON.parse(JSON.stringify(S)),
+  stand(d) {
+    const alt = S, nr = ++STAND_NR;
+    S = d;
+    if (!alt || !B || !B.isConnected || alt.spieler.length !== d.spieler.length || (alt.phase === 'ende' && d.phase !== 'ende')) {
+      if (ENDE_FE) { ENDE_FE.schliessen(); ENDE_FE = null; }
+      spielen(); return;
+    }
+    if (d.dran === alt.dran && d.runde === alt.runde && d.wurf === alt.wurf + 1) {
+      // gewürfelt: die neu geworfenen Würfel rollen lassen, dann zeichnen
+      const frei = alt.wurf === 0 ? [0, 1, 2, 3, 4] : d.halten.map((h, i) => h ? -1 : i).filter(i => i >= 0);
+      B.querySelector('.fp-schale').classList.remove('leer');
+      B.querySelectorAll('.fp-knoepfe button').forEach(b => { b.disabled = true; });
+      Kern.ton('wuerfel');
+      Promise.all(frei.map(i => Kern.wuerfelRollen(WE[i].w, d.wuerfel[i]))).then(() => {
+        if (nr !== STAND_NR) return;
+        if (F.istFuenferpasch(S.wuerfel)) { Kern.ton('sieg'); Kern.hinweis('Fünferpasch!'); }
+        zeichnen();
+      });
+      return;
+    }
+    zeichnen();
+    if (d.phase === 'ende' && alt.phase !== 'ende') setTimeout(() => { if (nr === STAND_NR) ende(); }, 700);
+    else if (d.dran === Netz.meinSitz && alt.dran !== d.dran) Kern.ton('tipp');
+  },
+  beendet: () => { if (ENDE_FE) { ENDE_FE.schliessen(); ENDE_FE = null; } startseite(); },
+});
+
+window.__test = {zustand: () => S, wuerfe: (...w) => { TEST.wuerfe.push(...w); }, setze: f => { f(S); speichern(); if (B) zeichnen(); Netz.melden(); }};
 startseite();
 </script>
 </body>

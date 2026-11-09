@@ -91,10 +91,44 @@
 .sv-gruppe .sv-segs.weg{position:relative}
 .sv-gruppe .sv-segs.weg::after{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:2px;background:#ffd2c8;transform:rotate(-8deg)}
 .sv-buehne .sv-rechts .sv-karte{padding:14px 16px}
+/* Telefon hoch: Meer über die ganze Breite, Titel neben den Kopfknöpfen, darunter die Bedienung als rollbarer Bereich.
+   Beim Aufstellen zeigen die Schiffsknöpfe nur ihre Länge, der Name des gewählten Schiffs steht in der Zählzeile. */
+@media (max-width:700px){
+  .sv-buehne{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+  .sv-buehne > .sv-links{padding-top:0;align-self:center;gap:4px}
+  .sv-buehne > .sv-links > .sv-titel{min-height:44px;display:flex;align-items:center;flex-wrap:wrap;column-gap:.35em;padding-right:108px;font-size:13px;line-height:1.25}
+  .sv-rechts{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:0 0 4px;gap:10px;
+    max-width:none;align-self:stretch;justify-content:flex-start;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"lage lage" "flotte mini";align-content:start}
+  .sv-rechts.sv-aufstell{display:flex;flex-direction:column}
+  .sv-buehne .sv-rechts .sv-karte{padding:12px 14px;border-radius:18px}
+  .sv-karte h2{font-size:20px;margin-bottom:4px}
+  .sv-karte p{font-size:15px}
+  .sv-lage{font-size:18px}
+  .sv-ergebnis{font-size:24px;margin-top:4px}
+  .sv-knoepfe{gap:8px;margin-top:10px}
+  .sv-knoepfe .k-btn{white-space:normal;line-height:1.15;text-align:center}
+  .sv-knoepfe .k-btn.gross{min-height:54px;font-size:19px;padding:0 16px}
+  .sv-aufstell .sv-karte p{font-size:14px}
+  .sv-flotte{gap:6px;margin-top:8px}
+  .sv-aufstell .sv-boot{min-height:40px;padding:6px 9px}
+  .sv-aufstell .sv-boot b{display:none}
+  .sv-aufstell .sv-boot .sv-segs i{width:12px;height:12px}
+  .sv-buehne .sv-aufstell .sv-knoepfe .k-btn{flex:1 1 auto;min-height:44px;font-size:15px;padding:0 10px}
+  .sv-buehne .sv-aufstell .sv-knoepfe #sv-fertig{flex:1 1 100% !important;min-height:52px;font-size:19px}
+  .sv-zaehler{font-size:14px}
+  .sv-a-flotte p{font-size:14px}
+  .sv-gruppen{gap:5px;margin-top:6px}
+  .sv-gruppe{grid-template-columns:7.4em minmax(0,1fr);font-size:13px;gap:6px}
+  .sv-gruppe > span{gap:4px}
+  .sv-gruppe .sv-segs i{width:9px;height:9px;border-radius:3px}
+  .sv-buehne .sv-rechts .sv-a-flotte{padding:12px}
+  .sv-a-mini{align-self:start}
+}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="schiffe.logik.js"></script>
 <script>
 "use strict";
@@ -112,8 +146,12 @@ sich aber nicht berühren, auch nicht über Eck.</p>
 <li><b>Nach Treffer nochmal</b>: Wer trifft, schießt gleich noch einmal.</li></ul>`;
 
 let S = null, geschuetzt = false, beschaeftigt = false, zugFertig = false;
+// Netzspiel: Der Gastgeber hält S. Ein Mitspieler kennt nur seine Ansicht GA (fremde Flotte nur als Treffer/versenkt);
+// erst bei Spielende kommt der volle Stand (dann sind beide Flotten offen).
+let GA = null, aufstellUI = false, flotteGesendet = null, schussOffen = false, partie = 0;
 const speichern = () => Kern.speicher.speichern(S);
-const nm = i => Kern.esc(S.spieler[i].name);
+const nm = i => Kern.esc(S ? S.spieler[i].name : GA.namen[i]);
+const OPT = () => (S ? S.optionen : GA.optionen);
 
 Kern.init({id: 'schiffe', name: 'Schiffe versenken', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
 
@@ -170,8 +208,19 @@ function schiffEl(c, sch, kl = '') {
 const segs = n => `<span class="sv-segs">${'<i></i>'.repeat(n)}</span>`;
 
 /* ---------- Größen ---------- */
+// Telefon hoch: Meer so breit wie möglich, unten bleiben ~330 px für die Bedienung (der Rest rollt); sichere Bereiche zählen mit.
+const HANDY = matchMedia('(max-width:700px)'), handyHoch = () => HANDY.matches && innerWidth < innerHeight;
+let SICHER_EL = null;
+function sicherRand() {
+  if (!SICHER_EL) { SICHER_EL = Kern.el('div'); SICHER_EL.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--sicher-o) 0 var(--sicher-u)'; document.body.appendChild(SICHER_EL); }
+  const c = getComputedStyle(SICHER_EL); return {o: parseFloat(c.paddingTop) || 0, u: parseFloat(c.paddingBottom) || 0};
+}
 function masse() {
   const W = innerWidth, H = innerHeight, hoch = W < H;
+  if (handyHoch()) {
+    const si = sicherRand(), frei = H - Math.max(10, si.o) - Math.max(10, si.u) - 48 - 10 - 330;
+    return {gross: Math.max(24, Math.floor(Math.min((W - 22) / 10.6, frei / 10.6))), klein: 13};
+  }
   if (hoch) return {gross: Math.floor(Math.min((W - 40) / 10.6, (H - 470) / 10.6)), klein: Math.floor(Math.min(24, W * .3 / 10.8))};
   return {gross: Math.floor(Math.min((H - 64) / 10.6, (W * .6) / 10.6)), klein: Math.floor(Math.min(25, (W * .34) / 10.8, (H * .3) / 10.8))};
 }
@@ -191,7 +240,10 @@ function aufbauen() {
   return gefechtZeichnen();
 }
 let RZ = null;
-addEventListener('resize', () => { clearTimeout(RZ); RZ = setTimeout(() => { if (B && S && (geschuetzt || S.phase === 'ende')) aufbauen(); }, 120); });
+addEventListener('resize', () => { clearTimeout(RZ); RZ = setTimeout(() => {
+  if (Netz.laeuft) { if (B && (S || GA)) netzZeichnen(true); return; }
+  if (B && S && (geschuetzt || S.phase === 'ende')) aufbauen();
+}, 120); });
 
 async function schutz(i, text) {
   B.innerHTML = '';
@@ -202,18 +254,19 @@ async function schutz(i, text) {
 /* ---------- Aufstellen ---------- */
 let AF = null; // {flotte, wahl}
 async function aufstellenZeichnen() {
-  const i = S.aufsteller;
-  if (!geschuetzt) {
+  const i = Netz.laeuft ? Netz.meinSitz : S.aufsteller;
+  if (!geschuetzt && !Netz.laeuft) {
     AF = null;
     await schutz(i, `${i === 0 ? 'Du stellst zuerst' : 'Jetzt stellst du'} deine Flotte auf. ${nm(1 - i)} schaut weg.`);
     return aufbauen();
   }
-  if (!AF) AF = {flotte: L.leereFlotte(S.optionen.flotte), wahl: 0};
+  if (!AF) AF = {flotte: L.leereFlotte(OPT().flotte), wahl: 0};
+  aufstellUI = Netz.laeuft;
   const m = masse(), br = brett(m.gross, {klasse: 'sv-aufstell', titel: `Meer von <b>${nm(i)}</b> · geheim`});
   const rechts = Kern.el('div', 'sv-rechts sv-aufstell');
   B.append(br.wrap, rechts);
   const karte = Kern.el('div', 'sv-karte');
-  karte.innerHTML = `<h2>${nm(i)}, stell deine Flotte auf</h2><p>Schiff antippen, dann ein Feld. Oder ziehen. Ein gesetztes Schiff antippen dreht es.</p>`;
+  karte.innerHTML = `<h2>${nm(i)}, stell deine Flotte auf</h2><p>Schiff antippen, dann ein Feld. Oder ziehen. Ein gesetztes Schiff antippen dreht es.</p>${Netz.laeuft ? '<p class="sv-netzinfo" id="sv-netzinfo"></p>' : ''}`;
   const flotte = Kern.el('div', 'sv-flotte'); karte.appendChild(flotte);
   const zaehler = Kern.el('div', 'sv-zaehler'); karte.appendChild(zaehler);
   const kn = Kern.el('div', 'sv-knoepfe'); karte.appendChild(kn);
@@ -222,7 +275,7 @@ async function aufstellenZeichnen() {
   const leer = Kern.el('button', 'k-btn leise', 'Alle zurück'); leer.id = 'sv-leeren';
   const fertig = Kern.el('button', 'k-btn gross', 'Fertig'); fertig.id = 'sv-fertig'; fertig.style.flexBasis = '100%';
   kn.append(dreh, zufall, leer, fertig); rechts.appendChild(karte);
-  const ab = S.optionen.abstand, c = m.gross;
+  const ab = OPT().abstand, c = m.gross;
   let ausrichtung = 'h';
   const geist = Kern.el('div', 'sv-geist'); geist.hidden = true; br.meer.appendChild(geist);
 
@@ -236,10 +289,10 @@ async function aufstellenZeichnen() {
     flotte.innerHTML = '';
     AF.flotte.forEach(s => {
       const b = Kern.el('button', 'sv-boot' + (s.x != null ? ' gesetzt' : '') + (AF.wahl === s.id ? ' wahl' : ''), `${segs(s.laenge)}<b>${Kern.esc(s.name)}</b>`);
-      b.id = 'sv-boot-' + s.id; flotte.appendChild(b); greifbar(b, s.id, 'dock');
+      b.id = 'sv-boot-' + s.id; b.setAttribute('aria-label', s.name + ' (' + s.laenge + ' Felder)'); flotte.appendChild(b); greifbar(b, s.id, 'dock');
     });
-    const offen = AF.flotte.filter(s => s.x == null).length;
-    zaehler.textContent = offen ? `Noch ${offen} ${offen === 1 ? 'Schiff' : 'Schiffe'} zu setzen · Ausrichtung: ${ausrichtung === 'h' ? 'waagerecht' : 'senkrecht'}` : 'Alle Schiffe liegen. Passt alles?';
+    const offen = AF.flotte.filter(s => s.x == null).length, gew = AF.wahl != null && AF.wahl >= 0 ? AF.flotte[AF.wahl] : null;
+    zaehler.textContent = offen ? `${handyHoch() && gew && gew.x == null ? `Gewählt: ${gew.name} (${gew.laenge}) · ` : ''}Noch ${offen} ${offen === 1 ? 'Schiff' : 'Schiffe'} zu setzen · Ausrichtung: ${ausrichtung === 'h' ? 'waagerecht' : 'senkrecht'}` : 'Alle Schiffe liegen. Passt alles?';
     fertig.disabled = !!offen;
   }
   const naechstesOffenes = () => { const o = AF.flotte.find(s => s.x == null); return o ? o.id : null; };
@@ -306,21 +359,29 @@ async function aufstellenZeichnen() {
     setzen(AF.wahl, z.x, z.y, ausrichtung); zeichnen();
   });
   dreh.onclick = () => { if (AF.wahl != null && AF.wahl >= 0) drehen(AF.wahl); else { ausrichtung = ausrichtung === 'h' ? 'v' : 'h'; zeichnen(); } };
-  zufall.onclick = () => { AF.flotte = L.zufaellig(S.optionen.flotte, ab, Kern.zufall); AF.wahl = -1; Kern.ton('stein'); zeichnen(); };
-  leer.onclick = () => { AF.flotte = L.leereFlotte(S.optionen.flotte); AF.wahl = 0; Kern.ton('tipp'); zeichnen(); };
+  zufall.onclick = () => { AF.flotte = L.zufaellig(OPT().flotte, ab, Kern.zufall); AF.wahl = -1; Kern.ton('stein'); zeichnen(); };
+  leer.onclick = () => { AF.flotte = L.leereFlotte(OPT().flotte); AF.wahl = 0; Kern.ton('tipp'); zeichnen(); };
   fertig.onclick = async () => {
     if (beschaeftigt) return;
+    if (Netz.laeuft) { // Flotte an den Gastgeber; bis zur Antwort zeigt das Gerät sie als „wartet“
+      const fl = AF.flotte.map(({id, x, y, r}) => ({id, x, y, r}));
+      flotteGesendet = AF.flotte.map(x => ({...x})); AF = null; aufstellUI = false; Kern.ton('runde');
+      Netz.tun('flotte', {flotte: fl});
+      if (Netz.istGast) netzZeichnen(true);
+      return;
+    }
     L.aufstellen(S, i, AF.flotte); speichern(); AF = null; geschuetzt = false; Kern.ton('runde');
     B.innerHTML = '';
     if (S.phase === 'spiel') Kern.hinweis(`Das Los sagt: ${S.spieler[S.beginner].name} schießt zuerst.`, 2600);
     aufbauen();
   };
-  zeichnen();
+  zeichnen(); netzInfo();
 }
 
 /* ---------- Gefecht ---------- */
 async function gefechtZeichnen() {
   if (S.phase === 'ende') return endeZeichnen();
+  if (Netz.laeuft) return netzZeichnen(true);
   const ich = S.dran, du = L.gegner(ich);
   if (!geschuetzt) {
     zugFertig = false;
@@ -393,14 +454,15 @@ async function gefechtZeichnen() {
 
 function endeZeichnen() {
   const sg = S.sieger, vl = L.gegner(sg);
-  const c = Math.floor(Math.min((innerWidth - 70) / 21.6, (innerHeight - 330) / 11));
+  const handy = handyHoch();
+  const c = handy ? Math.floor((innerWidth - 32) / 21.2) : Math.floor(Math.min((innerWidth - 70) / 21.6, (innerHeight - 330) / 11));
   const a = brett(c, {titel: `Meer von <b>${nm(vl)}</b>`}), b = brett(c, {titel: `Meer von <b>${nm(sg)}</b>`});
   const zeig = (br, i) => {
     S.spieler[i].flotte.forEach(s => br.meer.appendChild(schiffEl(c, s, L.istVersenkt(S, i, s) ? 'wrack' : '')));
     S.spieler[i].beschossen.forEach(f => br.felder[f].className = 'sv-feld ' + (L.schiffAuf(S, i, f) ? 'treffer' : 'wasser'));
   };
   zeig(a, vl); zeig(b, sg);
-  const boards = Kern.el('div'); boards.style.cssText = 'display:flex;gap:24px;justify-content:center;align-items:flex-start';
+  const boards = Kern.el('div'); boards.style.cssText = `display:flex;gap:${handy ? 12 : 24}px;justify-content:center;align-items:flex-start`;
   boards.append(a.wrap, b.wrap);
   const karte = Kern.el('div', 'sv-karte');
   const treffer = S.spieler[vl].beschossen.filter(f => L.schiffAuf(S, vl, f)).length, schuesse = S.spieler[vl].beschossen.length;
@@ -408,14 +470,165 @@ function endeZeichnen() {
     ${nm(vl)} hat ${L.versenkteSchiffe(S, sg).length} von ${S.spieler[sg].flotte.length} Schiffen versenkt. Jetzt sind beide Flotten offen.</p>`;
   const k = Kern.el('div', 'sv-knoepfe');
   const n = Kern.el('button', 'k-btn gross', 'Nochmal'); n.id = 'sv-nochmal';
-  n.onclick = () => { const alt = S; S = L.neu({namen: alt.spieler.map(p => p.name), farben: alt.spieler.map(p => p.farbe), optionen: alt.optionen, beginner: Kern.zufall(2)}); speichern(); spielen(); };
-  const nn = Kern.el('button', 'k-btn gross leise', 'Neues Spiel'); nn.onclick = () => startseite();
-  k.append(n, nn); karte.appendChild(k);
-  B.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding-top:64px';
+  n.onclick = () => {
+    const alt = S; S = L.neu({namen: alt.spieler.map(p => p.name), farben: alt.spieler.map(p => p.farbe), optionen: alt.optionen, beginner: Kern.zufall(2)}); speichern();
+    if (Netz.laeuft) { partie++; AF = null; aufstellUI = false; flotteGesendet = null; Netz.melden(); return netzZeichnen(true); }
+    spielen();
+  };
+  const nn = Kern.el('button', 'k-btn gross leise', 'Neues Spiel'); nn.onclick = () => { if (Netz.aktiv) Netz.verlassen(); startseite(); };
+  if (Netz.istGast) karte.insertAdjacentHTML('beforeend', `<p style="margin-top:10px">${Kern.esc(Netz.sitze[0].name)} entscheidet, wie es weitergeht.</p>`);
+  else { k.append(n, nn); karte.appendChild(k); }
+  if (handy) { boards.style.marginTop = 'auto'; karte.style.marginBottom = 'auto'; } // Telefon: mittig, solange Platz ist, sonst oben beginnend (rollt)
+  B.style.cssText = handy ? 'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:14px;padding-top:calc(max(10px,var(--sicher-o)) + 54px);overflow-y:auto;touch-action:pan-y'
+    : 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding-top:64px';
   B.append(boards, karte); karte.style.maxWidth = '720px';
 }
 
-window.__test = {zustand: () => S, aufstellung: () => AF};
+/* ---------- Netzspiel: jeder mit eigenem Gerät ---------- */
+// Ansicht für Sitz ich: eigene Flotte offen, fremde nur als Wasser/Treffer/versenkt (versenkte Schiffe sind offen).
+function ansicht(S, ich) {
+  const du = L.gegner(ich), l = S.letzter, start = S.phase !== 'aufstellen';
+  const ohne = ({id, name, laenge}) => ({id, name, laenge});
+  return {
+    partie, phase: S.phase, ich, du, dran: S.dran, beginner: S.beginner, zuege: S.zuege, optionen: S.optionen,
+    namen: S.spieler.map(p => p.name), farben: S.spieler.map(p => p.farbe), bereit: S.spieler.map(p => p.bereit),
+    ziel: start ? L.zielbild(S, ich) : null,
+    gegner: S.spieler[du].flotte.map(x => Object.assign(ohne(x), {versenkt: start && L.istVersenkt(S, du, x)})),
+    wracks: start ? L.versenkteSchiffe(S, du).map(x => Object.assign(ohne(x), {x: x.x, y: x.y, r: x.r})) : [],
+    meine: S.spieler[ich].bereit ? S.spieler[ich].flotte.map(x => Object.assign(ohne(x), {x: x.x, y: x.y, r: x.r, versenkt: start && L.istVersenkt(S, ich, x)})) : null,
+    beschossen: S.spieler[ich].beschossen.map(f => [f, !!L.schiffAuf(S, ich, f)]),
+    letzter: l ? {schuetze: l.schuetze, feld: l.feld, ergebnis: l.ergebnis,
+      schiff: l.schiff && (l.ergebnis === 'versenkt' || l.schuetze === du) ? {name: l.schiff.name, laenge: l.schiff.laenge} : null} : null,
+  };
+}
+const netzA = () => (Netz.istGast ? GA : ansicht(S, Netz.meinSitz));
+function netzInfo() {
+  const e = document.getElementById('sv-netzinfo'); if (!e) return;
+  const A = netzA(); e.textContent = A.bereit[A.du] ? `${A.namen[A.du]} ist schon fertig.` : `${A.namen[A.du]} stellt noch auf.`;
+}
+/* Zeichnet die Lage aus Sicht des eigenen Sitzes. Während man selbst aufstellt, bleibt die Aufstellung stehen (force = neu). */
+function netzZeichnen(force) {
+  if (START) START.hidden = true;
+  Kern.kopf(true, 'rechts');
+  if (S && S.phase === 'ende') { document.querySelectorAll('.sv-buehne').forEach(e => e.remove()); B = Kern.el('div', 'k-buehne sv-buehne'); document.body.appendChild(B); endeZeichnen(); return plakette(); }
+  const A = netzA();
+  if (A.phase === 'aufstellen' && !A.bereit[A.ich] && !flotteGesendet) {
+    if (aufstellUI && !force) return netzInfo();
+    document.querySelectorAll('.sv-buehne').forEach(e => e.remove());
+    B = Kern.el('div', 'k-buehne sv-buehne'); document.body.appendChild(B);
+    aufstellenZeichnen(); return plakette();
+  }
+  aufstellUI = false; AF = null;
+  document.querySelectorAll('.sv-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne sv-buehne'); document.body.appendChild(B);
+  if (A.phase === 'aufstellen') netzWarten(A); else netzGefecht(A);
+  plakette();
+}
+// Die Code-Plakette liegt sonst unter den Kopfknöpfen oben rechts: links daneben setzen.
+function plakette() {
+  const kopf = document.querySelector('.k-kopf'), pk = document.querySelector('.nz-plakette');
+  if (!kopf || !pk) return;
+  const kr = kopf.getBoundingClientRect();
+  Object.assign(pk.style, {top: (kr.top + (kr.height - pk.offsetHeight) / 2) + 'px', right: (innerWidth - kr.left + 8) + 'px'});
+}
+function netzWarten(A) {
+  const m = masse(), fl = A.meine || flotteGesendet || [];
+  const br = brett(m.gross, {klasse: 'sv-aufstell', titel: `Deine Flotte · geheim`});
+  fl.forEach(x => br.meer.appendChild(schiffEl(m.gross, x)));
+  const rechts = Kern.el('div', 'sv-rechts'), karte = Kern.el('div', 'sv-karte');
+  karte.innerHTML = `<h2>Deine Flotte steht</h2><p>${A.bereit[A.du] ? `${nm(A.du)} ist auch fertig.` : `Warte, bis ${nm(A.du)} die Flotte aufgestellt hat …`}</p>`;
+  rechts.appendChild(karte); B.append(br.wrap, rechts);
+}
+function netzGefecht(A) {
+  const ich = A.ich, du = A.du, meinZug = A.phase === 'spiel' && A.dran === ich, m = masse();
+  const ziel = brett(m.gross, {klasse: 'sv-ziel' + (meinZug ? ' aktiv' : ''), titel: `Meer von <b>${nm(du)}</b>`});
+  const rechts = Kern.el('div', 'sv-rechts'); B.append(ziel.wrap, rechts);
+  const lage = Kern.el('div', 'sv-karte sv-a-lage'); rechts.appendChild(lage);
+  const txt = {wasser: 'Wasser', treffer: 'Treffer!', versenkt: `Versenkt${A.letzter && A.letzter.schiff ? ': ' + Kern.esc(A.letzter.schiff.name) : ''}!`};
+  const l = A.letzter;
+  if (meinZug) lage.innerHTML = `<div class="sv-lage"><span>Du</span> bist dran: Wohin schießt du?</div>`
+    + (l && l.schuetze === ich ? `<span class="sv-ergebnis ${l.ergebnis}">${txt[l.ergebnis]}</span><p>Getroffen – du darfst nochmal.</p>`
+      : l ? `<p style="margin-top:6px">${nm(du)} hat auf ${L.feldName(l.feld)} geschossen: ${txt[l.ergebnis]}</p>` : `<p style="margin-top:6px">Tippe ein freies Feld im Meer von ${nm(du)}.</p>`);
+  else lage.innerHTML = `<div class="sv-lage"><span>${nm(du)}</span> schießt auf dein Meer …</div>`
+    + (l ? `<div class="sv-lage" style="margin-top:6px;font-size:17px">${L.feldName(l.feld)}: <span class="sv-ergebnis ${l.ergebnis}">${txt[l.ergebnis]}</span></div>
+      <p>${l.schuetze === ich ? `Dein Schuss. Jetzt ist ${nm(du)} dran.` : `${nm(du)} hat getroffen und darf nochmal.`}</p>` : '');
+  // fremde Flotte: nur, was versenkt ist
+  const fl = Kern.el('div', 'sv-karte sv-a-flotte'), arten = [...new Set(A.gegner.map(x => x.name))], weg = A.gegner.filter(x => x.versenkt).length;
+  fl.innerHTML = `<p>Flotte von ${nm(du)} · noch ${A.gegner.length - weg} von ${A.gegner.length} Schiffen</p>
+    <div class="sv-gruppen">${arten.map(n => `<div class="sv-gruppe"><b>${Kern.esc(n)}</b><span>${A.gegner.filter(x => x.name === n)
+      .sort((a, b) => a.versenkt - b.versenkt).map(x => `<span class="sv-segs${x.versenkt ? ' weg' : ''}" title="${x.versenkt ? 'versenkt' : 'schwimmt'}">${'<i></i>'.repeat(x.laenge)}</span>`).join('')}</span></div>`).join('')}</div>`;
+  const mein = brett(m.klein, {klasse: 'sv-klein sv-a-mini', titel: 'Deine Flotte'});
+  rechts.append(fl, mein.wrap);
+  (A.meine || []).forEach(x => mein.meer.appendChild(schiffEl(m.klein, x, x.versenkt ? 'wrack' : '')));
+  A.beschossen.forEach(([f, t]) => mein.felder[f].className = 'sv-feld ' + (t ? 'treffer' : 'wasser'));
+  if (l && l.schuetze === du) mein.felder[l.feld].classList.add('zuletzt');
+  A.ziel.forEach((art, f) => { ziel.felder[f].className = 'sv-feld ' + art; });
+  A.wracks.forEach(x => ziel.meer.appendChild(schiffEl(m.gross, x, 'wrack')));
+  if (l && l.schuetze === ich) ziel.felder[l.feld].classList.add('zuletzt');
+  schussOffen = false;
+  Kern.tap(ziel.meer, ev => {
+    const f = ev.target.closest('.sv-feld'); if (!f) return;
+    if (!meinZug) { Kern.hinweis(`${A.namen[du]} ist dran.`); return; }
+    if (schussOffen) return;
+    const i = Number(f.dataset.i);
+    if (A.ziel[i] !== 'leer' && A.ziel[i] !== 'frei') { Kern.hinweis('Da hast du schon hingeschossen.'); return; }
+    schussOffen = true; Netz.tun('schuss', {f: i});
+  });
+}
+function netzTon(l) { if (!l) return; Kern.ton(l.ergebnis === 'wasser' ? 'legen' : l.ergebnis === 'treffer' ? 'warn' : 'gong'); if (l.ergebnis === 'versenkt') setTimeout(() => Kern.ton('punkt'), 350); }
+
+Netz.einrichten({
+  spiel: 'schiffe', min: 2, max: 2,
+  starten(spieler, optionen) {
+    S = L.neu({namen: spieler.map(p => p.name), farben: spieler.map(p => p.farbe), optionen, beginner: Kern.zufall(2)});
+    partie++; AF = null; aufstellUI = false; flotteGesendet = null; geschuetzt = true;
+    netzZeichnen(true);
+  },
+  aktion(name, d, sitz) {
+    if (!S || sitz === null) return;
+    if (name === 'flotte') {
+      if (S.phase !== 'aufstellen' || S.spieler[sitz].bereit || !Array.isArray(d.flotte)) return Netz.melden();
+      const fl = L.leereFlotte(S.optionen.flotte), bei = {};
+      d.flotte.forEach(x => { if (x && Number.isInteger(+x.id)) bei[+x.id] = x; });
+      fl.forEach(x => { const q = bei[x.id]; if (q) { x.x = Number(q.x); x.y = Number(q.y); x.r = q.r === 'v' ? 'v' : 'h'; } });
+      if (fl.some(x => !Number.isInteger(x.x) || !Number.isInteger(x.y)) || !L.flotteGueltig(fl, S.optionen.abstand, S.optionen.flotte)) return Netz.melden();
+      S.spieler[sitz].flotte = fl; S.spieler[sitz].bereit = true;
+      if (S.spieler.every(p => p.bereit)) {
+        S.phase = 'spiel'; S.dran = S.beginner; flotteGesendet = null;
+        const t = `Das Los sagt: ${S.spieler[S.beginner].name} schießt zuerst.`;
+        Kern.hinweis(t, 2600); Netz.ereignis({hinweis: t, ton: 'runde'});
+      }
+      Netz.melden();
+      return netzZeichnen(sitz === Netz.meinSitz || S.phase !== 'aufstellen');
+    }
+    if (name === 'schuss') {
+      const f = Number(d.f);
+      if (S.phase !== 'spiel' || sitz !== S.dran || !Number.isInteger(f) || f < 0 || f > 99 || S.spieler[L.gegner(sitz)].beschossen.includes(f)) return Netz.melden();
+      L.schiessen(S, f);
+      Netz.melden(); netzTon(S.letzter); netzZeichnen(true);
+      if (S.phase === 'ende') { const sieg = S.sieger === Netz.meinSitz; Kern.ton(sieg ? 'sieg' : 'runde'); if (sieg) Kern.feier(); Netz.ereignis({daten: {ende: true}}); }
+    }
+  },
+  zustand: sitz => (S.phase === 'ende' ? {voll: S, partie} : {a: ansicht(S, sitz)}),
+  stand(d) {
+    if (d.voll) { // Spielende: alles offen
+      const neu = !S || S.zuege !== d.voll.zuege; S = d.voll; GA = null; aufstellUI = false; AF = null; flotteGesendet = null;
+      if (neu) netzZeichnen(true); return;
+    }
+    const alt = GA, A = d.a;
+    const neuePartie = !alt || alt.partie !== A.partie || (S && S.phase === 'ende');
+    S = null; GA = A;
+    if (neuePartie) { AF = null; aufstellUI = false; flotteGesendet = null; return netzZeichnen(true); }
+    if (A.meine) flotteGesendet = null;
+    if (A.phase === 'aufstellen' && !A.bereit[A.ich] && !flotteGesendet && aufstellUI) return netzInfo();
+    if (A.zuege > alt.zuege) netzTon(A.letzter);
+    netzZeichnen(true);
+  },
+  ereignis(d) { if (d.ende && S && S.sieger != null) { const sieg = S.sieger === Netz.meinSitz; Kern.ton(sieg ? 'sieg' : 'runde'); if (sieg) Kern.feier(); } },
+  beendet: () => { GA = null; AF = null; aufstellUI = false; flotteGesendet = null; startseite(); },
+});
+
+window.__test = {zustand: () => S, aufstellung: () => AF, ansicht: () => GA};
 startseite();
 </script>
 </body>

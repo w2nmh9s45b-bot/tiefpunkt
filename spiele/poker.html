@@ -94,10 +94,72 @@
 .pk-plaetze div{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.05);font-size:18px}
 .pk-plaetze div.eins{background:color-mix(in srgb,var(--warn) 22%,transparent);border:1px solid var(--warn)}
 .pk-plaetze b{font-family:var(--f-disp);font-size:22px;min-width:34px}
+
+/* ---------- Telefon hoch: schmale Sitze ohne Punkt (Farbe als Randstreifen), verdeckte Karten und Einsatz in einer
+   Zeile unter dem Namen, offene Karten nur beim Zeigen; Leiste kompakt. Die Sitzordnung rechnet handyGeometrie(). ---------- */
+@media (max-width:700px){
+  #pk{gap:8px;padding-left:max(6px,var(--sicher-l));padding-right:max(6px,var(--sicher-r))}
+  .pk-filz{box-shadow:0 0 0 7px #3b2a1c, 0 0 0 9px rgba(255,255,255,.08), 0 18px 40px rgba(0,0,0,.5), inset 0 0 40px rgba(0,0,0,.35)}
+  .pk-filz::after{inset:12px}
+  .pk-mitte{gap:6px}
+  .pk-board{gap:var(--bg,5px)}
+  .pk-topf{font-size:16px;padding:4px 12px 4px 6px;gap:8px}
+  .pk-topf{flex-wrap:wrap;justify-content:center;row-gap:0;border-radius:18px;max-width:200px}
+  .pk-topf small{font-size:13px;flex-basis:100%;text-align:center;line-height:1.2}
+  .pk-mitte .pk-info{position:static;text-align:center;font-size:13px;line-height:1.3;max-width:100%}
+  .pk-sitz{gap:3px}
+  .pk-sitz .pk-schild{padding:5px 8px 5px 9px;border-left:4px solid var(--pc);grid-template-columns:minmax(0,1fr);border-radius:12px;row-gap:1px}
+  .pk-sitz .pk-schild .k-dot{display:none}
+  .pk-sitz .pk-name{font-size:14px;line-height:1.2}
+  .pk-sitz .pk-stack{font-size:13px;line-height:1.2}
+  .pk-sitz .pk-stack b{font-size:14px}
+  .pk-sitz .pk-hk:empty{display:none}
+  .pk-sitz .pk-hk{margin-bottom:calc(var(--sk) * -.7)}
+  .pk-sitz .pk-tat{font-size:13px;min-height:20px;line-height:16px;padding:2px 8px;max-width:calc(var(--sw) + 14px);white-space:normal;text-align:center;border-radius:10px}
+  .pk-knopf{right:6px;top:-10px;width:22px;height:22px;padding:0;font-size:12px;letter-spacing:0;border-radius:50%}
+  .pk-unter{display:flex;align-items:center;justify-content:center;gap:5px;min-height:20px;max-width:calc(var(--sw) + 14px)}
+  .pk-schild .pk-mini{position:absolute;left:14px;top:-13px;z-index:-1;display:flex}
+  .pk-schild .pk-mini .k-karte:last-child{margin-left:-7px;transform:rotate(8deg)}
+  .pk-schild .pk-mini .k-karte:first-child{transform:rotate(-6deg)}
+  .pk-unter .pk-einsatz{position:static;transform:none;font-size:13px;padding:1px 8px 1px 3px;gap:4px}
+  .pk-unter .pk-hand{font-size:13px;line-height:1.2;max-width:100%;min-height:0;color:var(--ink)}
+  .pk-leiste{min-height:0;padding:10px 12px;gap:10px;flex-wrap:wrap;border-radius:18px}
+  .pk-leiste > .pk-reihe{width:100%}
+  .pk-satz{flex:1 1 100%;font-size:16px;max-height:24dvh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain}
+  .pk-satz small{font-size:14px;margin-top:2px}
+  .pk-leiste.hoch{gap:8px}
+  .pk-reihe{gap:8px}
+  .pk-reihe .k-btn.gross{flex:1 1 0;min-width:0;min-height:48px;font-size:17px;padding:0 10px;border-radius:13px;white-space:normal;line-height:1.15;text-align:center}
+  .pk-reihe #pk-setzen,.pk-reihe #pk-allin{flex-basis:100%}
+  .pk-eigen{gap:12px}
+  .pk-eigen .pk-ek{gap:6px}
+  .pk-eigen .pk-wer h2{font-size:21px}
+  .pk-eigen .pk-wer em,.pk-eigen .pk-wer span{font-size:14px}
+  .pk-erh{padding:6px;gap:6px}
+  .pk-erh input[type=range]{flex:1 1 60px;min-width:0;height:34px}
+  .pk-pm{width:42px;height:42px}
+  .pk-betrag{font-size:19px;min-width:54px}
+  .pk-erh .pk-schnell{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(56px,1fr));gap:5px}
+  .pk-erh .pk-schnell button{min-height:42px;padding:0 3px;font-size:13px}
+  .pk-erg{margin:0 -6px}
+  .pk-erg table{font-size:13px;display:block;overflow-x:auto;clear:both}
+  .pk-erg tbody{display:table;width:100%}
+  .pk-erg td,.pk-erg th{padding:6px 3px}
+  .pk-erg th{font-size:11.5px;letter-spacing:.02em;white-space:normal;-webkit-hyphens:auto;hyphens:auto}
+  .pk-erg td:nth-child(2){overflow-wrap:anywhere}
+  .pk-plaetze div{font-size:17px;padding:8px 12px}
+}
+/* Netzspiel: oben rechts sitzt die Plakette mit dem Code */
+.pk-netz .pk-info{top:46px}
+/* Netzspiel: Leiste beim Warten – eigene Karten links, Lage rechts daneben */
+.pk-leiste.pk-warte{flex-direction:row;flex-wrap:nowrap;align-items:center}
+.pk-leiste.pk-warte .pk-satz{flex:1 1 auto;min-width:0}
+@media (max-width:700px){.pk-leiste.pk-warte{min-height:0}.pk-leiste.pk-warte .pk-satz{font-size:15px;max-height:none}.pk-leiste.pk-warte .pk-satz small{font-size:13px}}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="poker.logik.js"></script>
 <script>
 "use strict";
@@ -129,6 +191,9 @@ const STRASSE = {preflop: 'Vor dem Flop', flop: 'Flop', turn: 'Turn', river: 'Ri
 
 let S = null, BUEHNE = null, SETUP = null, gezeigtBoard = 0, LAUF = 0;
 const rnd = n => Kern.zufall(n);
+// Wer sitzt unten? Am selben Gerät Platz 1, im Netzspiel die Person an diesem Gerät.
+const basis = () => (Netz.laeuft ? Netz.meinSitz : 0);
+const leitet = () => !Netz.laeuft || Netz.istHost;   // Nächste Hand, Nochmal, Beenden: nur Gastgeber (bzw. am selben Gerät)
 
 Kern.init({id: 'poker', name: 'Poker', akzent: '#5fcf8f', regeln: REGELN_HTML, onNeu: () => { Kern.speicher.loeschen(); startseite(); },
   menue: [{text: 'Verlauf dieser Hand', aktion: () => verlauf()}]});
@@ -169,13 +234,72 @@ function spielStarten() {
     BUEHNE.innerHTML = `<div class="pk-tisch" id="pk-tisch"></div><div class="pk-leiste" id="pk-leiste"></div>`;
     document.body.appendChild(BUEHNE);
   }
+  BUEHNE.classList.toggle('pk-netz', Netz.laeuft);
   gezeigtBoard = S.board.length;
-  zeichnen(); ablauf();
+  zeichnen();
+  if (Netz.laeuft) netzSchritt(); else ablauf();
 }
 
 let GEOM = null;
-function geometrie() {
+const HANDY_MQ = matchMedia('(max-width:700px)');
+const handy = () => HANDY_MQ.matches;
+// Liegen die Karten dieses Platzes offen (Showdown oder alle All-in)?
+function istOffen(i) {
+  const p = S.ph[i], erg = S.ergebnis;
+  return !!(p && (p.status === 'aktiv' || p.status === 'allin') && ((erg && erg.gezeigt && erg.gezeigt[i]) || (S.aufgedeckt && S.phase !== 'handende')));
+}
+// Telefon hoch: hoher Tisch, schmale Sitze. Sitzhöhe ohne offene Karten ~88 px, mit offenen Karten mehr (dann ist die
+// Leiste klein). Danach: Sitze aus der Ecke der Kopfknöpfe schieben, Board so groß wie zwischen den Sitzen Platz ist.
+function handyGeometrie(W, H, messH = 0) {
+  const n = S.spieler.length;
+  const sw = Math.round(n >= 7 ? Math.min(100, W * .255) : Math.min(108, W * .27));
+  const sk = Math.round(Math.max(30, Math.min(38, sw / 3.1)));
+  const offen = S.spieler.some((_, i) => istOffen(i));
+  // offene Karten stecken zur Hälfte hinter dem Namensschild (Ecke mit Wert und Farbe bleibt frei)
+  const sh = Math.max(messH, 96 + (offen ? Math.round(sk * .7) + 3 : 0));
+  // oben 12 px frei: dort schauen die verdeckten Karten des obersten Sitzes hervor
+  const cx = W / 2; let cy = (H + 12) / 2;
+  const rx = W / 2 - sw / 2; let ry = Math.max(60, (H - 12) / 2 - sh / 2);
+  const KOPF = {x0: 0, y0: 0, x1: 106, y1: 50};
+  const PLAKETTE = Netz.laeuft ? {x0: W - 96, y0: 0, x1: W, y1: 44} : null; // Netzspiel: Code-Plakette oben rechts
+  const schneidet = (a, b) => !!b && a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
+  const b0 = basis();
+  // Sitze gleichmäßig auf dem Umfang eines Rechtecks (unten Mitte beginnend, wie im Oval nach links herum): die
+  // Sitze einer Seite haben so den größten senkrechten Abstand – wichtig auf dem schmalen, hohen Bildschirm
+  const lage = () => { const P = 4 * rx + 4 * ry; return S.spieler.map((_, i) => {
+    let d = ((i - b0 + n) % n) * P / n, x, y;
+    if (d <= rx) { x = cx - d; y = cy + ry; }
+    else if ((d -= rx) <= 2 * ry) { x = cx - rx; y = cy + ry - d; }
+    else if ((d -= 2 * ry) <= 2 * rx) { x = cx - rx + d; y = cy - ry; }
+    else if ((d -= 2 * rx) <= 2 * ry) { x = cx + rx; y = cy - ry + d; }
+    else { d -= 2 * ry; x = cx + rx - d; y = cy + ry; }
+    return {x, y, r: {x0: x - sw / 2, x1: x + sw / 2, y0: y - sh / 2 - 2, y1: y + sh / 2}};
+  }); };
+  let sitze = lage();
+  for (let k = 0; k < 60 && ry > 60 && sitze.some(s => schneidet(s.r, KOPF) || schneidet(s.r, PLAKETTE)); k++) { cy += 1.5; ry -= 1.5; sitze = lage(); }
+  // Mitte: Straße, Board, Topf, Info – größtes Board, das keinen Sitz berührt
+  // (darf dafür etwas aus der Mitte rücken, wenn neben den seitlichen Sitzen zu wenig Platz ist)
+  const davon = S.phase !== 'handende' && S.ph.some(p => p && p.einsatz > 0) && Poker.topf(S) > S.ph.reduce((a, p) => a + (p ? p.einsatz : 0), 0);
+  const topfH = davon ? 50 : 32, infoH = S.opt.steigen > 0 ? 36 : 18;
+  let bk = 0, bg = 5, my = cy, besteU = Infinity;
+  const ueberlapp = m => sitze.reduce((a, s) => a + Math.max(0, Math.min(s.r.x1, m.x1) - Math.max(s.r.x0, m.x0)) * Math.max(0, Math.min(s.r.y1, m.y1) - Math.max(s.r.y0, m.y0)), 0);
+  suche: for (let b = 64; b >= 30; b--) {
+    const g = b >= 44 ? 7 : 5, bw = Math.max(5 * b + 4 * g, 150), bh = 15 + 6 + b * 1.4 + 6 + topfH + 6 + infoH;
+    if (b * 5 + 4 * g > W - 8) continue;
+    for (let d = 0; d <= ry * .45; d += 4) for (const dy of d ? [-d, d] : [0]) {
+      const y = cy + dy, m = {x0: cx - bw / 2 - 3, x1: cx + bw / 2 + 3, y0: y - bh / 2 - 3, y1: y + bh / 2 + 3};
+      const u = ueberlapp(m);
+      if (!u) { bk = b; bg = g; my = y; break suche; }
+      if (b === 30 && u < besteU) { besteU = u; my = y; }   // nirgends ganz frei: kleinstes Board mit der geringsten Überdeckung
+    }
+  }
+  if (!bk) bk = 30;
+  const fw = Math.max(160, W - sw * .9), fh = Math.max(200, 2 * ry + sh * .1);
+  return {W, H, cx, cy, my, rx, ry, fw, fh, bk, bg, sw, sk, sh, sitze, hoch: true, handy: true};
+}
+function geometrie(messH = 0) {
   const t = $('#pk-tisch'); const W = t.clientWidth, H = t.clientHeight;
+  if (handy()) return (GEOM = handyGeometrie(W, H, messH));
   const hoch = W < 900;
   const n = S.spieler.length;
   const sw = Math.max(118, Math.min(168, W / (hoch ? 4.6 : 7)));
@@ -185,24 +309,26 @@ function geometrie() {
   const rx = Math.max(160, W / 2 - sw / 2 - 6), ry = Math.max(120, H / 2 - seatH / 2 - 2);
   const fw = rx * 2 * (hoch ? .74 : .72), fh = ry * 2 * (hoch ? .66 : .62);
   const bk = Math.round(Math.max(44, Math.min(hoch ? 74 : 78, fw / 7.2, fh / 2.9)));
+  const b0 = basis();
   const sitze = S.spieler.map((_, i) => {
-    const w = Math.PI / 2 + i * 2 * Math.PI / n;
+    const w = Math.PI / 2 + ((i - b0 + n) % n) * 2 * Math.PI / n;
     return {x: cx + rx * Math.cos(w), y: cy + ry * Math.sin(w), w};
   });
   GEOM = {W, H, cx, cy, rx, ry, fw, fh, bk, sw, sk, sitze, hoch};
   return GEOM;
 }
 
-function zeichnen() {
+function zeichnen(messH = 0) {
   if (!S || !BUEHNE) return;
-  const g = geometrie();
+  const g = geometrie(messH), boardVorher = gezeigtBoard;
   const t = $('#pk-tisch'); t.innerHTML = '';
   t.style.setProperty('--bk', g.bk + 'px'); t.style.setProperty('--sw', g.sw + 'px'); t.style.setProperty('--sk', g.sk + 'px');
+  if (g.handy) t.style.setProperty('--bg', g.bg + 'px');
   const filz = Kern.el('div', 'pk-filz');
   Object.assign(filz.style, {left: (g.cx - g.fw / 2) + 'px', top: (g.cy - g.fh / 2) + 'px', width: g.fw + 'px', height: g.fh + 'px'});
   t.appendChild(filz);
   // Mitte: Board, Topf
-  const mitte = Kern.el('div', 'pk-mitte'); mitte.style.left = g.cx + 'px'; mitte.style.top = g.cy + 'px';
+  const mitte = Kern.el('div', 'pk-mitte'); mitte.style.left = g.cx + 'px'; mitte.style.top = (g.my || g.cy) + 'px';
   const st = Kern.el('div', 'pk-strasse', STRASSE[S.phase] || ''); mitte.appendChild(st);
   const board = Kern.el('div', 'pk-board'); board.id = 'pk-board';
   const gewinnK = new Set();
@@ -218,7 +344,7 @@ function zeichnen() {
       board.appendChild(e);
     } else board.appendChild(Kern.el('div', 'pk-leer'));
   }
-  if (S.board.length > gezeigtBoard) Kern.ton('karte');
+  if (S.board.length > gezeigtBoard && !messH) Kern.ton('karte');
   gezeigtBoard = S.board.length;
   mitte.appendChild(board);
   const summe = Poker.topf(S), imTopf = S.phase === 'handende' ? 0 : summe - S.ph.reduce((a, p) => a + (p ? p.einsatz : 0), 0);
@@ -229,7 +355,8 @@ function zeichnen() {
   const b = S.blinds || Poker.blinds(S);
   let steigt = '';
   if (S.opt.steigen > 0) { const rest = S.opt.steigen - ((S.handNr - 1) % S.opt.steigen); steigt = `<br>steigen in ${rest} ${rest === 1 ? 'Hand' : 'Händen'}`; }
-  t.appendChild(Kern.el('div', 'pk-info', `Hand <b>${S.handNr}</b><br>Blinds <b class="k-zahl">${zahl(b.sb)} / ${zahl(b.bb)}</b>${steigt}`));
+  if (g.handy) mitte.appendChild(Kern.el('div', 'pk-info', `Hand <b>${S.handNr}</b> · Blinds <b class="k-zahl">${zahl(b.sb)} / ${zahl(b.bb)}</b>${steigt}`));
+  else t.appendChild(Kern.el('div', 'pk-info', `Hand <b>${S.handNr}</b><br>Blinds <b class="k-zahl">${zahl(b.sb)} / ${zahl(b.bb)}</b>${steigt}`));
   // Sitze
   S.spieler.forEach((sp, i) => {
     const p = S.ph[i], pos = g.sitze[i];
@@ -239,12 +366,12 @@ function zeichnen() {
     if (S.amZug === i) e.classList.add('dran');
     const hk = Kern.el('div', 'pk-hk');
     const erg = S.ergebnis;
-    const offen = p && (p.status === 'aktiv' || p.status === 'allin') && ((erg && erg.gezeigt && erg.gezeigt[i]) || (S.aufgedeckt && S.phase !== 'handende'));
+    const offen = istOffen(i);
     const gew = erg && erg.haende && erg.haende[i] ? new Set(erg.haende[i].karten) : null;
     const istGewinner = erg && erg.toepfe.some(x => !x.zurueck && x.gewinner.includes(i));
     if (p && p.karten.length && p.status !== 'passt') p.karten.forEach(k => {
       if (offen) { const c = karte(k, g.sk); if (istGewinner && gew && gew.has(k)) c.classList.add('gewinn'); hk.appendChild(c); }
-      else hk.appendChild(zu(g.sk));
+      else if (!g.handy) hk.appendChild(zu(g.sk));
     });
     e.appendChild(hk);
     let handText = '';
@@ -252,7 +379,7 @@ function zeichnen() {
     else if (offen && S.aufgedeckt) handText = beschreibung(p.karten);
     const schild = Kern.el('div', 'pk-schild', `<span class="k-dot">${Kern.esc(sp.name.charAt(0).toUpperCase())}</span>
       <span class="pk-name">${Kern.esc(sp.name)}</span><span class="pk-stack"><b class="k-zahl">${zahl(sp.chips)}</b>${sp.raus ? ' · raus' : ''}</span>`);
-    if (i === S.button) { const d = Kern.el('span', 'pk-knopf', 'Dealer'); d.title = 'Dealer'; schild.appendChild(d); }
+    if (i === S.button) { const d = Kern.el('span', 'pk-knopf', g.handy ? 'D' : 'Dealer'); d.title = 'Dealer'; schild.appendChild(d); }
     e.appendChild(schild);
     let tat = '', tk = '';
     if (erg && S.phase === 'handende') {
@@ -267,6 +394,16 @@ function zeichnen() {
       if (p.status === 'allin') { tat = 'All-in'; tk = 'allin'; } else tat = p.letzte || '';
     }
     e.appendChild(Kern.el('div', 'pk-tat' + (tk ? ' ' + tk : ''), Kern.esc(tat)));
+    if (g.handy) {
+      // Telefon: eine Zeile unter dem Namen – Hand beim Zeigen, sonst verdeckte Karten und Einsatz
+      const u = Kern.el('div', 'pk-unter');
+      if (handText) u.appendChild(Kern.el('div', 'pk-hand', Kern.esc(handText)));
+      if (p && p.karten.length && p.status !== 'passt' && !offen) { const mk = Kern.el('div', 'pk-mini'); p.karten.forEach(() => mk.appendChild(zu(17))); schild.appendChild(mk); }
+      if (p && p.einsatz > 0 && S.phase !== 'handende')
+        u.appendChild(Kern.el('div', 'pk-einsatz', `<span class="pk-chip klein" style="--pc:${sp.farbe}"></span><span class="k-zahl">${zahl(p.einsatz)}</span>`));
+      e.appendChild(u); t.appendChild(e);
+      return;
+    }
     e.appendChild(Kern.el('div', 'pk-hand', Kern.esc(handText)));
     t.appendChild(e);
     // Einsatz vor dem Sitz
@@ -276,6 +413,12 @@ function zeichnen() {
       ei.style.left = ex + 'px'; ei.style.top = ey + 'px'; t.appendChild(ei);
     }
   });
+  // Telefon: sind Sitze höher geworden als angenommen (zweizeilige Ansage, Hand beim Zeigen), einmal mit der
+  // gemessenen Höhe neu verteilen
+  if (g.handy && !messH) {
+    const mh = Math.max(0, ...[...t.querySelectorAll('.pk-sitz')].map(e => e.offsetHeight));
+    if (mh > g.sh + 2) { gezeigtBoard = boardVorher; zeichnen(mh); }
+  }
 }
 addEventListener('resize', () => { if (S && BUEHNE) { gezeigtBoard = S.board.length; zeichnen(); if (AKTUELLE_LEISTE) AKTUELLE_LEISTE(); } });
 
@@ -305,21 +448,35 @@ function satz(html, knoepfe = []) {
   });
 }
 
+// Eigene Karten mit Name, Hand und Stapel (Leiste unten)
+function eigenBlock(i) {
+  const sp = S.spieler[i], p = S.ph[i];
+  const eig = Kern.el('div', 'pk-eigen'); const ek = Kern.el('div', 'pk-ek');
+  const kw = GEOM && GEOM.handy ? 48 : GEOM && GEOM.hoch ? 70 : 78;
+  p.karten.forEach(k => ek.appendChild(karte(k, kw)));
+  const bisher = beschreibung(p.karten);
+  eig.appendChild(ek);
+  eig.appendChild(Kern.el('div', 'pk-wer', `<h2>${Kern.esc(sp.name)}</h2><em>${Kern.esc(bisher)}</em><span>Stapel <b class="k-zahl">${zahl(sp.chips)}</b> · im Topf ${zahl(p.gesamt)}</span>`));
+  return eig;
+}
+// Am selben Gerät: warten, bis die Person am Zug gehandelt hat (Zug geht über Netz.tun → aktion, sitz = null).
 function entscheidung() {
-  return new Promise(res => {
-    const i = S.amZug, sp = S.spieler[i], p = S.ph[i];
+  return new Promise(res => entscheidungZeigen(a => {
+    const r = Netz.tun('zug', a);
+    if (!r || !r.ok) { Kern.hinweis(r ? r.grund : 'Das geht gerade nicht.'); Kern.ton('fehler'); return; }
+    Kern.ton(a.art === 'passen' ? 'karte' : a.art === 'schieben' ? 'tipp' : 'legen');
+    res(r);
+  }));
+}
+function entscheidungZeigen(fertig) {
+  {
+    const i = S.amZug, sp = S.spieler[i];
     const m = Poker.moeglich(S);
     let ziel = m.setzen ? m.setzen.min : 0;
     leiste(() => {
       const l = $('#pk-leiste'); l.className = 'pk-leiste' + (GEOM && GEOM.hoch ? ' hoch' : ''); l.innerHTML = '';
       l.style.setProperty('--pc', sp.farbe);
-      const eig = Kern.el('div', 'pk-eigen'); const ek = Kern.el('div', 'pk-ek');
-      const kw = GEOM && GEOM.hoch ? 70 : 78;
-      p.karten.forEach(k => ek.appendChild(karte(k, kw)));
-      const bisher = beschreibung(p.karten);
-      eig.appendChild(ek);
-      eig.appendChild(Kern.el('div', 'pk-wer', `<h2>${Kern.esc(sp.name)}</h2><em>${Kern.esc(bisher)}</em><span>Stapel <b class="k-zahl">${zahl(sp.chips)}</b> · im Topf ${zahl(p.gesamt)}</span>`));
-      l.appendChild(eig);
+      l.appendChild(eigenBlock(i));
       const ak = Kern.el('div', 'pk-aktionen');
       const reihe = Kern.el('div', 'pk-reihe');
       const knopf = (text, art, id, fn) => { const b = Kern.el('button', 'k-btn gross' + (art ? ' ' + art : ''), text); b.id = id; b.onclick = fn; reihe.appendChild(b); return b; };
@@ -360,13 +517,7 @@ function entscheidung() {
         }
       }
     });
-    function fertig(a) {
-      const r = Poker.aktion(S, a);
-      if (!r.ok) { Kern.hinweis(r.grund); Kern.ton('fehler'); return; }
-      Kern.ton(a.art === 'passen' ? 'karte' : a.art === 'schieben' ? 'tipp' : 'legen');
-      res(r);
-    }
-  });
+  }
 }
 
 /* ---------- Ablauf ---------- */
@@ -383,7 +534,7 @@ async function ablauf() {
       }
       const i = S.amZug; if (i < 0) break;
       const sp = S.spieler[i], m = Poker.moeglich(S);
-      satz(`<b>${Kern.esc(sp.name)}</b> ist dran.<small>Gib das iPad weiter.</small>`);
+      satz(`<b>${Kern.esc(sp.name)}</b> ist dran.<small>Gib das ${Kern.geraet || 'iPad'} weiter.</small>`);
       const lage = m.zuZahlen > 0 ? `Zum Mitgehen fehlen dir ${zahl(m.zuZahlen)}.` : 'Kein Einsatz offen – du kannst schieben.';
       await Kern.sichtschutz({name: sp.name, farbe: sp.farbe, text: `${STRASSE[S.phase]} · Topf ${zahl(Poker.topf(S))}. ${lage}`});
       if (id !== LAUF) break;
@@ -402,9 +553,14 @@ function handende() {
   const zeilen = e.toepfe.filter(x => !x.zurueck).map(x => `${x.gewinner.map(g => `<b>${Kern.esc(S.spieler[g].name)}</b>`).join(' und ')} ${x.gewinner.length > 1 ? 'teilen' : 'gewinnt'} ${zahl(x.betrag)}${x.name ? ' · ' + Kern.esc(x.name) : ''}`);
   const raus = e.raus ? `<small>${e.raus.map(r => Kern.esc(S.spieler[r].name)).join(', ')} ${e.raus.length > 1 ? 'scheiden' : 'scheidet'} aus.</small>` : '';
   Kern.ton(e.kampflos ? 'punkt' : 'runde');
+  if (!leitet()) { // Mitspieler im Netzspiel: weiter geht es, wenn der Gastgeber die nächste Hand startet
+    satz(`${zeilen.join('<br>')}${raus}<small>${Kern.esc(S.spieler[0].name)} ${e.spielende ? 'zeigt gleich das Ergebnis' : 'startet die nächste Hand'}.</small>`,
+      [{text: 'Abrechnung', art: 'leise', id: 'pk-abrechnung', fn: abrechnung}]);
+    return;
+  }
   satz(`${zeilen.join('<br>')}${raus}`, [
     {text: 'Abrechnung', art: 'leise', id: 'pk-abrechnung', fn: abrechnung},
-    {text: e.spielende ? 'Zum Ergebnis' : 'Nächste Hand', id: 'pk-weiter', fn: () => { Poker.weiterNachHand(S, rnd); gezeigtBoard = 0; speichern(); ablauf(); }}
+    {text: e.spielende ? 'Zum Ergebnis' : 'Nächste Hand', id: 'pk-weiter', fn: () => Netz.tun('weiter')}
   ]);
 }
 
@@ -440,24 +596,127 @@ function verlauf() {
 function spielende() {
   Kern.speicher.loeschen();
   const sieger = S.spieler[S.sieger];
-  satz(`<b>${Kern.esc(sieger ? sieger.name : '')}</b> hat alle Chips gewonnen.`, [{text: 'Neues Spiel', id: 'pk-neu', fn: startseite}]);
-  Kern.ton('sieg'); Kern.feier();
+  if (leitet()) satz(`<b>${Kern.esc(sieger ? sieger.name : '')}</b> hat alle Chips gewonnen.`, [{text: 'Neues Spiel', id: 'pk-neu', fn: neuesSpiel}]);
+  else satz(`<b>${Kern.esc(sieger ? sieger.name : '')}</b> hat alle Chips gewonnen.<small>${Kern.esc(S.spieler[0].name)} entscheidet, wie es weitergeht.</small>`);
+  if (!Netz.laeuft || S.sieger === Netz.meinSitz) { Kern.ton('sieg'); Kern.feier(); } else Kern.ton('runde');
   const liste = S.spieler.map((s, i) => ({s, i})).sort((a, b) => a.s.platz - b.s.platz);
   const box = Kern.el('div');
   box.innerHTML = `<h2>${Kern.esc(sieger ? sieger.name : '')} gewinnt</h2><p>Nach ${S.handNr} ${S.handNr === 1 ? 'Hand' : 'Händen'} liegen alle ${zahl(S.spieler.reduce((a, s) => a + s.chips, 0))} Chips bei einer Person.</p>
     <div class="pk-plaetze">${liste.map(({s}) => `<div class="${s.platz === 1 ? 'eins' : ''}"><b>${s.platz}.</b><span class="k-dot" style="--pc:${s.farbe}">${Kern.esc(s.name.charAt(0))}</span>${Kern.esc(s.name)}</div>`).join('')}</div>`;
+  if (ENDE_FE) ENDE_FE.schliessen();
+  if (!leitet()) { box.insertAdjacentHTML('beforeend', `<p>${Kern.esc(S.spieler[0].name)} entscheidet, wie es weitergeht.</p>`); ENDE_FE = Kern.fenster(box); return; }
   const k = Kern.el('div', 'k-knoepfe');
   const nochmal = Kern.el('button', 'k-btn', 'Nochmal mit denselben'); const neu = Kern.el('button', 'k-btn leise', 'Neues Spiel');
+  nochmal.id = 'pk-nochmal';
   k.append(nochmal, neu); box.appendChild(k);
-  const f = Kern.fenster(box);
-  nochmal.onclick = () => { f.schliessen(); const o = S.opt; S = Poker.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), startChips: o.startChips, sb: o.sb, bb: o.bb, steigen: o.steigen, zeigen: o.zeigen}, rnd); speichern(); gezeigtBoard = 0; ablauf(); };
-  neu.onclick = () => { f.schliessen(); startseite(); };
+  const f = ENDE_FE = Kern.fenster(box);
+  nochmal.onclick = () => { f.schliessen(); Netz.tun('nochmal'); };
+  neu.onclick = () => { f.schliessen(); neuesSpiel(); };
 }
+let ENDE_FE = null;
+// „Neues Spiel“: am selben Gerät zur Startseite, im Netzspiel beendet der Gastgeber es für alle.
+function neuesSpiel() { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); }
+function naechsteHand() { Poker.weiterNachHand(S, rnd); gezeigtBoard = 0; speichern(); Netz.melden(); Netz.laeuft ? netzSchritt() : ablauf(); }
+function nochmalSpielen() {
+  const o = S.opt;
+  S = Poker.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), startChips: o.startChips, sb: o.sb, bb: o.bb, steigen: o.steigen, zeigen: o.zeigen}, rnd);
+  speichern(); gezeigtBoard = 0; Netz.melden(); Netz.laeuft ? netzSchritt() : ablauf();
+}
+
+/* ---------- Netzspiel ----------
+   Gastgeber = Sitz 0. Er mischt, teilt aus und hält den echten Zustand. Jeder Sitz bekommt den Stand ohne fremde
+   Geheimnisse: fremde Karten erst, wenn sie beim Showdown (oder bei allen All-in) gezeigt werden, das Deck und die
+   verbrannten Karten nie. Setzen/Erhöhen/Passen nur auf dem Gerät der Person am Zug; nächste Hand nur der Gastgeber. */
+let NETZ_NR = 0, ZUG_KEY = '';
+function netzSchritt() {
+  if (!S || !BUEHNE) return;
+  const nr = ++NETZ_NR;
+  zeichnen();
+  if (S.phase === 'ende') { ZUG_KEY = ''; spielende(); return; }
+  if (ENDE_FE) { ENDE_FE.schliessen(); ENDE_FE = null; }
+  if (S.phase === 'handende') { ZUG_KEY = ''; handende(); return; }
+  if (S.laufen) {
+    ZUG_KEY = '';
+    wartenLeiste(`<b>Alle sind All-in.</b> Die Karten liegen offen, das Board wird aufgedeckt.`);
+    if (Netz.istHost) setTimeout(() => {
+      if (nr !== NETZ_NR || !S || !S.laufen) return;
+      Poker.naechsteStrasse(S); speichern(); Netz.melden(); netzSchritt();
+    }, 1300);
+    return;
+  }
+  const i = S.amZug; if (i < 0) return;
+  if (i === Netz.meinSitz) {
+    const key = S.handNr + '|' + S.log.length;
+    if (key === ZUG_KEY && $('#pk-leiste .pk-aktionen')) return; // Leiste steht schon (gleicher Stand noch einmal geschickt)
+    ZUG_KEY = key; Kern.ton('tipp');
+    entscheidungZeigen(a => {
+      ZUG_KEY = ''; // kommt der Stand unverändert zurück (Zug abgewiesen), wird die Leiste neu aufgebaut
+      if (Netz.istGast) $('#pk-leiste').querySelectorAll('button, input').forEach(b => { b.disabled = true; });
+      Netz.tun('zug', a);
+    });
+    return;
+  }
+  ZUG_KEY = '';
+  const letzte = S.log.length ? S.log[S.log.length - 1] : '';
+  wartenLeiste(`<b>${Kern.esc(S.spieler[i].name)}</b> ist dran.${letzte ? `<small>${Kern.esc(letzte)}</small>` : ''}`);
+}
+// Netzspiel: Leiste mit den eigenen Karten (solange man in der Hand ist) und einem Satz zur Lage.
+function wartenLeiste(html) {
+  const ich = Netz.meinSitz, p = S.ph[ich];
+  if (!p || !p.karten.length || !p.karten[0] || p.status === 'passt') return satz(html);
+  leiste(() => {
+    const l = $('#pk-leiste'); l.className = 'pk-leiste pk-warte'; l.innerHTML = '';
+    l.style.setProperty('--pc', S.spieler[ich].farbe);
+    l.appendChild(eigenBlock(ich));
+    l.appendChild(Kern.el('div', 'pk-satz', html));
+  });
+}
+Netz.einrichten({
+  spiel: 'poker', min: 2, max: 8,
+  starten(spieler, o) {
+    const [sb, bb] = String(o.blinds || '5/10').split('/').map(Number);
+    S = Poker.neuesSpiel({namen: spieler.map(p => p.name), farben: spieler.map(p => p.farbe), startChips: Number(o.chips) || 1000,
+      sb: sb || 5, bb: bb || 10, steigen: Number(o.steigen) || 0, zeigen: o.zeigen === 'alle' ? 'alle' : 'regel'}, rnd);
+    spielStarten();
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    if (name === 'zug') {
+      if (sitz !== null && sitz !== S.amZug) return Netz.melden();
+      const a = {art: String(d.art)}; if (d.betrag != null) a.betrag = Number(d.betrag);
+      const r = Poker.aktion(S, a);
+      if (sitz === null) return r; // am selben Gerät: Ablauf und Töne regelt entscheidung()
+      if (!r.ok) { if (sitz === 0) { Kern.hinweis(r.grund); Kern.ton('fehler'); } Netz.melden(); return r; }
+      Kern.ton(a.art === 'passen' ? 'karte' : a.art === 'schieben' ? 'tipp' : 'legen');
+      speichern(); Netz.melden(); netzSchritt();
+      return r;
+    }
+    if (sitz !== null && sitz !== 0) return Netz.melden(); // nächste Hand / nochmal: nur der Gastgeber
+    if (name === 'weiter' && S.phase === 'handende') return naechsteHand();
+    if (name === 'nochmal' && S.phase === 'ende') return nochmalSpielen();
+  },
+  zustand(sitz) {
+    const d = JSON.parse(JSON.stringify(S));
+    d.deck = []; d.verbrannt = (d.verbrannt || []).map(() => null);
+    d.ph.forEach((p, j) => { if (p && j !== sitz && !istOffen(j)) p.karten = p.karten.map(() => null); });
+    const e = d.ergebnis;
+    if (e && e.haende) Object.keys(e.haende).forEach(j => { if (+j !== sitz && !(e.gezeigt && e.gezeigt[j])) delete e.haende[j]; });
+    return d;
+  },
+  stand(d) {
+    const alt = S; S = d;
+    if (!BUEHNE) { spielStarten(); return; }
+    if (!alt || alt.handNr !== d.handNr || alt.phase === 'ende') gezeigtBoard = alt ? 0 : d.board.length;
+    netzSchritt();
+  },
+  beendet: () => { if (ENDE_FE) { ENDE_FE.schliessen(); ENDE_FE = null; } startseite(); },
+});
 
 /* ---------- Testzugang ---------- */
 window.__test = {
   get S() { return S; }, Poker,
   setze(st) { S = st; speichern(); },
+  melden() { Netz.melden(); if (Netz.laeuft) netzSchritt(); },
   karten(hole, board) { hole.forEach((h, i) => { if (S.ph[i] && h) S.ph[i].karten = h; }); if (board) S.deck = ['2c', board[0], board[1], board[2], '2c', board[3], '2c', board[4]].reverse(); speichern(); }
 };
 

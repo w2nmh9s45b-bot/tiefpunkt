@@ -80,10 +80,48 @@
   .rm-unten{grid-row:4}
   .rm-unten{grid-column:1}
 }
+/* Handy hoch (iPhone): Personen als zweizeilige Kärtchen (erste Zeile neben den Kernknöpfen), Stapel/Ablage kleiner,
+   Knöpfe enger – damit der Tisch Platz behält. Wertungstabellen dürfen seitlich rollen. */
+@media (max-width:700px){
+  #rm{gap:8px}
+  .rm-leute{padding-left:0;gap:6px;min-height:0}
+  .rm-leute::before{content:"";flex:0 0 104px;height:44px}
+  .rm-person{flex:1 1 150px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"d n t" "d m t";column-gap:7px;row-gap:0;
+    padding:4px 8px 4px 6px;border-radius:14px;font-size:14px;min-height:44px;box-sizing:border-box;align-items:center}
+  .rm-person .k-dot{grid-area:d}
+  .rm-person b{grid-area:n;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+  .rm-person .rm-mini{grid-column:2 / -1;grid-row:2;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rm-person .k-chip{grid-row:1;grid-column:3;font-size:12.5px;padding:.05em .5em}
+  .rm-person .k-chip + .k-chip{grid-column:4}
+  .rm-seite{gap:18px}
+  .rm-unten{padding:8px 10px 10px;gap:8px;border-radius:18px}
+  .rm-status{font-size:15px;flex-basis:100%}
+  .rm-zeile{gap:6px}
+  .rm-sort .k-btn{min-height:40px;padding:0 12px;font-size:14px}
+  .rm-knoepfe{gap:6px}
+  .rm-knoepfe .k-btn{min-height:44px;padding:0 11px;font-size:15px;flex:1 1 auto}
+  .rm-vertritt{font-size:max(12px,calc(var(--tk)*.2))}
+  .rm-fpunkte{font-size:12.5px}
+  .rm-erg table{font-size:14px}
+  .rm-erg td,.rm-erg th{padding:6px 4px}
+  .rm-erg th{font-size:12.5px;letter-spacing:.02em}
+  .rm-erg small{font-size:13px}
+  .rm-erg .rm-tab{overflow-x:auto;touch-action:pan-x pan-y}
+  .rm-erg .rm-tab th{white-space:normal;min-width:3.2em}
+  /* Rundenwertung: Restkarten als eigene Zeile unter Name und Zahlen */
+  .rm-wtab,.rm-wtab tbody{display:block}
+  .rm-wtab tr{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;column-gap:10px;align-items:center;border-bottom:1px solid var(--line)}
+  .rm-wtab td,.rm-wtab th{border-bottom:0}
+  .rm-wtab tr > :nth-child(2){grid-column:1 / -1;grid-row:2;padding-top:0}
+  .rm-wtab tr:first-child > :nth-child(2){display:none}
+  .rm-wtab tr > :first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+#rm.rm-netz .rm-leute{padding-right:100px} /* Netzspiel: Platz für die Verbindungsplakette oben rechts */
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="romme.logik.js"></script>
 <script>
 "use strict";
@@ -108,6 +146,21 @@ const rnd = n => Kern.zufall(n);
 const kd = id => { const c = Romme.karte(id); return c.joker ? {rang: 'JOKER', farbe: c.farbe} : {rang: c.rang === 1 ? 'A' : c.rang === 11 ? 'B' : c.rang === 12 ? 'D' : c.rang === 13 ? 'K' : String(c.rang), farbe: c.farbe}; };
 const karteEl = (id, kw) => { const e = Kern.karte(Object.assign(kd(id), {kw})); e.dataset.id = id; return e; };
 
+/* ---------- Netzspiel: Hilfen ----------
+   Am selben Gerät gilt die Hand der Person am Zug (hinter dem Sichtschutz), im Netzspiel immer die eigene.
+   Der Gastgeber führt S; Mitspieler bekommen einen gekürzten Stand (fremde Hände und Talon nur als Anzahl). */
+const NETZ = () => Netz.laeuft;
+const meins = sitz => sitz == null || !Netz.laeuft || sitz === Netz.meinSitz;
+/** Hinweis für die Person, die gehandelt hat – auf ihrem eigenen Gerät. */
+function sag(sitz, text, ms) { if (meins(sitz)) Kern.hinweis(text, ms); else Netz.ereignis({daten: {an: sitz, hinweis: text, ms}}); }
+const amEnde = () => S.phase === 'rundenende' || S.phase === 'spielende';
+/** Darf dieses Gerät gerade für die Person am Zug bedienen? */
+const offen = () => (NETZ() ? S.amZug === Netz.meinSitz && (S.phase === 'ziehen' || S.phase === 'spielen') : OFFEN);
+/** Wessen Hand zeigt dieses Gerät? */
+const handSp = () => (NETZ() ? Netz.meinSitz : S.amZug);
+function nichtDran() { if (NETZ() && S && !amEnde()) { Kern.ton('fehler'); Kern.hinweis(`${S.spieler[S.amZug].name} ist dran.`); } }
+let WERT_FE = null, WERT_MARKE = '';
+
 Kern.init({id: 'romme', name: 'Rommé', akzent: '#5cc8a0', regeln: REGELN_HTML, onNeu: () => { Kern.speicher.loeschen(); startseite(); },
   menue: [{text: 'Punktestand', aktion: () => punktestand(false)}]});
 
@@ -115,6 +168,7 @@ Kern.init({id: 'romme', name: 'Rommé', akzent: '#5cc8a0', regeln: REGELN_HTML, 
 function startseite() {
   if (BUEHNE) { BUEHNE.remove(); BUEHNE = null; }
   S = null; LAUF++; OFFEN = false; document.querySelectorAll('.k-sichtschutz').forEach(x => x.remove());
+  if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; } WERT_MARKE = '';
   const gesp = Kern.speicher.laden();
   const bild = `<svg width="132" height="84" viewBox="0 0 132 84">${[['7', '♥', '#c0392b', -14], ['8', '♥', '#c0392b', -4], ['9', '♥', '#c0392b', 6], ['J', '', '#1e2a30', 16]].map(([r, s, f, w], i) => `<g transform="rotate(${w} ${30 + i * 24} 70)"><rect x="${10 + i * 24}" y="10" width="40" height="58" rx="6" fill="#fbf8f1" stroke="rgba(0,0,0,.15)"/><text x="${18 + i * 24}" y="32" font-family="Bricolage Grotesque" font-weight="800" font-size="${r === 'J' ? 8.5 : 18}" fill="${f}">${r === 'J' ? 'JOKER' : r}</text><text x="${22 + i * 24}" y="56" font-size="20" fill="${f}">${s}</text></g>`).join('')}</svg>`;
   SETUP = Kern.setup({
@@ -146,6 +200,7 @@ function spielStarten() {
     document.body.appendChild(BUEHNE);
   }
   OFFEN = false; WAHL.clear();
+  if (NETZ()) { NEU_GEZOGEN = null; zeichnen(); return; } // im Netzspiel kein Sichtschutz
   ablauf();
 }
 
@@ -162,7 +217,7 @@ async function ablauf() {
 
 function maße() {
   const W = innerWidth, H = innerHeight, hoch = W / H < 1;
-  const n = S && S.spieler[S.amZug] ? S.spieler[S.amZug].hand.length : 13;
+  const n = S && S.spieler[handSp()] ? S.spieler[handSp()].hand.length : 13;
   const breite = W - 60;
   let hk = Math.floor(Math.min(hoch ? 82 : 84, (breite + 8) / Math.max(n, 8) - 6));
   hk = Math.max(46, hk);
@@ -176,6 +231,7 @@ function zeichnen() {
   BUEHNE.style.setProperty('--hk', m.hk + 'px'); BUEHNE.style.setProperty('--sk', m.sk + 'px');
   const sp = S.spieler[S.amZug];
   BUEHNE.style.setProperty('--pc', sp.farbe);
+  BUEHNE.classList.toggle('rm-netz', NETZ());
   personen(); seite(); unten(); tisch();
 }
 addEventListener('resize', () => zeichnen());
@@ -185,7 +241,7 @@ function personen() {
   S.spieler.forEach((s, i) => {
     const e = Kern.el('div', 'rm-person' + (i === S.amZug && S.phase !== 'rundenende' && S.phase !== 'spielende' ? ' dran' : ''));
     e.style.setProperty('--pc', s.farbe);
-    e.innerHTML = `<span class="k-dot">${Kern.esc(s.name.charAt(0).toUpperCase())}</span><b>${Kern.esc(s.name)}</b>
+    e.innerHTML = `<span class="k-dot">${Kern.esc(s.name.charAt(0).toUpperCase())}</span><b>${Kern.esc(s.name)}${NETZ() && i === Netz.meinSitz ? ' (du)' : ''}</b>
       <span class="rm-mini k-zahl">${s.hand.length} ${s.hand.length === 1 ? 'Karte' : 'Karten'} · ${s.summe} Pkt</span>${S.raus[i] ? '<span class="k-chip leise">draußen</span>' : ''}${i === S.geber ? '<span class="k-chip leise">gibt</span>' : ''}`;
     l.appendChild(e);
   });
@@ -193,29 +249,27 @@ function personen() {
 
 function seite() {
   const s = $('#rm-seite'); s.innerHTML = '';
-  const dran = OFFEN && S.phase === 'ziehen';
+  const dran = offen() && S.phase === 'ziehen';
   // Stapel
   const st = Kern.el('div', 'rm-stapel' + (dran ? ' ziel' : '') + (S.talon.length ? '' : ' leer')); st.id = 'rm-talon';
   if (S.talon.length) st.appendChild(Kern.karte({rang: 'A', farbe: 'pik', zu: true}));
-  Kern.tap(st, () => { if (!OFFEN) return; if (S.phase !== 'ziehen') { Kern.hinweis('Du hast schon gezogen.'); return; }
-    const r = Romme.ziehen(S, rnd); if (!r.ok) { Kern.hinweis(r.grund); Kern.ton('fehler'); return; }
-    NEU_GEZOGEN = r.karte; Kern.ton('ziehen'); speichern(); zeichnen(); });
+  Kern.tap(st, () => { if (!offen()) { if (S.phase === 'ziehen') nichtDran(); return; } if (S.phase !== 'ziehen') { Kern.hinweis('Du hast schon gezogen.'); return; }
+    Netz.tun('ziehe'); });
   const sw = Kern.el('div'); sw.append(st, Kern.el('div', 'rm-slabel', `Stapel<br><b class="k-zahl">${S.talon.length}</b>`));
   s.appendChild(sw);
   // Ablage
   const oben = S.ablage[S.ablage.length - 1];
   const ab = Kern.el('div', 'rm-stapel' + (oben == null ? ' leer' : ''));
   ab.id = 'rm-ablage';
-  const abwerfZiel = OFFEN && S.phase === 'spielen' && WAHL.size === 1;
+  const abwerfZiel = offen() && S.phase === 'spielen' && WAHL.size === 1;
   if (dran && Romme.darfAblageNehmen(S).ok) ab.classList.add('ziel');
   if (abwerfZiel) ab.classList.add('ziel');
   if (oben != null) ab.appendChild(karteEl(oben, m_sk()));
   Kern.tap(ab, () => {
-    if (!OFFEN) return;
+    if (!offen()) { if (S.phase === 'ziehen') nichtDran(); return; }
     if (S.phase === 'ziehen') {
-      const r = Romme.ablageNehmen(S); if (!r.ok) { Kern.hinweis(r.grund); Kern.ton('fehler'); return; }
-      NEU_GEZOGEN = r.karte; Kern.ton('ziehen'); speichern(); zeichnen();
-      Kern.hinweis(`${Romme.name(r.karte)} musst du in diesem Zug auslegen.`, 3000);
+      const d = Romme.darfAblageNehmen(S); if (!d.ok) { Kern.hinweis(d.grund); Kern.ton('fehler'); return; }
+      Netz.tun('ablage');
       return;
     }
     if (WAHL.size === 1) abwerfen([...WAHL][0]);
@@ -229,15 +283,15 @@ const m_sk = () => parseFloat(getComputedStyle(BUEHNE).getPropertyValue('--sk'))
 function tisch() {
   const t = $('#rm-tisch'); t.innerHTML = '';
   if (!S.tisch.length) return;
-  const lage = OFFEN && S.phase === 'spielen' ? Romme.zugLage(S) : null;
+  const lage = offen() && S.phase === 'spielen' ? Romme.zugLage(S) : null;
   const neuIds = new Set(lage ? lage.neu.map(f => f.id) : []);
   const wahl = [...WAHL];
-  const zuletzt = new Set(S.letzte && !OFFEN ? [...S.letzte.neu, ...S.letzte.geaendert] : []);
+  const zuletzt = new Set(S.letzte && !offen() ? [...S.letzte.neu, ...S.letzte.geaendert] : []);
   S.tisch.forEach(f => {
     const e = Kern.el('div', 'rm-figur'); e.dataset.fid = f.id;
     if (neuIds.has(f.id)) e.classList.add('neu');
     if (zuletzt.has(f.id)) e.classList.add('zuletzt');
-    const kann = OFFEN && wahl.length && Romme.anlegenMoeglich(S, f.id, wahl);
+    const kann = offen() && wahl.length && Romme.anlegenMoeglich(S, f.id, wahl);
     if (kann) e.classList.add('ziel');
     f.karten.forEach((id, p) => {
       const c = karteEl(id, null);
@@ -247,9 +301,9 @@ function tisch() {
         const txt = f.art === 'folge' ? Romme.rangText(v[0].rang) + SYM[v[0].farbe] : Romme.rangText(f.rang);
         const b = Kern.el('span', 'rm-vertritt' + (f.art === 'folge' && (v[0].farbe === 'herz' || v[0].farbe === 'karo') ? ' rot' : ''), txt);
         c.appendChild(b);
-        if (OFFEN && wahl.length === 1 && Romme.tauschMoeglich(S, f.id, id, wahl[0])) {
+        if (offen() && wahl.length === 1 && Romme.tauschMoeglich(S, f.id, id, wahl[0])) {
           c.classList.add('jziel');
-          Kern.tap(c, ev => { ev.stopPropagation(); aktion(Romme.tauschen(S, f.id, id, wahl[0]), 'Joker getauscht – leg ihn in diesem Zug wieder aus.'); });
+          Kern.tap(c, ev => { ev.stopPropagation(); Netz.tun('tauschen', {fid: f.id, jid: id, kid: wahl[0]}); });
         }
       }
       e.appendChild(c);
@@ -257,18 +311,18 @@ function tisch() {
     if (neuIds.has(f.id)) {
       e.appendChild(Kern.el('span', 'rm-fpunkte k-zahl', `${Romme.figurPunkte(f)}`));
       const z = Kern.el('button', 'rm-fknopf zurueck', '↩'); z.title = 'Zurück auf die Hand'; z.setAttribute('aria-label', 'Zurück auf die Hand');
-      Kern.tap(z, ev => { ev.stopPropagation(); aktion(Romme.zuruecknehmen(S, f.id)); });
+      Kern.tap(z, ev => { ev.stopPropagation(); Netz.tun('zurueck', {fid: f.id}); });
       e.appendChild(z);
       if (Romme.deutungen(f.karten, S.opt).length > 1) {
         const d = Kern.el('button', 'rm-fknopf dreh', '⇄'); d.title = 'Anders legen'; d.setAttribute('aria-label', 'Anders legen');
-        Kern.tap(d, ev => { ev.stopPropagation(); aktion(Romme.umdeuten(S, f.id)); });
+        Kern.tap(d, ev => { ev.stopPropagation(); Netz.tun('umdeuten', {fid: f.id}); });
         e.appendChild(d);
       }
     }
     Kern.tap(e, () => {
-      if (!OFFEN || S.phase !== 'spielen') return;
+      if (!offen() || S.phase !== 'spielen') return;
       if (!WAHL.size) { Kern.hinweis('Wähle erst Karten aus deiner Hand.'); return; }
-      aktion(Romme.anlegen(S, f.id, [...WAHL]));
+      Netz.tun('anlegen', {fid: f.id, ids: [...WAHL]});
     });
     t.appendChild(e);
   });
@@ -283,23 +337,24 @@ function einpassen(t) {
 
 function unten() {
   const u = $('#rm-unten'); u.innerHTML = '';
-  const sp = S.spieler[S.amZug];
+  const sp = S.spieler[handSp()];
   const zeile = Kern.el('div', 'rm-zeile');
   const status = Kern.el('div', 'rm-status'); status.id = 'rm-status';
   zeile.appendChild(status);
   const hand = Kern.el('div', 'rm-hand'); hand.id = 'rm-hand';
-  if (!OFFEN) {
-    status.innerHTML = S.phase === 'rundenende' || S.phase === 'spielende' ? 'Runde vorbei.' : `<b>${Kern.esc(sp.name)}</b> ist dran. Gib das iPad weiter.`;
+  if (!offen() && !NETZ()) {
+    status.innerHTML = S.phase === 'rundenende' || S.phase === 'spielende' ? 'Runde vorbei.' : `<b>${Kern.esc(sp.name)}</b> ist dran. Gib das ${Kern.geraet || 'iPad'} weiter.`;
     hand.classList.add('zu');
     const n = Math.min(sp.hand.length, 16);
     for (let i = 0; i < n; i++) { const c = Kern.karte({rang: 'A', farbe: 'pik', zu: true}); c.style.marginLeft = i ? 'calc(var(--hk)*-.72)' : '0'; hand.appendChild(c); }
     u.append(zeile, hand); return;
   }
   // Status
-  status.innerHTML = statusText();
+  const ofn = offen();
+  status.innerHTML = ofn ? statusText() : amEnde() ? 'Runde vorbei.' : `<b>${Kern.esc(S.spieler[S.amZug].name)}</b> ist dran.`;
   // Sortieren
   const sort = Kern.el('div', 'rm-sort');
-  [['farbe', 'Nach Farbe'], ['wert', 'Nach Wert']].forEach(([a, t]) => { const b = Kern.el('button', 'k-btn klein leise', t); b.id = 'rm-sort-' + a; Kern.tap(b, () => { Romme.sortieren(S, S.amZug, a); Kern.ton('karte'); speichern(); zeichnen(); }); sort.appendChild(b); });
+  [['farbe', 'Nach Farbe'], ['wert', 'Nach Wert']].forEach(([a, t]) => { const b = Kern.el('button', 'k-btn klein leise', t); b.id = 'rm-sort-' + a; Kern.tap(b, () => Netz.tun('sortieren', {art: a})); sort.appendChild(b); });
   zeile.appendChild(sort);
   // Hand
   const n = sp.hand.length;
@@ -310,9 +365,10 @@ function unten() {
     if (i) c.style.marginLeft = ueberlapp + 'px';
     if (WAHL.has(id)) c.classList.add('wahl');
     if (id === NEU_GEZOGEN) c.classList.add('neu');
-    Kern.tap(c, () => { if (WAHL.has(id)) WAHL.delete(id); else WAHL.add(id); Kern.ton('tipp'); zeichnen(); });
+    Kern.tap(c, () => { if (!ofn) { if (S.phase === 'ziehen' || S.phase === 'spielen') nichtDran(); return; } if (WAHL.has(id)) WAHL.delete(id); else WAHL.add(id); Kern.ton('tipp'); zeichnen(); });
     hand.appendChild(c);
   });
+  if (!ofn) { u.append(zeile, hand); return; } // Netzspiel, nicht dran: eigene Hand offen, keine Zugknöpfe
   // Knöpfe
   const kn = Kern.el('div', 'rm-knoepfe');
   const knopf = (text, art, id, fn, an = true) => { const b = Kern.el('button', 'k-btn ' + (art || ''), text); b.id = id; b.disabled = !an; Kern.tap(b, () => { if (!b.disabled) fn(); }); kn.appendChild(b); return b; };
@@ -323,24 +379,66 @@ function unten() {
       const r = Romme.pruefen(S, wahl);
       Kern.hinweis(r.ok ? `Gültig: ${r.text}` : r.grund, 2800); Kern.ton(r.ok ? 'punkt' : 'fehler');
     }, wahl.length > 0);
-    knopf('Auslegen', '', 'rm-auslegen', () => aktion(Romme.auslegen(S, wahl)), !!(p && p.ok));
+    knopf('Auslegen', '', 'rm-auslegen', () => Netz.tun('auslegen', {ids: wahl}), !!(p && p.ok));
     knopf('Abwerfen', 'gut', 'rm-abwerfen', () => abwerfen(wahl[0]), wahl.length === 1);
-    knopf('Schritt zurück', 'leise', 'rm-schritt', () => aktion(Romme.schrittZurueck(S)), S.zug && S.zug.schritte.length > 0);
-    knopf('Zug zurücksetzen', 'leise', 'rm-reset', () => aktion(Romme.zugZuruecksetzen(S)), S.zug && S.zug.schritte.length > 0);
+    knopf('Schritt zurück', 'leise', 'rm-schritt', () => Netz.tun('schritt'), S.zug && S.zug.schritte.length > 0);
+    knopf('Zug zurücksetzen', 'leise', 'rm-reset', () => Netz.tun('reset'), S.zug && S.zug.schritte.length > 0);
     if (S.zug && S.zug.ablageKarte != null && JSON.stringify(S.tisch) === JSON.stringify(S.zug.start.tisch))
-      knopf('Ablagekarte zurücklegen', 'leise', 'rm-ablage-zurueck', () => { const r = Romme.ablageZurueck(S); if (!r.ok) { Kern.hinweis(r.grund); return; } WAHL.clear(); NEU_GEZOGEN = null; speichern(); zeichnen(); });
+      knopf('Ablagekarte zurücklegen', 'leise', 'rm-ablage-zurueck', () => Netz.tun('ablageZurueck'));
   } else {
-    knopf('Vom Stapel ziehen', '', 'rm-ziehen', () => $('#rm-talon') && ziehenKnopf());
+    knopf('Vom Stapel ziehen', '', 'rm-ziehen', () => $('#rm-talon') && Netz.tun('ziehe'));
     const d = Romme.darfAblageNehmen(S);
-    knopf('Ablage nehmen', 'leise', 'rm-ablage-nehmen', () => { const r = Romme.ablageNehmen(S); if (!r.ok) { Kern.hinweis(r.grund); return; } NEU_GEZOGEN = r.karte; Kern.ton('ziehen'); speichern(); zeichnen(); Kern.hinweis(`${Romme.name(r.karte)} musst du in diesem Zug auslegen.`, 3000); }, d.ok);
+    knopf('Ablage nehmen', 'leise', 'rm-ablage-nehmen', () => Netz.tun('ablage'), d.ok);
   }
   u.append(zeile, hand, kn);
 }
-function ziehenKnopf() { const r = Romme.ziehen(S, rnd); if (!r.ok) { Kern.hinweis(r.grund); return; } NEU_GEZOGEN = r.karte; Kern.ton('ziehen'); speichern(); zeichnen(); }
+
+/* ---------- Züge ausführen ----------
+   Führt der Gastgeber (bzw. das Gerät am Tisch) aus; sitz = wer handelt (null am selben Gerät). Jeder Schritt am Tisch
+   (auslegen, anlegen, Joker tauschen …) ist eine eigene Aktion – bis zum Abwurf bleibt alles zurücknehmbar. */
+function ziehAus(sitz) {
+  const r = Romme.ziehen(S, rnd);
+  if (!r.ok) { sag(sitz, r.grund); if (meins(sitz)) Kern.ton('fehler'); Netz.melden(); return; }
+  if (meins(sitz)) NEU_GEZOGEN = r.karte;
+  Kern.ton('ziehen'); speichern(); zeichnen(); Netz.melden();
+}
+function ablageAus(sitz) {
+  const r = Romme.ablageNehmen(S);
+  if (!r.ok) { sag(sitz, r.grund); if (meins(sitz)) Kern.ton('fehler'); Netz.melden(); return; }
+  if (meins(sitz)) NEU_GEZOGEN = r.karte;
+  Kern.ton('ziehen'); speichern(); zeichnen(); Netz.melden();
+  sag(sitz, `${Romme.name(r.karte)} musst du in diesem Zug auslegen.`, 3000);
+}
+function ablageZurueckAus(sitz) {
+  const r = Romme.ablageZurueck(S);
+  if (!r.ok) { sag(sitz, r.grund); Netz.melden(); return; }
+  if (meins(sitz)) { WAHL.clear(); NEU_GEZOGEN = null; }
+  speichern(); zeichnen(); Netz.melden();
+}
+function sortAus(art, sitz) {
+  Romme.sortieren(S, sitz == null ? S.amZug : sitz, art);
+  if (meins(sitz)) Kern.ton('karte');
+  speichern(); zeichnen(); Netz.melden();
+}
+function tischAus(name, d, sitz) {
+  const ids = Array.isArray(d.ids) ? d.ids.map(Number) : [], fid = Number(d.fid);
+  let r, text = '';
+  if (name === 'auslegen') r = Romme.auslegen(S, ids);
+  else if (name === 'anlegen') r = Romme.anlegen(S, fid, ids);
+  else if (name === 'tauschen') { r = Romme.tauschen(S, fid, Number(d.jid), Number(d.kid)); text = 'Joker getauscht – leg ihn in diesem Zug wieder aus.'; }
+  else if (name === 'umdeuten') r = Romme.umdeuten(S, fid);
+  else if (name === 'zurueck') r = Romme.zuruecknehmen(S, fid);
+  else if (name === 'schritt') r = Romme.schrittZurueck(S);
+  else r = Romme.zugZuruecksetzen(S);
+  if (!r.ok) { sag(sitz, r.grund, 2800); if (meins(sitz)) Kern.ton('fehler'); Netz.melden(); return; }
+  if (meins(sitz)) WAHL.clear();
+  Kern.ton('legen'); if (text) sag(sitz, text); speichern(); zeichnen(); Netz.melden();
+}
 
 function statusText() {
   const sp = S.spieler[S.amZug];
   const wer = `<b>${Kern.esc(sp.name)}</b>`;
+  if (S.phase === 'ziehen' && NETZ()) return 'Du bist dran: Zieh vom Stapel – oder nimm die offene Karte, wenn du sie gleich auslegst.';
   if (S.phase === 'ziehen') return `${wer}, zieh vom Stapel – oder nimm die offene Karte, wenn du sie gleich auslegst.`;
   const lage = Romme.zugLage(S);
   const wahl = [...WAHL];
@@ -356,18 +454,20 @@ function statusText() {
   return s;
 }
 
-function aktion(r, text) {
-  if (!r.ok) { Kern.hinweis(r.grund, 2800); Kern.ton('fehler'); return false; }
-  WAHL.clear(); Kern.ton('legen'); if (text) Kern.hinweis(text); speichern(); zeichnen(); return true;
-}
 
-async function abwerfen(id) {
+function abwerfen(id) { Netz.tun('abwerfen', {id}); }
+async function abwerfenAus(id, sitz) {
   const name = S.spieler[S.amZug].name;
   const r = Romme.abwerfen(S, id);
-  if (!r.ok) { Kern.hinweis(r.grund, 3200); Kern.ton('fehler'); return; }
-  Kern.ton('karte'); WAHL.clear(); NEU_GEZOGEN = null; OFFEN = false;
-  speichern(); zeichnen();
-  if (r.ende) { await Kern.warte(500); Kern.ton(r.handRomme ? 'sieg' : 'runde'); if (r.handRomme) Kern.hinweis(`Hand-Rommé von ${name}!`, 3000); rundenWertung(); return; }
+  if (!r.ok) { sag(sitz, r.grund, 3200); if (meins(sitz)) Kern.ton('fehler'); Netz.melden(); return; }
+  Kern.ton('karte'); if (meins(sitz)) { WAHL.clear(); NEU_GEZOGEN = null; } OFFEN = false;
+  speichern(); zeichnen(); Netz.melden();
+  if (r.ende) {
+    await Kern.warte(500); Kern.ton(r.handRomme ? 'sieg' : 'runde');
+    if (r.handRomme) { Kern.hinweis(`Hand-Rommé von ${name}!`, 3000); Netz.ereignis({daten: {hinweis: `Hand-Rommé von ${name}!`, ms: 3000}}); }
+    if (S && amEnde()) rundenWertung(); return;
+  }
+  if (NETZ()) return; // im Netzspiel kein Weitergeben
   await Kern.warte(450);
   ablauf();
 }
@@ -376,11 +476,13 @@ async function abwerfen(id) {
 function rundenWertung() {
   const e = S.ergebnis; if (!e) return;
   zeichnen();
+  if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; }
+  const netz = NETZ(), gast = Netz.istGast;
   const ende = S.phase === 'spielende';
   const box = Kern.el('div', 'rm-erg');
   const g = S.spieler[e.gewinner];
   let h = `<h2>${ende ? 'Spielende' : 'Runde ' + e.runde}</h2><p><b>${Kern.esc(g.name)}</b> hat ${e.handRomme ? 'mit <b>Hand-Rommé</b> ' : ''}ausgemacht.${e.handRomme ? ' Die Minuspunkte zählen doppelt.' : ''}</p>`;
-  h += '<table><tr><th>Person</th><th>Restkarten</th><th class="r">Augen</th><th class="r">Minuspunkte</th><th class="r">Summe</th></tr>';
+  h += '<table class="rm-wtab"><tr><th>Person</th><th>Restkarten</th><th class="r">Augen</th><th class="r">Minuspunkte</th><th class="r">Summe</th></tr>';
   e.zeilen.forEach((z, i) => {
     const s = S.spieler[i];
     const weg = z.karten.map(id => `${Romme.name(id)}=${Romme.handWert(id)}`).join(' + ');
@@ -395,26 +497,95 @@ function rundenWertung() {
   box.innerHTML = h;
   e.zeilen.forEach((z, i) => { const r = box.querySelector(`.rm-rest[data-i="${i}"]`); z.karten.forEach(id => r.appendChild(karteEl(id, 26))); });
   const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
-  const f = Kern.fenster(box, {breit: true, schliessbar: false});
+  const f = Kern.fenster(box, {breit: true, schliessbar: gast, beimSchliessen: () => { if (WERT_FE === f) WERT_FE = null; }});
+  WERT_FE = f;
   const knopf = (t, art, id, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { f.schliessen(); fn(); }; k.appendChild(b); };
+  // Im Netzspiel entscheidet nur der Gastgeber, wie es weitergeht.
+  if (gast) k.innerHTML = `<p class="rm-wartet" style="margin:0;color:var(--ink2)">${Kern.esc(S.spieler[0].name)} entscheidet, wie es weitergeht.</p>`;
+  const weiter = () => { WAHL.clear(); NEU_GEZOGEN = null; if (NETZ()) { zeichnen(); Netz.melden(); } else ablauf(); };
   if (ende) {
     Kern.feier(); Kern.ton('sieg'); Kern.speicher.loeschen();
-    knopf('Nochmal', '', 'rm-nochmal', () => { S = Romme.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), erst: S.opt.erst, joker: S.opt.joker, ende: S.opt.ende}, rnd); speichern(); ablauf(); });
-    knopf('Neues Spiel', 'leise', 'rm-neu', startseite);
-  } else {
-    knopf('Nächste Runde', '', 'rm-weiter', () => { Romme.naechsteRunde(S, rnd); speichern(); ablauf(); });
+    if (!gast) {
+      knopf('Nochmal', '', 'rm-nochmal', () => { S = Romme.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), erst: S.opt.erst, joker: S.opt.joker, ende: S.opt.ende}, rnd); speichern(); weiter(); });
+      knopf(netz ? 'Spiel beenden' : 'Neues Spiel', 'leise', 'rm-neu', () => { if (NETZ()) Netz.verlassen(); startseite(); });
+    }
+  } else if (!gast) {
+    knopf('Nächste Runde', '', 'rm-weiter', () => { Romme.naechsteRunde(S, rnd); speichern(); weiter(); });
   }
 }
 function punktestand() {
   if (!S) return;
-  let h = '<div class="rm-erg"><h2>Punktestand</h2><p>Minuspunkte je Runde – wer am Ende die wenigsten hat, gewinnt.</p><table><tr><th>Runde</th>' + S.spieler.map(s => `<th class="r">${Kern.esc(s.name)}</th>`).join('') + '</tr>';
+  let h = '<div class="rm-erg"><h2>Punktestand</h2><p>Minuspunkte je Runde – wer am Ende die wenigsten hat, gewinnt.</p><div class="rm-tab"><table><tr><th>Runde</th>' + S.spieler.map(s => `<th class="r">${Kern.esc(s.name)}</th>`).join('') + '</tr>';
   S.runden.forEach(r => { h += `<tr><td>${r.runde}${r.handRomme ? ' · Hand-Rommé' : ''}</td>` + r.zeilen.map((z, i) => `<td class="r">${i === r.gewinner ? '<span class="sieg">0</span>' : z.punkte}</td>`).join('') + '</tr>'; });
-  h += '<tr><td><b>Gesamt</b></td>' + S.spieler.map(s => `<td class="r"><b>${s.summe}</b></td>`).join('') + '</tr></table></div>';
+  h += '<tr><td><b>Gesamt</b></td>' + S.spieler.map(s => `<td class="r"><b>${s.summe}</b></td>`).join('') + '</tr></table></div></div>';
   Kern.fenster(h, {breit: true});
 }
 
 /* ---------- Testzugang ---------- */
-window.__test = {get S() { return S; }, Romme, setze(st) { S = st; speichern(); zeichnen(); }, get offen() { return OFFEN; }};
+window.__test = {get S() { return S; }, Romme, setze(st) { S = st; speichern(); zeichnen(); Netz.melden(); }, get offen() { return OFFEN; }};
+
+/* ---------- Netzspiel ----------
+   Sitz 0 = Gastgeber. Karten markieren bleibt auf dem eigenen Gerät; jeder Schritt am Tisch wird als eine Aktion
+   geschickt, der Gastgeber prüft, ob der Sitz am Zug ist. Sortieren der eigenen Hand geht jederzeit. */
+Netz.einrichten({
+  spiel: 'romme', min: 2, max: 6,
+  starten(spieler, optionen) {
+    S = Romme.neuesSpiel({namen: spieler.map(p => p.name), farben: spieler.map(p => p.farbe),
+      erst: optionen.erst != null ? Number(optionen.erst) : 40, joker: optionen.joker || 'verband', ende: optionen.ende || 'runden5'}, rnd);
+    speichern(); spielStarten();
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    if (name === 'sortieren') return sortAus(d.art === 'wert' ? 'wert' : 'farbe', sitz);
+    if (amEnde() || (sitz !== null && sitz !== S.amZug)) return Netz.melden();
+    switch (name) {
+      case 'ziehe': return ziehAus(sitz);
+      case 'ablage': return ablageAus(sitz);
+      case 'ablageZurueck': return ablageZurueckAus(sitz);
+      case 'abwerfen': return abwerfenAus(Number(d.id), sitz);
+      case 'auslegen': case 'anlegen': case 'tauschen': case 'umdeuten': case 'zurueck': case 'schritt': case 'reset':
+        return tischAus(name, d, sitz);
+    }
+    Netz.melden();
+  },
+  zustand(sitz) {
+    const ende = amEnde();
+    return {s: Object.assign({}, S, {
+      spieler: S.spieler.map((p, i) => (i === sitz || ende) ? p : Object.assign({}, p, {hand: p.hand.length})),
+      talon: S.talon.length, ablage: S.ablage.slice(-1),
+      zug: S.zug ? (sitz === S.amZug ? S.zug : {ablageKarte: S.zug.ablageKarte}) : null,
+    })};
+  },
+  stand(d) {
+    const alt = S, mein = Netz.meinSitz;
+    const s = Object.assign({}, d.s); // den empfangenen Stand selbst nicht verändern
+    s.spieler = s.spieler.map(p => Array.isArray(p.hand) ? p : Object.assign({}, p, {hand: Array.from({length: p.hand}, () => -1)}));
+    s.talon = Array.from({length: s.talon}, () => -1);
+    // Auswahl wie am Tisch: nach jedem gelungenen Schritt (Hand oder Tisch verändert) ist sie leer
+    const fp = x => x ? JSON.stringify([x.spieler[mein].hand.slice().sort((a, b) => a - b), x.tisch]) : '';
+    if (fp(alt) !== fp(s)) WAHL.clear();
+    if (alt) {
+      const vorher = new Set(alt.spieler[mein].hand), neu = s.spieler[mein].hand.filter(id => !vorher.has(id));
+      if (neu.length === 1 && s.amZug === mein && s.phase === 'spielen') NEU_GEZOGEN = neu[0];
+      else if (s.amZug !== mein) NEU_GEZOGEN = null;
+    }
+    S = s;
+    if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
+    if (!BUEHNE) spielStarten(); else zeichnen();
+    const oben = x => x.ablage[x.ablage.length - 1];
+    if (alt && oben(alt) !== oben(S) && alt.amZug !== mein && alt.phase === 'spielen') Kern.ton('karte');
+    if (alt && alt.amZug !== S.amZug && S.amZug === mein) Kern.ton('tipp');
+    if (amEnde()) {
+      const m = S.runde + S.phase;
+      if (WERT_MARKE !== m) { WERT_MARKE = m; setTimeout(() => { if (S && amEnde() && WERT_MARKE === m && Netz.laeuft) rundenWertung(); }, 600); }
+    } else { WERT_MARKE = ''; if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; } }
+  },
+  ereignis(d) {
+    if (d.an != null && d.an !== Netz.meinSitz) return;
+    if (d.hinweis) Kern.hinweis(d.hinweis, d.ms || 2600);
+  },
+  beendet: () => startseite(),
+});
 
 startseite();
 </script>

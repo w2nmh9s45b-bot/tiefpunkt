@@ -72,10 +72,55 @@
 .mx-wert.besonders{font-size:15px}
 @media (max-width:900px){.mx-leiste{gap:6px}.mx-wert{flex-direction:column;gap:2px;font-size:19px;min-height:64px}.mx-wert.besonders{font-size:12px}}
 @media (max-height:760px){.mx-tisch{--b:min(26vh,32vw,240px)}.mx-karte .mx-gross{font-size:64px}}
+/* Handy hoch (iPhone): Leute als kleine Kärtchen (erste Reihe neben den Kernknöpfen), Becher und Ansage untereinander –
+   wird es eng (viele Werte zur Auswahl), stehen sie nebeneinander. Die Mitte bricht nie seitlich aus dem Bild. */
+@media (max-width:700px){
+  .mx-buehne{gap:8px}
+  .mx-leute{padding:0;gap:6px;min-height:0;justify-content:flex-start}
+  .mx-leute::before{content:"";flex:0 0 104px;height:44px}
+  .mx-person{flex:1 1 112px;gap:7px;padding:5px 8px 5px 6px;border-radius:12px;min-height:44px;box-sizing:border-box;min-width:0}
+  .mx-person > span:last-child{min-width:0;display:flex;flex-wrap:wrap;align-items:center;column-gap:6px}
+  .mx-person > span:last-child > b{flex-basis:100%}
+  .mx-person .k-dot{width:26px;height:26px;font-size:13px}
+  .mx-person b{font-size:14px;max-width:100%}
+  .mx-leben{margin-top:3px;gap:2px;flex-wrap:wrap}
+  .mx-leben i{width:9px;height:9px}
+  .mx-person .mx-marke{font-size:13px;line-height:1.1;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mx-mitte{display:grid;container-type:size;align-content:center;justify-content:center;justify-items:center;align-items:center;gap:12px}
+  .mx-tisch{--b:min(44cqw,30cqh,230px)}
+  .mx-tisch.offen .mx-becher{transform:translate(-138%,-30%) rotate(-22deg)}
+  .mx-karte{min-width:0;width:min(360px,100cqw);box-sizing:border-box;padding:12px 14px;border-radius:18px}
+  .mx-karte small{font-size:13px;letter-spacing:.04em}
+  .mx-karte .mx-gross{font-size:min(64px,11cqh)}
+  .mx-karte .mx-name{font-size:17px}
+  .mx-urteil{font-size:16px;margin-top:8px}
+  .mx-urteil .mx-minus{font-size:26px;margin-top:4px}
+  .mx-kette{margin-top:8px}
+  @container (max-height:430px){
+    .mx-tisch{grid-column:1;grid-row:1;--b:min(37cqw,82cqh,200px)}
+    .mx-karte{grid-column:2;grid-row:1;width:calc(100cqw - 37cqw*1.25 - 12px);max-height:100cqh;overflow-y:auto}
+    .mx-karte .mx-gross{font-size:min(56px,15cqh)}
+    .mx-karte .mx-paar .k-wuerfel{--ww:34px!important}
+    .mx-tisch.offen .mx-becher{transform:translate(-50%,-64%) rotate(-18deg)}
+  }
+  .mx-unten{padding:10px;gap:10px;border-radius:18px}
+  .mx-satz{font-size:17px}
+  .mx-knoepfe{gap:8px}
+  .mx-knoepfe .k-btn{min-width:0;flex:1 1 140px}
+  .mx-knoepfe .k-btn.gross{min-height:54px;font-size:19px;padding:0 12px}
+  .mx-leiste{gap:5px}
+  .mx-wert{padding:4px 2px;min-height:62px;font-size:18px}
+  .mx-wert.besonders{font-size:13px;line-height:1.05;hyphens:manual;-webkit-hyphens:manual;text-align:center}
+  .mx-wert.echt::after{font-size:12px;left:50%;right:auto;transform:translateX(-50%);top:-10px;white-space:nowrap}
+}
+/* Netzspiel: rechts oben sitzt die Plakette mit dem Code – die Leute rücken davon weg */
+.mx-netz .mx-leute{padding-right:104px}
+@media (max-width:700px){.mx-netz .mx-leute{padding-right:92px}}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="maexchen.logik.js"></script>
 <script>
 "use strict";
@@ -160,7 +205,7 @@ let B = null;
 function spielen() {
   if (START) START.hidden = true;
   document.querySelectorAll('.mx-buehne').forEach(e => e.remove());
-  B = Kern.el('div', 'k-buehne mx-buehne');
+  B = Kern.el('div', 'k-buehne mx-buehne' + (Netz.laeuft ? ' mx-netz' : ''));
   B.innerHTML = `<div class="mx-leute"></div>
     <div class="mx-mitte"><div class="mx-tisch"><div class="mx-deckel"></div><div class="mx-wurf leer"></div><div class="mx-becher">${becherSvg()}</div></div>
       <div class="mx-karte"></div></div>
@@ -178,8 +223,10 @@ function leuteZeichnen() {
     d.style.setProperty('--pc', p.farbe); d.id = 'mx-p' + i;
     const leben = Array.from({length: S.optionen.leben}, (_, k) => `<i class="${k < p.leben ? '' : 'weg'}"></i>`).join('');
     let marke = '';
-    if (p.leben <= 0) marke = 'ausgeschieden';
-    else if (S.ansage && S.ansage.von === i && S.phase === 'entscheiden') marke = 'hat angesagt';
+    const kurz = matchMedia('(max-width:700px)').matches; // Handy: kurze Marken, damit die Kärtchen einzeilig bleiben
+    if (p.leben <= 0) marke = kurz ? 'raus' : 'ausgeschieden';
+    else if (S.ansage && S.ansage.von === i && S.phase === 'entscheiden') marke = kurz ? 'angesagt' : 'hat angesagt';
+    else if (Netz.laeuft && i === Netz.meinSitz) marke = 'du';
     d.innerHTML = `<span class="k-dot">${Kern.esc(p.name.charAt(0).toUpperCase())}</span><span><b>${Kern.esc(p.name)}</b>
       <span class="mx-leben" aria-label="${p.leben} Leben">${leben}</span>${marke ? `<span class="mx-marke">${marke}</span>` : ''}</span>`;
     l.appendChild(d);
@@ -217,13 +264,19 @@ function ansageKarte() {
   return box;
 }
 
+/* ---------- Netzspiel: wer sitzt an diesem Gerät? ---------- */
+// Am selben Gerät bedient immer die Person am Zug. Im Netzspiel bedient jedes Gerät nur seinen eigenen Sitz.
+const meinZug = () => !Netz.laeuft || Netz.meinSitz === S.dran;
+const leitet = () => !Netz.laeuft || Netz.istHost;   // Rundenende, Nochmal, Beenden: nur Gastgeber (bzw. am selben Gerät)
+const gastgeberName = () => Kern.esc(S.spieler[0].name);
+
 async function zeichnen() {
   if (!S) return;
   leuteZeichnen();
   const u = B.querySelector('.mx-unten'); u.innerHTML = '';
   const p = S.spieler[S.dran];
-  // Verdeckte Lage: erst Sichtschutz für die Person am Zug
-  if (['wuerfeln', 'ansagen', 'entscheiden'].includes(S.phase) && !geschuetzt) {
+  // Verdeckte Lage: erst Sichtschutz für die Person am Zug (im Netzspiel nicht nötig – jedes Gerät gehört einer Person)
+  if (!Netz.laeuft && ['wuerfeln', 'ansagen', 'entscheiden'].includes(S.phase) && !geschuetzt) {
     becher(false, null); karteZeichnen(ansageKarte());
     u.innerHTML = `<div class="mx-satz">Becher geht an <span>${nm(S.dran)}</span></div>`;
     const text = S.phase === 'entscheiden'
@@ -235,31 +288,48 @@ async function zeichnen() {
   if (S.phase === 'entscheiden') {
     becher(false, null); karteZeichnen(ansageKarte());
     const maex = S.ansage.code === '21';
+    if (!meinZug()) {
+      u.innerHTML = `<div class="mx-satz"><span>${nm(S.dran)}</span> entscheidet: ${nm(S.ansage.von)} ${maex ? 'das Mäxchen' : 'die ' + S.ansage.code} glauben oder aufdecken?</div>`;
+      return;
+    }
     u.innerHTML = `<div class="mx-satz"><span>${nm(S.dran)}</span>, glaubst du ${nm(S.ansage.von)} ${maex ? 'das Mäxchen' : 'die ' + S.ansage.code}?${maex ? '<br><small style="color:var(--ink2);font-weight:400">Wer glaubt, muss selbst wieder Mäxchen ansagen.</small>' : ''}</div>`;
     const k = Kern.el('div', 'mx-knoepfe');
     const g = Kern.el('button', 'k-btn gross', 'Glaube ich'); g.id = 'mx-glauben';
     const a = Kern.el('button', 'k-btn gross gefahr', 'Aufdecken'); a.id = 'mx-aufdecken';
-    g.onclick = () => { if (beschaeftigt) return; M.glauben(S); speichern(); Kern.ton('tipp'); zeichnen(); };
-    a.onclick = aufdecken;
+    g.onclick = () => { if (beschaeftigt) return; gesendet(k); Netz.tun('glauben'); };
+    a.onclick = () => { if (beschaeftigt) return; gesendet(k); Netz.tun('aufdecken'); };
     k.append(g, a); u.appendChild(k);
     return;
   }
   if (S.phase === 'wuerfeln') {
     becher(false, null); karteZeichnen(ansageKarte());
-    u.innerHTML = `<div class="mx-satz"><span>${nm(S.dran)}</span>, schüttle den Becher.${S.ansage ? (S.ansage.code === '21' ? ' Danach musst du wieder Mäxchen ansagen.' : ` Danach musst du mehr als ${S.ansage.code} ansagen.`) : ''}</div>`;
+    const danach = S.ansage ? (S.ansage.code === '21' ? ' Danach musst du wieder Mäxchen ansagen.' : ` Danach musst du mehr als ${S.ansage.code} ansagen.`) : '';
+    if (!meinZug()) {
+      u.innerHTML = `<div class="mx-satz"><span>${nm(S.dran)}</span> ist dran und schüttelt gleich den Becher.</div>`;
+      return;
+    }
+    u.innerHTML = `<div class="mx-satz"><span>${nm(S.dran)}</span>, schüttle den Becher.${danach}</div>`;
     const k = Kern.el('div', 'mx-knoepfe');
-    const w = Kern.el('button', 'k-btn gross', 'Würfeln'); w.id = 'mx-wuerfeln'; w.onclick = wuerfeln; k.appendChild(w);
+    const w = Kern.el('button', 'k-btn gross', 'Würfeln'); w.id = 'mx-wuerfeln';
+    w.onclick = () => { if (beschaeftigt) return; gesendet(k); Netz.tun('wuerfeln'); }; k.appendChild(w);
     if (S.optionen.blind && S.ansage) {
       const b = Kern.el('button', 'k-btn gross leise', 'Ungewürfelt weitergeben'); b.id = 'mx-blind';
-      b.onclick = () => { if (beschaeftigt) return; M.blindWeiter(S); speichern(); wahl = null; zeichnen(); };
+      b.onclick = () => { if (beschaeftigt) return; gesendet(k); Netz.tun('blind'); };
       k.appendChild(b);
     }
     u.appendChild(k);
     return;
   }
   if (S.phase === 'ansagen') {
-    becher(S.gesehen, S.gesehen ? S.becher : null);
-    const echt = S.gesehen ? M.wert(S.becher[0], S.becher[1]) : null;
+    if (!meinZug()) {
+      // Fremder Becher: bleibt zu. Was darunter liegt, weiß nur die Person am Zug.
+      becher(false, null); karteZeichnen(ansageKarte());
+      u.innerHTML = `<div class="mx-satz"><span>${nm(S.dran)}</span> ${S.gesehen ? 'schaut in den Becher und überlegt sich eine Ansage.' : 'gibt ungewürfelt weiter und überlegt sich eine Ansage.'}</div>`;
+      return;
+    }
+    const sieht = S.gesehen && !!S.becher;
+    becher(sieht, sieht ? S.becher : null);
+    const echt = sieht ? M.wert(S.becher[0], S.becher[1]) : null;
     const box = Kern.el('div');
     if (echt) {
       box.innerHTML = `<small>Dein Wurf – nur für dich</small><div class="mx-gross k-zahl">${echt}</div><div class="mx-name">${echt === '21' ? 'Mäxchen' : echt[0] === echt[1] ? 'Pasch' : '&nbsp;'}</div>`;
@@ -275,7 +345,7 @@ async function zeichnen() {
       b.dataset.code = code; b.setAttribute('aria-pressed', code === wahl);
       b.setAttribute('aria-label', code === '21' ? 'Mäxchen' : code);
       b.appendChild(paar(code, 20));
-      b.insertAdjacentHTML('beforeend', `<span>${code === '21' ? 'Mäxchen' : code}</span>`);
+      b.insertAdjacentHTML('beforeend', `<span>${code === '21' ? 'Mäx\u00adchen' : code}</span>`); // weiches Trennzeichen: bricht nur in schmalen Feldern (Handy)
       b.onclick = () => { wahl = code; Kern.ton('tipp'); [...l.children].forEach(x => x.setAttribute('aria-pressed', x.dataset.code === wahl)); knopf(); };
       l.appendChild(b);
     });
@@ -283,7 +353,7 @@ async function zeichnen() {
     const go = Kern.el('button', 'k-btn gross', ''); go.id = 'mx-ansagen'; k.appendChild(go); u.appendChild(k);
     function knopf() { go.disabled = !wahl; go.textContent = wahl ? `${wahl === '21' ? 'Mäxchen' : wahl} ansagen und weitergeben` : 'Wert antippen'; }
     knopf();
-    go.onclick = ansagen;
+    go.onclick = () => { if (beschaeftigt || !wahl) return; const code = wahl; gesendet(k); Netz.tun('ansagen', {code}); };
     return;
   }
   if (S.phase === 'aufgedeckt' || S.phase === 'ende') {
@@ -298,69 +368,154 @@ async function zeichnen() {
       <br><span class="mx-minus">−${a.verlust}</span></div>`;
     karteZeichnen(box);
     if (S.phase === 'ende') {
+      if (!leitet()) { u.innerHTML = `<div class="mx-satz"><span>${nm(S.sieger)}</span> gewinnt!<br><small style="color:var(--ink2);font-weight:400">${gastgeberName()} entscheidet, wie es weitergeht.</small></div>`; return; }
       u.innerHTML = `<div class="mx-satz"><span>${nm(S.sieger)}</span> gewinnt!</div>`;
       const k = Kern.el('div', 'mx-knoepfe');
-      const n = Kern.el('button', 'k-btn gross', 'Nochmal'); n.id = 'mx-nochmal'; n.onclick = nochmal;
-      const s = Kern.el('button', 'k-btn gross leise', 'Neues Spiel'); s.onclick = () => { Kern.speicher.loeschen(); startseite(); };
+      const n = Kern.el('button', 'k-btn gross', 'Nochmal'); n.id = 'mx-nochmal'; n.onclick = () => Netz.tun('nochmal');
+      const s = Kern.el('button', 'k-btn gross leise', 'Neues Spiel'); s.onclick = neuesSpiel;
       k.append(n, s); u.appendChild(k);
       return;
     }
     const naechst = S.spieler[a.verlierer].leben > 0 ? a.verlierer : M.naechster(S, a.verlierer);
+    if (!leitet()) { u.innerHTML = `<div class="mx-satz">Runde ${S.runde} ist vorbei. <span>${nm(naechst)}</span> beginnt die nächste.<br><small style="color:var(--ink2);font-weight:400">${gastgeberName()} startet sie.</small></div>`; return; }
     u.innerHTML = `<div class="mx-satz">Runde ${S.runde} ist vorbei. <span>${nm(naechst)}</span> beginnt die nächste.</div>`;
     const k = Kern.el('div', 'mx-knoepfe');
     const n = Kern.el('button', 'k-btn gross', 'Nächste Runde'); n.id = 'mx-weiter';
-    n.onclick = () => { M.naechsteRunde(S); speichern(); geschuetzt = false; wahl = null; Kern.ton('runde'); zeichnen(); };
+    n.onclick = () => Netz.tun('weiter');
     k.appendChild(n); u.appendChild(k);
   }
 }
+// Mitspieler: nach dem Antippen Knöpfe sperren, bis der neue Stand vom Gastgeber da ist.
+function gesendet(k) { if (Netz.istGast) k.querySelectorAll('button').forEach(b => { b.disabled = true; }); }
 
 async function wuerfeln() {
   if (beschaeftigt) return; beschaeftigt = true;
-  const [a, b] = zuf();
-  M.wuerfeln(S, a, b); speichern(); // sofort festhalten: Neuladen würfelt nicht neu
-  const t = B.querySelector('.mx-tisch');
-  t.classList.remove('schuettelt'); void t.offsetWidth; t.classList.add('schuettelt'); Kern.ton('wuerfel');
-  B.querySelector('#mx-wuerfeln').disabled = true;
-  await Kern.warte(650); t.classList.remove('schuettelt');
-  beschaeftigt = false; wahl = null; zeichnen();
+  try {
+    const [a, b] = zuf();
+    M.wuerfeln(S, a, b); speichern(); // sofort festhalten: Neuladen würfelt nicht neu
+    Netz.melden();
+    const t = B.querySelector('.mx-tisch');
+    t.classList.remove('schuettelt'); void t.offsetWidth; t.classList.add('schuettelt'); Kern.ton('wuerfel');
+    const knopf = B.querySelector('#mx-wuerfeln'); if (knopf) knopf.disabled = true;
+    await Kern.warte(650); t.classList.remove('schuettelt');
+  } finally { beschaeftigt = false; }
+  wahl = null; zeichnen();
 }
 
-async function ansagen() {
-  if (beschaeftigt || !wahl) return; beschaeftigt = true;
-  const code = wahl;
-  becher(false, null); // Becher sofort zu, bevor weitergegeben wird
-  M.ansagen(S, code); speichern(); Kern.ton('legen');
-  wahl = null; geschuetzt = false;
-  await Kern.warte(450);
-  beschaeftigt = false; zeichnen();
+function glauben() {
+  if (beschaeftigt) return;
+  M.glauben(S); speichern(); Netz.melden(); Kern.ton('tipp'); zeichnen();
+}
+
+function blindWeiter() {
+  if (beschaeftigt) return;
+  M.blindWeiter(S); speichern(); Netz.melden(); wahl = null; zeichnen();
+}
+
+async function ansagen(code) {
+  if (beschaeftigt || !code) return; beschaeftigt = true;
+  try {
+    becher(false, null); // Becher sofort zu, bevor weitergegeben wird
+    M.ansagen(S, code); speichern(); Netz.melden(); Kern.ton('legen');
+    wahl = null; geschuetzt = false;
+    await Kern.warte(450);
+  } finally { beschaeftigt = false; }
+  zeichnen();
 }
 
 async function aufdecken() {
   if (beschaeftigt) return; beschaeftigt = true;
-  const a = M.aufdecken(S);
-  if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
-  Kern.ton('karte');
-  // Becher heben, dann Urteil
-  becher(true, a.becher); leuteZeichnen();
-  await Kern.warte(700);
-  Kern.ton(a.gelogen ? 'punkt' : 'fehler');
-  beschaeftigt = false; zeichnen();
+  let a;
+  try {
+    a = M.aufdecken(S);
+    if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
+    Netz.melden();
+    Kern.ton('karte');
+    // Becher heben, dann Urteil
+    becher(true, a.becher); leuteZeichnen();
+    await Kern.warte(700);
+    Kern.ton(a.gelogen ? 'punkt' : 'fehler');
+  } finally { beschaeftigt = false; }
+  zeichnen();
   if (S.phase === 'ende') {
     await Kern.warte(500); Kern.ton('sieg'); Kern.feier();
-    const reihe = S.spieler.map((p, i) => ({p, i})).sort((x, y) => y.p.leben - x.p.leben);
-    Kern.frage({titel: `${S.spieler[S.sieger].name} gewinnt!`,
-      text: `Nach ${S.runde} Runden ist nur noch ${Kern.esc(S.spieler[S.sieger].name)} im Spiel – mit ${S.spieler[S.sieger].leben === 1 ? 'einem Leben' : S.spieler[S.sieger].leben + ' Leben'}.`,
+    const text = `Nach ${S.runde} Runden ist nur noch ${Kern.esc(S.spieler[S.sieger].name)} im Spiel – mit ${S.spieler[S.sieger].leben === 1 ? 'einem Leben' : S.spieler[S.sieger].leben + ' Leben'}.`;
+    if (!leitet()) return;
+    Kern.frage({titel: `${S.spieler[S.sieger].name} gewinnt!`, text,
       knoepfe: [{text: 'Nochmal', wert: 'nochmal'}, {text: 'Neues Spiel', wert: 'neu', art: 'leise'}, {text: 'Ansehen', wert: null, art: 'leise'}]})
-      .then(w => { if (w === 'nochmal') nochmal(); else if (w === 'neu') startseite(); });
+      .then(w => { if (w === 'nochmal') Netz.tun('nochmal'); else if (w === 'neu') neuesSpiel(); });
   }
+}
+
+function naechsteRunde() {
+  M.naechsteRunde(S); speichern(); Netz.melden(); geschuetzt = false; wahl = null; Kern.ton('runde'); zeichnen();
 }
 
 function nochmal() {
   const alt = S; S = M.neu({namen: alt.spieler.map(p => p.name), farben: alt.spieler.map(p => p.farbe), optionen: alt.optionen});
-  S.dran = Kern.zufall(S.spieler.length); speichern(); spielen();
+  S.dran = Kern.zufall(S.spieler.length); speichern(); spielen(); Netz.melden();
 }
+// „Neues Spiel“: am selben Gerät zur Startseite, im Netzspiel beendet der Gastgeber es für alle.
+function neuesSpiel() { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); }
 
-window.__test = {zustand: () => S, wuerfe: (...w) => { TEST.wuerfe.push(...w); }};
+/* ---------- Netzspiel ----------
+   Gastgeber = Sitz 0. Er würfelt und hält den echten Zustand. Mitspieler bekommen den Stand ohne fremden Becher:
+   was unter dem Becher liegt, sieht nur, wer gerade selbst gewürfelt hat – alle anderen erst beim Aufdecken. */
+let STAND_NR = 0;
+const MX_AKTIONEN = {wuerfeln, glauben, blind: blindWeiter, aufdecken, weiter: naechsteRunde, nochmal};
+Netz.einrichten({
+  spiel: 'maexchen', min: 2, max: 8,
+  starten(spieler, o) {
+    const optionen = {leben: Number(o.leben) || 3, doppelt: o.doppelt !== false, gleich: !!o.gleich, blind: !!o.blind};
+    S = M.neu({namen: spieler.map(p => p.name), farben: spieler.map(p => p.farbe), optionen});
+    S.dran = Kern.zufall(spieler.length);
+    spielen();
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    const nurGastgeber = name === 'weiter' || name === 'nochmal';
+    if (sitz !== null && (nurGastgeber ? sitz !== 0 : sitz !== S.dran)) return Netz.melden();
+    try {
+      if (name === 'ansagen') return ansagen(String(d.code));
+      const f = MX_AKTIONEN[name]; if (f) return f();
+    } catch (e) { Kern.ton('fehler'); Netz.melden(); }
+  },
+  zustand(sitz) {
+    const d = JSON.parse(JSON.stringify(S));
+    const offen = S.phase === 'aufgedeckt' || S.phase === 'ende';
+    if (!offen && !(S.phase === 'ansagen' && S.gesehen && S.dran === sitz)) d.becher = null;
+    return d;
+  },
+  stand(d) {
+    const alt = S, nr = ++STAND_NR;
+    S = d;
+    if (!alt || !B || !B.isConnected || (alt.phase === 'ende' && d.phase !== 'ende')) { spielen(); return; }
+    if (alt.phase === 'wuerfeln' && d.phase === 'ansagen' && d.selbst && d.runde === alt.runde) {
+      // gewürfelt: Becher schütteln, dann zeigen (die Person am Zug sieht ihren Wurf)
+      const t = B.querySelector('.mx-tisch'); t.classList.remove('schuettelt'); void t.offsetWidth; t.classList.add('schuettelt'); Kern.ton('wuerfel');
+      B.querySelectorAll('.mx-unten button').forEach(b => { b.disabled = true; });
+      setTimeout(() => { t.classList.remove('schuettelt'); if (nr === STAND_NR) { wahl = null; zeichnen(); } }, 650);
+      return;
+    }
+    if (alt.phase === 'entscheiden' && (d.phase === 'aufgedeckt' || d.phase === 'ende')) {
+      Kern.ton('karte'); zeichnen();
+      const a = d.aufdeckung, ich = Netz.meinSitz;
+      setTimeout(() => {
+        if (nr !== STAND_NR) return;
+        Kern.ton(a.gelogen ? 'punkt' : 'fehler');
+        if (d.phase === 'ende') setTimeout(() => { Kern.ton(d.sieger === ich ? 'sieg' : 'runde'); if (d.sieger === ich) Kern.feier(); }, 500);
+      }, 700);
+      return;
+    }
+    if (alt.phase === 'ansagen' && d.phase === 'entscheiden') Kern.ton('legen');
+    else if (alt.phase === 'entscheiden' && d.phase === 'wuerfeln') Kern.ton('tipp');
+    else if (alt.phase === 'aufgedeckt' && d.phase === 'wuerfeln') Kern.ton('runde');
+    zeichnen();
+  },
+  beendet: () => startseite(),
+});
+window.__test = {zustand: () => S, wuerfe: (...w) => { TEST.wuerfe.push(...w); },
+  setze: f => { f(S); speichern(); geschuetzt = Netz.laeuft; zeichnen(); Netz.melden(); }};
 startseite();
 </script>
 </body>

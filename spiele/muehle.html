@@ -47,10 +47,25 @@
 .mu-ende{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);display:flex;gap:10px;z-index:5}
 .mu-chip{display:inline-block;padding:1px 9px;border-radius:99px;background:rgba(255,255,255,.1);font-size:14px;color:var(--ink);margin-left:6px;font-weight:700}
 @media (max-aspect-ratio:1/1){.mu-bar{width:min(660px,calc(100% - 250px))}}
+/* Telefon hoch: Leisten über die ganze Breite, obere Leiste unter den Kopfknöpfen; Name/Zähler oben, Steinvorrat darunter */
+@media (max-width:700px){
+  .mu-stage{gap:8px}
+  .mu-bar{width:100%;min-height:0;padding:8px 12px;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nm zl" "hd hd" "msg msg";row-gap:4px;column-gap:10px}
+  .mu-stage > .mu-bar:first-child{margin-top:48px}
+  .mu-bar .nm{grid-area:nm;font-size:19px;max-width:none;min-width:0}
+  .mu-bar .nm .k-dot{flex:none}
+  .mu-nmt{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .mu-hand{grid-area:hd}
+  .mu-hand i{width:13px;height:13px}
+  .mu-zaehl{grid-area:zl}
+  .mu-msg{grid-area:msg;font-size:16px;min-height:21px}
+  .mu-ende{bottom:8px;width:max-content;max-width:100%}
+}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="muehle.logik.js"></script>
 <script>
 "use strict";
@@ -64,6 +79,7 @@ const REGELN = `
 <h3>Ende</h3><p>Verloren hat, wer weniger als drei Steine hat (auch die noch nicht gesetzten zählen) oder wer beim Ziehen eingesperrt ist. Remis ist es, wenn dieselbe Stellung mit demselben Spieler am Zug zum dritten Mal entsteht.</p>
 <h3>Bedienung</h3><p>Tippe auf einen leuchtenden Punkt zum Setzen. Zum Ziehen tippst du erst deinen Stein, dann das leuchtende Ziel. Nach einer Mühle leuchten die Steine, die du nehmen darfst.</p>`;
 const SVGNS = 'http://www.w3.org/2000/svg';
+const HANDY = matchMedia('(max-width:700px)').matches; // Telefon: Vorgabe „nebeneinander“, das iPad bleibt bei „gegenüber“
 const pos = p => ({x: 60 + L.XY[p][0] * 100, y: 60 + L.XY[p][1] * 100});
 let S = null, namen = ['Spieler 1', 'Spieler 2'], farben = Kern.farben.slice(0, 2), opt = {}, sel = null, busy = false, stage = null, setupZiel = null;
 
@@ -83,7 +99,7 @@ function startseite() {
     bild: brettBild(), fakten: ['2 Personen', 'ca. 15 Minuten'],
     spieler: {min: 2, max: 2, standard: 2, frage: 'Zwei Personen spielen', namenLabel: 'Namen', platzhalter: i => 'Spieler ' + (i + 1)},
     optionen: [
-      {id: 'gegenueber', label: 'Sitzt ihr gegenüber?', standard: 'an', werte: [{wert: 'an', text: 'Ja, gegenüber'}, {wert: 'aus', text: 'Nein, nebeneinander'}]},
+      {id: 'gegenueber', label: 'Sitzt ihr gegenüber?', standard: HANDY ? 'aus' : 'an', werte: [{wert: 'an', text: 'Ja, gegenüber'}, {wert: 'aus', text: 'Nein, nebeneinander'}]},
       {id: 'start', label: 'Wer beginnt?', standard: '1', werte: [{wert: '1', text: 'Spieler 1'}, {wert: '2', text: 'Spieler 2'}, {wert: 'zufall', text: 'Zufall'}]}
     ],
     fortsetzen: ok ? `Zug ${gespeichert.S.zuege + 1} · ${gespeichert.namen.join(' gegen ')}` : null,
@@ -140,6 +156,13 @@ function ringe(punkte, klasse, r = 44) { return punkte.map(p => { const c = pos(
 function text() {
   const p = S.am, ph = L.phase(S, p), n = namen[p - 1];
   if (S.sieger) return '';
+  if (Netz.laeuft && p !== untenSpieler()) return S.nehmen ? `${n} hat eine Mühle und nimmt dir einen Stein.` : `${n} ist dran …`;
+  if (Netz.laeuft) {
+    if (S.nehmen) return 'Mühle! Nimm einen leuchtenden Stein weg.';
+    if (ph === 'setzen') return 'Du bist dran: Setze einen Stein auf einen leuchtenden Punkt.';
+    if (ph === 'springen') return sel == null ? 'Du darfst springen: Tippe einen Stein, dann einen freien Punkt.' : 'Tippe irgendeinen leuchtenden Punkt.';
+    return sel == null ? 'Du bist dran: Ziehe einen Stein auf einen freien Nachbarpunkt.' : 'Tippe einen leuchtenden Punkt.';
+  }
   if (S.nehmen) {
     const alle = L.nehmbar(S).length > 0 && L.nehmbar(S).every(i => L.inMuehle(S.b, i, L.gegner(p)));
     return `Mühle! Nimm einen Stein von ${namen[L.gegner(p) - 1]}${alle ? ' (alle stehen in Mühlen, du darfst trotzdem)' : ''}.`;
@@ -155,22 +178,25 @@ function leiste(el, p, unten) {
   el.className = 'mu-bar' + (am ? ' am' : '') + (!unten && opt.gegenueber === 'an' ? ' dreh' : '');
   el.style.setProperty('--pc', f);
   const hand = Array.from({length: 9}, (_, i) => `<i class="${i < S.hand[p] ? '' : 'leer'}"></i>`).join('');
-  el.innerHTML = `<div class="nm"><span class="k-dot" style="--pc:${f}">${Kern.esc(namen[p - 1].charAt(0).toUpperCase())}</span>${Kern.esc(namen[p - 1])}</div>
+  el.innerHTML = `<div class="nm"><span class="k-dot" style="--pc:${f}">${Kern.esc(namen[p - 1].charAt(0).toUpperCase())}</span><span class="mu-nmt">${Kern.esc(namen[p - 1])}</span></div>
     <div class="mu-hand" title="Noch zu setzen">${hand}</div>
     <div class="mu-zaehl">Brett <b class="k-zahl">${L.imBrett(S, p)}</b>${am ? `<span class="mu-chip">${PHASEN[L.phase(S, p)]}</span>` : ''}</div>
     <div class="mu-msg">${am ? Kern.esc(text()) : (S.sieger ? (S.sieger === p ? 'Gewonnen!' : '') : '')}</div>`;
 }
+// Wer sitzt unten? Am Tisch Spieler 1, im Netzspiel immer die Person am eigenen Gerät.
+const untenSpieler = () => (Netz.laeuft ? Netz.meinSitz + 1 : 1);
 function zeichne() {
-  leiste($('mu-b1'), 1, true); leiste($('mu-b2'), 2, false);
+  leiste($('mu-b1'), untenSpieler(), true); leiste($('mu-b2'), 3 - untenSpieler(), false);
   const steine = $('mu-steine'), ziele = $('mu-ziele'), mark = $('mu-mark');
   steine.innerHTML = S.b.map((v, i) => v ? steinSvg(i, v) : '').join('');
   let zl = '', mk = '';
   if (!S.sieger) {
-    const p = S.am, ph = L.phase(S, p);
+    const p = S.am, ph = L.phase(S, p), meins = Netz.binDran(p - 1); // fremde Ziele leuchten im Netzspiel nicht
     if (S.nehmen) {
-      zl += ringe(L.nehmbar(S), 'mu-nehm', 46);
+      if (meins) zl += ringe(L.nehmbar(S), 'mu-nehm', 46);
       L.MUEHLEN.filter(m => m.includes(S.muehle) && m.every(q => S.b[q] === p)).forEach(m => m.forEach(q => { const c = pos(q); mk += `<circle class="mu-mark" cx="${c.x}" cy="${c.y}" r="46"/>`; }));
-    } else if (ph === 'setzen') zl += ringe(S.b.map((v, i) => v === 0 ? i : -1).filter(i => i >= 0), 'mu-ziel', 26);
+    } else if (!meins) { /* nichts */ }
+    else if (ph === 'setzen') zl += ringe(S.b.map((v, i) => v === 0 ? i : -1).filter(i => i >= 0), 'mu-ziel', 26);
     else if (sel == null) zl += ringe(S.b.map((v, i) => v === p && L.zugZiele(S, i).length ? i : -1).filter(i => i >= 0), 'mu-ziel', 46);
     else { zl += ringe([sel], 'mu-wahl', 46) + ringe(L.zugZiele(S, sel), 'mu-ziel', 26); }
   }
@@ -181,20 +207,21 @@ function zeichne() {
 function tippe(p) {
   if (busy || !S || S.sieger) return;
   const am = S.am, ph = L.phase(S, am);
+  if (!Netz.binDran(am - 1)) { Kern.ton('fehler'); return Kern.hinweis(`${namen[am - 1]} ist dran.`); }
   if (S.nehmen) {
-    if (L.nehmbar(S).includes(p)) return tue({art: 'nehmen', an: p});
+    if (L.nehmbar(S).includes(p)) return Netz.tun('zug', {art: 'nehmen', an: p});
     Kern.ton('fehler');
     return Kern.hinweis(S.b[p] === am ? 'Das ist dein eigener Stein. Nimm einen leuchtenden.' : S.b[p] === 0 ? 'Hier steht kein Stein. Tippe einen leuchtenden.' : 'Dieser Stein steht in einer Mühle und ist geschützt.');
   }
   if (ph === 'setzen') {
-    if (S.b[p] === 0) return tue({art: 'setzen', nach: p});
+    if (S.b[p] === 0) return Netz.tun('zug', {art: 'setzen', nach: p});
     Kern.ton('fehler'); return Kern.hinweis('Dieser Punkt ist schon besetzt.');
   }
   if (S.b[p] === am) {
     if (!L.zugZiele(S, p).length) { Kern.ton('fehler'); return Kern.hinweis('Dieser Stein kann nicht ziehen. Er ist eingeklemmt.'); }
     sel = sel === p ? null : p; Kern.ton('tipp'); return zeichne();
   }
-  if (sel != null && L.zugZiele(S, sel).includes(p)) return tue({art: 'ziehen', von: sel, nach: p});
+  if (sel != null && L.zugZiele(S, sel).includes(p)) return Netz.tun('zug', {art: 'ziehen', von: sel, nach: p});
   Kern.ton('fehler');
   if (S.b[p] !== 0) return Kern.hinweis('Das ist ein Stein von ' + namen[L.gegner(am) - 1] + '.');
   Kern.hinweis(sel == null ? 'Tippe zuerst einen eigenen Stein an.' : ph === 'springen' ? 'Tippe einen leuchtenden Punkt.' : 'Dorthin geht es nicht. Ziehen darfst du nur entlang der Linien auf einen leuchtenden Nachbarpunkt.');
@@ -209,7 +236,7 @@ async function tue(z) {
       Kern.ton('legen'); await Kern.warte(260);
     }
     S = L.anwenden(S, z); sel = null;
-    Kern.speicher.speichern({S, namen, farben, opt});
+    Kern.speicher.speichern({S, namen, farben, opt}); Netz.melden();
     zeichne();
     if (z.art === 'setzen') { const e = document.querySelector(`#mu-steine [data-p="${z.nach}"]`); e && e.classList.add('neu'); Kern.ton('stein'); }
     if (z.art === 'ziehen') {
@@ -221,6 +248,16 @@ async function tue(z) {
     if (S.sieger) { await Kern.warte(350); ende(); }
   } finally { busy = false; }
 }
+// Sichtbare Bewegung des letzten Zugs (beim Mitspieler, wenn ein neuer Stand eintrifft)
+function letzterZugZeigen(z) {
+  if (!z) return;
+  if (z.art === 'setzen') { const e = document.querySelector(`#mu-steine [data-p="${z.nach}"]`); e && e.classList.add('neu'); }
+  if (z.art === 'ziehen') {
+    const e = document.querySelector(`#mu-steine [data-p="${z.nach}"]`), a = pos(z.von), b = pos(z.nach);
+    if (e && e.animate) e.animate([{transform: `translate(${a.x - b.x}px,${a.y - b.y}px)`}, {transform: 'none'}], {duration: 240, easing: 'cubic-bezier(.3,.7,.3,1)'});
+  }
+  Kern.ton(z.art === 'nehmen' ? 'legen' : 'stein');
+}
 
 async function ende() {
   Kern.speicher.loeschen();
@@ -228,14 +265,16 @@ async function ende() {
     : [`${namen[S.sieger - 1]} gewinnt!`, S.grund === 'eingesperrt' ? `${Kern.esc(namen[L.gegner(S.sieger) - 1])} kann keinen Stein mehr ziehen.` : `${Kern.esc(namen[L.gegner(S.sieger) - 1])} hat nur noch zwei Steine.`];
   if (S.sieger !== 'remis') { Kern.ton('sieg'); Kern.feier(); }
   zeichne();
+  if (Netz.laeuft) Netz.ereignis({daten: {ende: text[0]}});
   const w = await dialog(text[0], text[1], [{text: 'Nochmal (Anfang wechselt)', wert: 'nochmal', art: 'gut'}, {text: 'Brett ansehen', wert: 'sehen', art: 'leise'}, {text: 'Neues Spiel', wert: 'neu', art: 'leise'}]);
   if (w === 'nochmal') return nochmal();
-  if (w === 'neu') return startseite();
+  if (w === 'neu') return neuesSpiel();
   const leiste = Kern.el('div', 'mu-ende');
   const a = Kern.el('button', 'k-btn gut', 'Nochmal'), b = Kern.el('button', 'k-btn leise', 'Neues Spiel');
-  a.onclick = nochmal; b.onclick = startseite; leiste.append(a, b); $('mu-mitte').appendChild(leiste);
+  a.onclick = nochmal; b.onclick = neuesSpiel; leiste.append(a, b); $('mu-mitte').appendChild(leiste);
 }
-function nochmal() { beginnen({S: L.neu({start: L.gegner(S.start || 1)}), namen, farben, opt}); }
+function nochmal() { beginnen({S: L.neu({start: L.gegner(S.start || 1)}), namen, farben, opt}); Netz.melden(); }
+function neuesSpiel() { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); }
 
 
 // Eigene Rückfrage statt Kern.frage: Kern.frage löst beim Schließen zuerst mit null auf, die gewählte Antwort ginge verloren.
@@ -248,6 +287,40 @@ function dialog(titel, text, knoepfe) {
 }
 
 Kern.init({id: 'muehle', name: 'Mühle', akzent: '#e0a458', regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+
+/* Netzspiel: Gastgeber = Spieler 1 (Sitz 0), Mitspieler = Spieler 2 (Sitz 1). Jedes Gerät zeigt die eigene Leiste unten. */
+Netz.einrichten({
+  spiel: 'muehle', min: 2, max: 2,
+  starten(spieler, optionen) {
+    const start = optionen.start === 'zufall' ? 1 + Kern.zufall(2) : Number(optionen.start || 1);
+    beginnen({S: L.neu({start}), namen: spieler.map(p => p.name), farben: spieler.map(p => p.farbe), opt: Object.assign({}, optionen, {gegenueber: 'aus'})});
+  },
+  aktion(name, d, sitz) {
+    if (name !== 'zug' || !S || S.sieger || busy) return Netz.melden();
+    if (sitz !== null && sitz !== S.am - 1) return Netz.melden(); // nicht dran
+    const z = {art: String(d.art)};
+    ['von', 'nach', 'an'].forEach(k => { if (d[k] != null) z[k] = Number(d[k]); });
+    if (!L.erlaubt(S, z)) return Netz.melden();
+    return tue(z);
+  },
+  zustand: () => ({S, namen, farben}),
+  stand(d) {
+    const alt = S, neu = d.S, neuerZug = alt && neu.zuege > alt.zuege && neu.letzter;
+    S = d.S; namen = d.namen; farben = d.farben; opt = {gegenueber: 'aus'};
+    if (setupZiel) { setupZiel.remove(); setupZiel = null; }
+    document.querySelectorAll('.k-scroll').forEach(e => e.remove());
+    if (!stage || !$('mu-b1') || (alt && neu.zuege < alt.zuege)) { sel = null; aufbauen(); }
+    if (sel != null && (S.am !== untenSpieler() || S.b[sel] !== S.am)) sel = null;
+    zeichne();
+    if (neuerZug) { letzterZugZeigen(neu.letzter); if (S.nehmen && S.am === untenSpieler()) Kern.ton('punkt'); }
+  },
+  ereignis(d) {
+    if (!d.ende) return;
+    if (S.sieger && S.sieger !== 'remis') { Kern.ton(S.sieger === untenSpieler() ? 'sieg' : 'runde'); if (S.sieger === untenSpieler()) Kern.feier(); }
+    Kern.hinweis(`${d.ende} – ${namen[0]} entscheidet, wie es weitergeht.`, 4000);
+  },
+  beendet: () => startseite(),
+});
 startseite();
 window.__test = {zustand: () => S, laden: s => { S = s; zeichne(); }};
 </script>

@@ -25,6 +25,7 @@
   --line:rgba(170,215,215,.16);
   --accent:#8fd3d1;     /* Flachwasser – Hauptknopf */
   --warn:#eab94c;       /* Letzte Runde */
+  --akzent:#8fd3d1;     /* für die Netz-Fenster (netz.js) */
   --f-disp:"Bricolage Grotesque", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
   --f-ui:"Atkinson Hyperlegible", -apple-system, system-ui, sans-serif;
 }
@@ -211,6 +212,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 /* ---------- Ebenen ---------- */
 .ov{position:fixed;inset:0;z-index:100;background:rgba(3,12,17,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
   display:grid;place-items:center;padding:20px;box-sizing:border-box}
+#rules{z-index:101} /* Regeln aus dem Menü liegen über dem Menü (vorher verdeckt) */
 .sheet{width:min(660px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;box-sizing:border-box;
   background:#0f2e3a;border:1px solid var(--line);border-radius:24px;padding:clamp(20px,3vw,32px);box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .sheet h2{font-family:var(--f-disp);font-weight:800;font-size:34px;letter-spacing:-.03em;margin:0 0 6px}
@@ -230,6 +232,64 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .tbl th{color:var(--ink2);font-size:13px;letter-spacing:.06em;text-transform:uppercase}
 .tbl tr:last-child td{border-bottom:0}
 .tbl td.sum{font-weight:700}
+/* ---------- Handy hoch (iPhone): eigenes Layout, iPad bleibt unverändert ----------
+   Das Feld der Person am Zug liegt groß unten, die anderen kompakt oben (Name links, Karten rechts),
+   Stapel und Ablage als Band dazwischen. Nichts dreht sich – das Handy wird weitergereicht. */
+@media (max-width:700px){
+  .setup-in{grid-template-columns:minmax(0,1fr);gap:22px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));
+    padding-block:max(70px,calc(env(safe-area-inset-top) + 58px)) max(20px,calc(env(safe-area-inset-bottom) + 12px))}
+  .fan{transform:scale(.8);transform-origin:50% 100%;margin-bottom:6px}
+  .brand h1{font-size:58px}
+  .tag{font-size:16px;margin-top:12px}
+  .legend{margin-top:16px;gap:3px}
+  .legend span{width:22px;height:22px;font-size:11px}
+  .panel{padding:18px 16px;gap:18px;border-radius:20px}
+  .seg button{min-width:0;min-height:48px;padding:0 6px;font-size:18px}
+  .seg.small button,#segT button{font-size:16px}
+  .names{gap:8px}
+  .nm-in{height:48px;padding:0 10px;gap:8px}
+  .nm-in input{font-size:16px}
+  .tp-sitz{display:none}
+  .primary,.ghost{min-height:54px}
+  .primary{font-size:19px;padding:0 14px}
+  .ghost{font-size:16px;padding:0 14px}
+  .board .bar{font-size:max(13px,calc(var(--u)*.27))}
+  .board.gross{--lab:max(26px,calc(var(--u)*.5))}
+  .board.gross .grid{align-self:center}
+  .board.kompakt{--p:6px;gap:4px;border-radius:12px}
+  .board.kompakt .bar{height:var(--lab);display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"d n c";align-content:start;
+    column-gap:6px;row-gap:2px;font-size:13px;line-height:15px}
+  .board.kompakt.z2 .bar{grid-template-areas:"d n c" "s s s"}
+  .board.kompakt.z3 .bar{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"d n" "c c" "s s"}
+  .board.kompakt .bar .dot{grid-area:d;width:9px;height:9px;align-self:center}
+  .board.kompakt .bar .nm{grid-area:n}
+  .board.kompakt .bar .chip{grid-area:c;justify-self:start;font-size:13px;padding:0 .45em;line-height:15px}
+  .board.kompakt .bar .sc{grid-area:s;margin-left:0;font-size:13px;gap:8px}
+  .board.kompakt:not(.z2):not(.z3) .bar{grid-template-columns:auto minmax(0,1fr) auto auto;grid-template-areas:"d n c s"}
+  .board.kompakt .res{display:none}
+  .board.kompakt .grid{align-self:center}
+  .names{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .nm-in input{width:0}
+  #center.handy .cplay{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) auto;align-items:center;gap:4px 12px;padding:0 4px}
+  #center.handy .hint{font-size:15px;text-align:left;justify-content:center;min-height:0;max-width:none}
+  #center.handy .hint .who{font-size:19px}
+  #center.handy .piles{gap:calc(var(--cw)*.75);margin-top:0;padding-bottom:22px}
+  #center.handy #held.atDisc{left:calc(var(--cw)*1.75)}
+  #center.handy .cap{font-size:12px;letter-spacing:.04em}
+  #center.handy .cnt{font-size:12px}
+  #center.handy .sub{grid-column:1/-1;font-size:13px;min-height:0;max-width:none}
+  .sheet{padding:18px 16px;border-radius:20px}
+  .sheet h2{font-size:28px}
+  .sheet p,.sheet li{font-size:16px}
+  .ov{padding:12px;padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .sheet{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+}
+/* ---------- Netzspiel (jeder mit eigenem Gerät) ---------- */
+.nz-netzblock .k-lab{display:block;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);margin-bottom:10px;font-weight:700}
+.nz-netzblock .k-btn{min-height:54px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-weight:700;font-size:16px;padding:0 12px}
+.csum .warte{color:var(--ink2);font-style:italic;margin-top:.3em;line-height:1.35}
+.tp-toast{position:fixed;left:50%;top:42%;transform:translateX(-50%);z-index:90;pointer-events:none;background:#e8f1ee;color:#0f2229;font-weight:700;font-size:16px;
+  padding:10px 18px;border-radius:99px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100% - 40px);text-align:center}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}
   .card .in,#center,#held{transition-duration:.12s!important}}
 </style>
@@ -255,7 +315,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
         <span class="lab">Namen</span>
         <div class="names" id="names"></div>
       </div>
-      <div>
+      <div class="tp-sitz">
         <span class="lab">Wie sitzt ihr?</span>
         <div class="seatrow">
           <div class="seg small" id="segMode" role="group" aria-label="Sitzordnung">
@@ -282,6 +342,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
   <button id="menuBtn" aria-label="Menü"><span></span></button>
 </div>
 <div id="fx"></div>
+<script src="../gemeinsam/netz.js"></script>
 
 <div class="ov" id="rules" hidden>
   <div class="sheet">
@@ -330,7 +391,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const MS = ms => REDUCED ? Math.min(ms, 120) : ms;
-const fmt = v => v < 0 ? '−' + (-v) : String(v);
+const fmt = v => v == null ? '' : v < 0 ? '−' + (-v) : String(v);  // null = verdeckte Karte im Netzspiel (Wert unbekannt)
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const PCOL = ['#f2c14e', '#ef7d6d', '#6cc7d8', '#b9a0f4', '#8ad69c', '#f49fc6'];
@@ -347,6 +408,12 @@ const SEATS = {2:['B','T'], 3:['B','TL','TR'], 4:['B','L','T','R'], 5:['B','L','
 const SEAT_A = {B:0, BL:0, BR:0, T:180, TL:180, TR:180, L:90, R:-90};
 const MINI = {B:[50,100], BL:[30,100], BR:[70,100], T:[50,0], TL:[30,0], TR:[70,0], L:[0,50], R:[100,50]};
 const KEY = 'tiefpunkt.spiel.v1', PREF = 'tiefpunkt.einstellungen.v1';
+/* Handy hoch: eigenes Layout (siehe CSS). Gerätewort für Texte wie im Kern. */
+const HANDY_MQ = matchMedia('(max-width:700px)');
+const handy = () => HANDY_MQ.matches;
+const GERAET = Math.min(screen.width, screen.height) >= 700 ? 'iPad' : 'Handy';
+document.querySelector('#setup .tag').textContent = `Das Kartenspiel für 2 bis 6 Leute an einem ${GERAET}. Wer nach der letzten Runde am tiefsten liegt, gewinnt.`;
+document.getElementById('modeTable').textContent = `Rund ums ${GERAET}`;
 
 (function tintCss() {
   let css = '';
@@ -360,9 +427,10 @@ try { Object.assign(cfg, JSON.parse(localStorage.getItem(PREF) || '{}')); } catc
 if (!Array.isArray(cfg.names) || cfg.names.length < 6) cfg.names = ['', '', '', '', '', ''];
 const savePrefs = () => { try { localStorage.setItem(PREF, JSON.stringify(cfg)); } catch (e) {} };
 let S = null;
-const save = () => { try { if (S) localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+/* Im Netzspiel wird nichts lokal gespeichert (lokale Spielstände bleiben unberührt); stattdessen bekommt jeder Sitz den Stand. */
+const save = () => { try { if (S && !Netz.aktiv) localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} Netz.melden(); };
 const loadGame = () => { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && s.players ? s : null; } catch (e) { return null; } };
-const dropGame = () => { try { localStorage.removeItem(KEY); } catch (e) {} };
+const dropGame = () => { if (Netz.aktiv) return; try { localStorage.removeItem(KEY); } catch (e) {} };
 
 /* ---------- Ton ---------- */
 let AC = null;
@@ -472,6 +540,8 @@ function buildSetup() {
   $('#btnStart').onclick = () => { ac(); newGame(); };
   $('#btnRules').onclick = () => show('#rules');
   $('#btnResume').onclick = () => { const g = loadGame(); if (g) { ac(); S = g; enterGame(false); } };
+  // „Jeder mit eigenem Gerät“ (netz.js): Tiefpunkt nutzt keinen Kern, deshalb den Block selbst einsetzen.
+  $('#setup .panel').appendChild(Netz.setupBlock(() => ({target: cfg.target}), () => (cfg.names[0] || '').trim()));
 }
 function renderSetup() {
   for (let n = 2; n <= 6; n++) $('#n' + n).setAttribute('aria-pressed', cfg.n === n);
@@ -501,7 +571,8 @@ document.querySelectorAll('.ov').forEach(ov => {
 
 /* ---------- Spielablauf ---------- */
 let busy = false;
-const V = {boards: [], cang: 0, sumRot: 0};
+const V = {boards: [], cang: 0, sumRot: 0, fokus: 0};
+const bu = i => (V.boards[i] && V.boards[i].u) || V.u;  // Kartenbreite des Spielfelds i
 
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function makeDeck() { const d = []; DECK.forEach(([v, c]) => { for (let i = 0; i < c; i++) d.push(v); }); return shuffle(d); }
@@ -509,12 +580,19 @@ const upCount = p => p.grid.filter(c => c.up && !c.gone).length;
 const openSum = p => p.grid.reduce((s, c) => s + (!c.gone && c.up ? c.v : 0), 0);
 const allOpen = p => p.grid.every(c => c.gone || c.up);
 const seatAngle = i => S.mode === 'table' ? SEAT_A[SEATS[S.players.length][i]] : 0;
+/* Netzspiel: Jedes Gerät zeigt das eigene Feld unten; die anderen sitzen reihum (im Uhrzeigersinn) um den Tisch.
+   Felder gegenüber werden nicht auf den Kopf gestellt und die Mitte dreht sich nicht – das Gerät gehört einer Person. */
+const ichSitz = () => (Netz.laeuft && Netz.meinSitz != null ? Netz.meinSitz : 0);
+const sitzeFuerAnsicht = () => { const n = S.players.length, b = ichSitz(); return S.players.map((_, i) => SEATS[n][(i - b + n) % n]); };
+const tischDreh = () => S.mode === 'table' && !handy() && !Netz.laeuft;
 
-function newGame() {
-  const n = cfg.n;
+function newGame(netzSpieler, netzZiel) {
+  const n = netzSpieler ? netzSpieler.length : cfg.n;
+  const nameVon = i => netzSpieler ? netzSpieler[i].name : (cfg.names[i] || '').trim() || `Spieler ${i + 1}`;
   S = {
-    players: Array.from({length: n}, (_, i) => ({name: (cfg.names[i] || '').trim() || `Spieler ${i + 1}`, color: PCOL[i], total: 0, hist: [], grid: [], last: 0})),
-    mode: cfg.mode, target: cfg.target, round: 1, prevEnder: null,
+    players: Array.from({length: n}, (_, i) => ({name: nameVon(i), color: PCOL[i], total: 0, hist: [], grid: [], last: 0})),
+    // Im Netzspiel sitzt jede Person vor ihrem eigenen Gerät: „rund um den Tisch“, eigenes Feld unten (siehe layout).
+    mode: netzSpieler ? 'table' : cfg.mode, target: netzZiel || cfg.target, round: 1, prevEnder: null,
     deck: [], discard: [], held: null, heldFrom: null, phase: 'reveal', step: null, cur: null, ender: null, finalDone: [], note: '', doubled: null
   };
   startRound();
@@ -525,7 +603,7 @@ function startRound() {
   S.players.forEach(p => { p.grid = Array.from({length: 12}, () => ({v: S.deck.pop(), up: false, gone: false})); p.last = 0; });
   S.discard = [S.deck.pop()];
   Object.assign(S, {phase: 'reveal', step: null, cur: null, ender: null, finalDone: [], held: null, heldFrom: null, note: '', doubled: null});
-  V.revealPending = false;
+  V.revealPending = false; V.fokus = 0;
   save();
 }
 function enterGame(deal) {
@@ -572,18 +650,44 @@ async function checkRevealDone() {
   save(); renderAll();
 }
 
+/* Bedienung: Jeder Tipp, der den Zustand ändert, läuft über Netz.tun (ohne Netz sofort hier, im Netzspiel beim Gastgeber).
+   Im Netzspiel bedient jedes Gerät nur das eigene Feld (Netz.binDran). */
+function toast(t, ms = 2200) {
+  document.querySelectorAll('.tp-toast').forEach(e => e.remove());
+  const d = document.createElement('div'); d.className = 'tp-toast'; d.textContent = t; document.body.appendChild(d);
+  setTimeout(() => d.remove(), ms);
+}
+function istDran() {  // darf dieses Gerät gerade einen Zug machen?
+  if (!S || S.phase !== 'turn') return false;
+  if (Netz.binDran(S.cur)) return true;
+  toast(`${S.players[S.cur].name} ist dran.`);
+  return false;
+}
+function tippeFeld(i, k) {
+  if (!S) return;
+  if (handy() && i !== V.fokus) return;  // kleine Felder oben: Antippen zeigt sie groß (siehe buildTable)
+  if (Netz.laeuft) {
+    if (!Netz.binDran(i)) return;        // fremdes Feld
+    if (S.phase === 'turn' && !istDran()) return;
+  }
+  return Netz.tun('feld', {i, k});
+}
+const tippeStapel = () => { if (!Netz.laeuft || istDran()) return Netz.tun('stapel'); };
+const tippeAblage = () => { if (!Netz.laeuft || istDran()) return Netz.tun('ablage'); };
+
 function onSlot(i, k) {
   if (busy || !S) return;
-  const p = S.players[i], c = p.grid[k];
+  const p = S.players[i], c = p && p.grid[k];
   if (!c || c.gone) return;
   if (S.phase === 'reveal') {
     if (c.up || upCount(p) >= 2) return;
-    c.up = true; sound('flip'); renderBoard(i); save(); checkRevealDone();
-    return;
+    c.up = true; sound('flip'); renderBoard(i); save(); const fertig = checkRevealDone();
+    if (handy()) { renderCenter(); if (upCount(p) >= 2 && !Netz.laeuft) revealWeiter(i); }
+    return fertig;
   }
   if (S.phase !== 'turn' || S.cur !== i) return;
-  if (S.step === 'placeDeck' || S.step === 'placeDisc') swapInto(k);
-  else if (S.step === 'flip' && !c.up) flipOwn(k);
+  if (S.step === 'placeDeck' || S.step === 'placeDisc') return swapInto(k);
+  else if (S.step === 'flip' && !c.up) return flipOwn(k);
 }
 function onDeck() {
   if (busy || !S || S.phase !== 'turn' || S.step !== 'choose') return;
@@ -602,7 +706,28 @@ function onDisc() {
   } else if (S.step === 'placeDisc') {
     S.discard.push(S.held); S.held = null; S.heldFrom = null; S.step = 'choose';
     save(); renderAll(); sound('place');
-  } else if (S.step === 'placeDeck') throwHeld();
+  } else if (S.step === 'placeDeck') return throwHeld();
+}
+/* Handy: Wessen Feld liegt groß unten? Am Zug = die Person am Zug; beim Aufdecken reihum. */
+function setFokus(i) {
+  if (!S || V.fokus === i) return;
+  V.fokus = i; layout(false); renderAll();
+}
+function fokusSoll() {
+  if (Netz.laeuft) return ichSitz();  // Netzspiel: immer das eigene Feld groß unten
+  if (S.phase === 'turn') return S.cur;
+  if (S.phase === 'reveal') {
+    const n = S.players.length;
+    if (upCount(S.players[V.fokus] || S.players[0]) < 2) return V.fokus;
+    for (let j = 0; j < n; j++) if (upCount(S.players[j]) < 2) return j;
+  }
+  return V.fokus;
+}
+async function revealWeiter(i) {
+  await wait(MS(650));
+  if (!S || S.phase !== 'reveal' || V.fokus !== i) return;
+  const n = S.players.length;
+  for (let j = 1; j < n; j++) { const q = (i + j) % n; if (upCount(S.players[q]) < 2) { setFokus(q); return; } }
 }
 function liftHeld() { const h = V.c.held; h.classList.remove('lift'); void h.offsetWidth; h.classList.add('lift'); }
 
@@ -612,7 +737,7 @@ async function throwHeld() {
   const fl = await fly({v: S.held, upFrom: true, upTo: true, from: rectC(h), fromA: V.cang, fromW: V.cw * 1.07,
     to: rectC(V.c.disc), toA: V.cang, toW: V.cw, dur: 300});
   S.discard.push(S.held); S.held = null; S.heldFrom = null; S.step = 'flip';
-  sound('place'); renderAll(); fl.remove(); busy = false;
+  sound('place'); renderAll(); Netz.melden(); fl.remove(); busy = false;
   if (!S.players[S.cur].grid.some(c => !c.gone && !c.up)) { await endTurn(); return; }
   save();
 }
@@ -621,22 +746,22 @@ async function swapInto(k) {
   const i = S.cur, p = S.players[i], cell = p.grid[k], slot = V.boards[i].slots[k];
   const sc = slot.querySelector('.card'), h = V.c.held, pa = V.boards[i].a;
   const oldV = cell.v, oldUp = cell.up;
-  const f1 = fly({v: S.held, upFrom: true, upTo: true, from: rectC(h), fromA: V.cang, fromW: V.cw * 1.07, to: rectC(slot), toA: pa, toW: V.u, dur: 440});
-  const f2 = fly({v: oldV, upFrom: oldUp, upTo: true, from: rectC(slot), fromA: pa, fromW: V.u, to: rectC(V.c.disc), toA: V.cang, toW: V.cw, dur: 540});
+  const f1 = fly({v: S.held, upFrom: true, upTo: true, from: rectC(h), fromA: V.cang, fromW: V.cw * 1.07, to: rectC(slot), toA: pa, toW: bu(i), dur: 440});
+  const f2 = fly({v: oldV, upFrom: oldUp, upTo: true, from: rectC(slot), fromA: pa, fromW: bu(i), to: rectC(V.c.disc), toA: V.cang, toW: V.cw, dur: 540});
   h.style.visibility = 'hidden'; if (sc) sc.style.visibility = 'hidden';
   sound('place');
   const fls = await Promise.all([f1, f2]);
   p.grid[k] = {v: S.held, up: true, gone: false};
   S.discard.push(oldV); S.held = null; S.heldFrom = null; S.step = 'busy';
   renderBoard(i, true); if (sc) sc.style.visibility = ''; h.style.visibility = '';
-  renderCenter(); fls.forEach(f => f.remove());
+  renderCenter(); Netz.melden(); fls.forEach(f => f.remove());
   await columns(i);
   await endTurn();
 }
 async function flipOwn(k) {
   busy = true;
   S.players[S.cur].grid[k].up = true; S.step = 'busy';
-  renderBoard(S.cur); renderCenter(); sound('flip');
+  renderBoard(S.cur); renderCenter(); Netz.melden(); sound('flip');
   await wait(MS(500));
   await columns(S.cur);
   await endTurn();
@@ -651,13 +776,13 @@ async function columns(i) {
     await wait(MS(600));
     const fls = ks.map((k, j) => wait(MS(j * 110)).then(() => {
       const s = b.slots[k], sc = s.querySelector('.card');
-      const pr = fly({v: cs[0].v, upFrom: true, upTo: true, from: rectC(s), fromA: b.a, fromW: V.u, to: rectC(V.c.disc), toA: V.cang, toW: V.cw, dur: 460});
+      const pr = fly({v: cs[0].v, upFrom: true, upTo: true, from: rectC(s), fromA: b.a, fromW: bu(i), to: rectC(V.c.disc), toA: V.cang, toW: V.cw, dur: 460});
       if (sc) sc.style.visibility = 'hidden';
       return pr;
     }));
     const done = await Promise.all(fls);
     ks.forEach(k => { p.grid[k].gone = true; S.discard.push(cs[0].v); b.slots[k].classList.remove('match'); });
-    renderBoard(i); renderCenter(); done.forEach(f => f.remove());
+    renderBoard(i); renderCenter(); Netz.melden(); done.forEach(f => f.remove());
     await wait(MS(150));
   }
 }
@@ -672,14 +797,14 @@ async function endTurn() {
 }
 async function endRound() {
   S.phase = 'scoring'; S.step = null; busy = true;
-  renderAll();
+  renderAll(); Netz.melden();
   await wait(MS(400));
   const n = S.players.length;
   for (let j = 0; j < n; j++) {
     const i = (S.ender + j) % n, p = S.players[i];
     let ch = false;
     p.grid.forEach(c => { if (!c.gone && !c.up) { c.up = true; ch = true; } });
-    if (ch) { renderBoard(i); sound('flip'); await wait(MS(420)); }
+    if (ch) { renderBoard(i); Netz.melden(); sound('flip'); await wait(MS(420)); }
   }
   await wait(MS(350));
   for (let j = 0; j < n; j++) await columns((S.ender + j) % n);
@@ -705,8 +830,12 @@ function rematch() {
   S.players.forEach(p => { p.total = 0; p.hist = []; });
   S.round = 1; S.prevEnder = null; startRound(); renderAll(true); dealAnim();
 }
+function zurStartseite() {
+  S = null; $('#game').hidden = true; $('#setup').hidden = false; $('#menu').hidden = true; renderSetup();
+}
 function quitToSetup() {
-  dropGame(); S = null; $('#game').hidden = true; $('#setup').hidden = false; $('#menu').hidden = true; renderSetup();
+  if (Netz.aktiv) { Netz.verlassen(); zurStartseite(); return; }  // Netzspiel verlassen, lokaler Spielstand bleibt
+  dropGame(); zurStartseite();
 }
 
 /* ---------- Fliegende Karten ---------- */
@@ -732,7 +861,8 @@ function buildTable() {
     const el = document.createElement('div'); el.className = 'board'; el.style.setProperty('--pc', p.color);
     el.innerHTML = '<div class="bar"><span class="dot"></span><span class="nm"></span><span class="chip"></span><span class="sc"></span></div><div class="grid"></div><div class="res"></div>';
     const g = el.querySelector('.grid'), slots = [];
-    for (let k = 0; k < 12; k++) { const s = document.createElement('div'); s.className = 'slot'; g.appendChild(s); slots.push(s); bindTap(s, () => onSlot(i, k)); }
+    for (let k = 0; k < 12; k++) { const s = document.createElement('div'); s.className = 'slot'; g.appendChild(s); slots.push(s); bindTap(s, () => tippeFeld(i, k)); }
+    bindTap(el, () => { if (handy() && S && !Netz.laeuft && S.phase === 'reveal' && i !== V.fokus) { setFokus(i); sound('flip'); } });
     t.appendChild(el);
     V.boards.push({el, slots, nm: el.querySelector('.nm'), chip: el.querySelector('.chip'), sc: el.querySelector('.sc'), res: el.querySelector('.res'), a: 0});
   });
@@ -747,7 +877,7 @@ function buildTable() {
   const deckCard = makeCard(0, false); deck.querySelector('.stack').appendChild(deckCard);
   const discCard = makeCard(0, true); disc.appendChild(discCard);
   const heldCard = makeCard(0, true); held.appendChild(heldCard);
-  bindTap(deck, onDeck); bindTap(disc, onDisc);
+  bindTap(deck, tippeStapel); bindTap(disc, tippeAblage);
   V.c = {el: c, play: c.querySelector('.cplay'), sum, hint: c.querySelector('.hint'), sub: c.querySelector('.sub'),
     deck, disc, held, deckCard, discCard, heldCard, cnt: c.querySelector('.cnt'), discCap: disc.querySelector('.cap')};
   V.cang = 0; V.sang = 0;
@@ -790,7 +920,8 @@ function layTable(W, H, seats) {
     }
     if (diag && diag.d.u > best.d.u + 4) {
       const {d: dd, m: mm} = diag;
-      return {d: dd, boards: [{x: mm + dd.bw / 2, y: H - mm - dd.bh / 2, a: 0}, {x: W - mm - dd.bw / 2, y: mm + dd.bh / 2, a: 180}],
+      const unten = {x: mm + dd.bw / 2, y: H - mm - dd.bh / 2, a: 0}, oben = {x: W - mm - dd.bw / 2, y: mm + dd.bh / 2, a: 180};
+      return {d: dd, boards: seats.map(s => (s === 'B' ? {...unten} : {...oben})),
         c: {x: W / 2, y: H / 2, S: diag.S}, sum: {x: W / 2, y: H / 2, w: Math.min(W * .62, 600), h: Math.min(H * .5, 400)}};
     }
   }
@@ -830,7 +961,12 @@ function layFront(W, H, n) {
 function layout(first) {
   if (!S || !V.boards.length) return;
   const ins = insets(), W = innerWidth - ins.l - ins.r, H = innerHeight - ins.t - ins.b;
-  const L = S.mode === 'table' ? layTable(W, H, SEATS[S.players.length]) : layFront(W, H, S.players.length);
+  if (handy()) { V.warHandy = true; layoutHandy(ins, W, H, first); return; }
+  const zurueck = V.warHandy; V.warHandy = false;  // Fenster wieder breit (z. B. Split View): Drehung der Mitte neu setzen
+  V.c.el.classList.remove('handy'); V.c.el.style.width = V.c.el.style.height = '';
+  V.boards.forEach(b => { b.el.classList.remove('kompakt', 'gross', 'z2', 'z3'); b.el.style.removeProperty('--lab'); b.u = 0; });
+  const L = S.mode === 'table' ? layTable(W, H, sitzeFuerAnsicht()) : layFront(W, H, S.players.length);
+  if (Netz.laeuft) L.boards.forEach(b => { if (b.a === 180) b.a = 0; });
   const d = L.d; V.u = d.u;
   L.boards.forEach((b, i) => {
     const el = V.boards[i].el;
@@ -847,6 +983,7 @@ function layout(first) {
   if (first) V.c.el.classList.add('noanim');
   applyCenter();
   if (first) requestAnimationFrame(() => requestAnimationFrame(() => V.c.el.classList.remove('noanim')));
+  if (zurueck) renderCenter();
 }
 function sizeSummary() {
   if (!V.spos || !S) return;
@@ -860,7 +997,66 @@ function sizeSummary() {
   el.style.width = w + 'px'; el.style.height = h + 'px';
   el.style.transform = `translate(${x - w / 2}px,${y - h / 2}px) rotate(${V.sang}deg)`;
 }
-function applyCenter() { const {x, y, S: s} = V.cpos; V.c.el.style.transform = `translate(${x - s / 2}px,${y - s / 2}px) rotate(${V.cang}deg)`; }
+function applyCenter() { const {x, y, S: s} = V.cpos, w = V.cpos.w || s, h = V.cpos.h || s; V.c.el.style.transform = `translate(${x - w / 2}px,${y - h / 2}px) rotate(${V.cang}deg)`; }
+/* Handy hoch: andere Felder kompakt oben (zwei Spalten, Name links), Band mit Stapel/Ablage, eigenes Feld groß unten. */
+function layoutHandy(ins, W, H, first) {
+  const n = S.players.length;
+  if (V.fokus == null || V.fokus >= n) V.fokus = 0;
+  const f = V.fokus, others = [];
+  for (let j = 1; j < n; j++) others.push((f + j) % n);
+  const k = others.length, m = 8, gap = 8;
+  const top = Math.max(0, 12 - ins.t) + 44 + 8;          // Platz für den Menüknopf oben links
+  const cols = k === 1 ? 1 : k <= 4 ? 2 : 3, rows = Math.ceil(k / cols);
+  const colW = (W - 2 * m - (cols - 1) * gap) / cols;
+  const labH = cols === 1 ? 22 : cols * 17;               // Namenszeile: 1, 2 oder 3 Zeilen
+  const cw = Math.max(48, Math.min(64, W * .15));
+  const bandH = Math.max(cw * 1.4 + 30, 92) + 26;
+  const bigBh = u => 4.96 * u + Math.max(26, u * .5);   // Höhe des großen Felds (mit Namenszeile)
+  const smBh = u => 12 + labH + 4 + 4.44 * u;            // Höhe eines kompakten Felds
+  const uW = (colW - 12) / (4 + 3 * .12);
+  const capO = k === 1 ? 36 : 32, wBig = (W - 2 * m - 12) / (4 + 3 * .12 + .4);
+  let uo = Math.min(uW, capO), ub = 0;
+  for (; ; uo -= .5) {
+    const oppH = rows * smBh(uo) + (rows - 1) * gap;
+    const avail = H - top - oppH - bandH - 2 * gap - m;
+    ub = Math.min(wBig, (avail - 26) / 4.96);
+    while (ub > 1 && bigBh(ub) > avail) ub -= .5;
+    if (uo <= 14 || ub >= Math.max(46, uo * 1.6) || (uo <= 21 && ub >= 34)) break;
+  }
+  ub = Math.max(ub, 18);  // Notbremse für sehr niedrige Fenster
+  const oppH = rows * smBh(uo) + (rows - 1) * gap, bhB = bigBh(ub);
+  const bigY = H - m - bhB, bandTop = top + oppH + gap, bandBot = bigY - gap;
+  V.u = ub;
+  const set = (i, x, y, w, h, u, cls) => {
+    const b = V.boards[i], el = b.el;
+    el.classList.toggle('kompakt', cls === 'kompakt'); el.classList.toggle('gross', cls === 'gross');
+    el.classList.toggle('z2', cls === 'kompakt' && cols === 2); el.classList.toggle('z3', cls === 'kompakt' && cols === 3);
+    el.style.setProperty('--u', u + 'px');
+    if (cls === 'kompakt') el.style.setProperty('--lab', labH + 'px'); else el.style.removeProperty('--lab');
+    el.style.width = w + 'px'; el.style.height = h + 'px';
+    el.style.transform = `translate(${ins.l + x}px,${ins.t + y}px) rotate(0deg)`;
+    b.a = 0; b.u = u;
+  };
+  set(f, m, bigY, W - 2 * m, bhB, ub, 'gross');
+  others.forEach((i, j) => {
+    const r = Math.floor(j / cols), c = j % cols, inRow = Math.min(cols, k - r * cols);
+    const x0 = m + (cols - inRow) * (colW + gap) / 2;
+    set(i, x0 + c * (colW + gap), top + r * (smBh(uo) + gap), colW, smBh(uo), uo, 'kompakt');
+  });
+  V.cw = cw;
+  const bh = Math.max(bandH, Math.min(bandBot - bandTop, bandH + 40));
+  V.c.el.classList.add('handy');
+  V.c.el.style.width = (W - 2 * m) + 'px'; V.c.el.style.height = bh + 'px';
+  V.c.el.style.setProperty('--S', Math.min(W - 2 * m, 300) + 'px'); V.c.el.style.setProperty('--cw', cw + 'px');
+  V.cpos = {x: ins.l + W / 2, y: ins.t + (bandTop + bandBot) / 2, S: bh, w: W - 2 * m, h: bh};
+  const sh = Math.max(bandBot - top, Math.min(H * .6, 520));
+  V.spos = {x: ins.l + W / 2, y: ins.t + top + sh / 2, w: W - 2 * m, h: sh};
+  V.cang = 0; V.sang = 0;
+  sizeSummary();
+  if (first) V.c.el.classList.add('noanim');
+  applyCenter();
+  if (first) requestAnimationFrame(() => requestAnimationFrame(() => V.c.el.classList.remove('noanim')));
+}
 function rotateCenter(target) {
   let t = target;
   while (t - V.cang > 180) t -= 360; while (t - V.cang < -180) t += 360;
@@ -873,13 +1069,17 @@ addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => lay
 function isTarget(i, k) {
   const c = S.players[i].grid[k];
   if (c.gone) return false;
+  if (!Netz.binDran(i)) return false;  // Netzspiel: nur das eigene Feld leuchtet
   if (S.phase === 'reveal') return !c.up && upCount(S.players[i]) < 2;
   if (S.phase !== 'turn' || S.cur !== i) return false;
   if (S.step === 'placeDeck' || S.step === 'placeDisc') return true;
   if (S.step === 'flip') return !c.up;
   return false;
 }
-function renderAll(instant) { S.players.forEach((_, i) => renderBoard(i, instant)); renderCenter(); }
+function renderAll(instant) {
+  if (handy() && V.boards.length) { const f = fokusSoll(); if (f !== V.fokus) { V.fokus = f; layout(false); } }
+  S.players.forEach((_, i) => renderBoard(i, instant)); renderCenter();
+}
 function renderBoard(i, instant) {
   const p = S.players[i], v = V.boards[i];
   p.grid.forEach((cell, k) => {
@@ -920,15 +1120,15 @@ function renderCenter() {
   const summary = S.phase === 'roundEnd' || S.phase === 'gameEnd';
   C.play.hidden = summary; C.sum.hidden = !summary;
   let target = 0;
-  if (S.mode === 'table') {
+  if (tischDreh()) {
     if (S.phase === 'turn') target = seatAngle(S.cur);
   }
   rotateCenter(target);
   if (summary) {
-    let sa = S.mode === 'table' ? seatAngle(S.prevEnder ?? 0) : 0;
+    let sa = tischDreh() ? seatAngle(S.prevEnder ?? 0) : 0;
     const sideA = Math.abs(sa) === 90, fw = sideA ? V.spos.h : V.spos.w;
-    if (S.mode === 'table' && fw < Math.min(340, Math.max(V.spos.w, V.spos.h) * .8)) sa += 90;
-    sa += V.sumRot;
+    if (tischDreh() && fw < Math.min(340, Math.max(V.spos.w, V.spos.h) * .8)) sa += 90;
+    if (!handy()) sa += V.sumRot;
     while (sa - V.sang > 180) sa -= 360; while (sa - V.sang < -180) sa += 360;
     V.sang = sa; sizeSummary(); renderSummary();
     requestAnimationFrame(() => V.c.sum.classList.remove('noanim'));
@@ -944,16 +1144,30 @@ function renderCenter() {
     setCard(C.heldCard, S.held, true, true);
   } else { C.held.hidden = true; C.held.classList.remove('lift'); }
 
-  const turn = S.phase === 'turn', choose = turn && S.step === 'choose';
+  const turn = S.phase === 'turn' && Netz.binDran(S.cur), choose = turn && S.step === 'choose';
   C.deck.classList.toggle('target', choose);
   C.disc.classList.toggle('target', (choose && S.discard.length > 0) || (turn && (S.step === 'placeDeck' || S.step === 'placeDisc')));
   C.discCap.textContent = !turn ? 'Ablage' : S.step === 'placeDeck' ? 'Abwerfen' : S.step === 'placeDisc' ? 'Zurücklegen' : 'Ablage';
 
   let h = '', sub = '';
-  if (S.phase === 'reveal') h = '<span class="who" style="color:var(--ink)">Neue Runde</span>Alle decken gleichzeitig 2 eigene Karten auf.';
+  const netzFremd = Netz.laeuft && S.phase === 'turn' && !Netz.binDran(S.cur);
+  if (Netz.laeuft && S.phase === 'reveal') {
+    const q = S.players[ichSitz()], r = 2 - upCount(q);
+    C.el.style.setProperty('--pc', q.color);
+    h = r > 0 ? `<span class="who">Neue Runde</span>Decke ${r === 2 ? '2 deiner Karten' : 'noch 1 Karte'} auf.`
+              : '<span class="who">Bereit</span>Warte, bis alle 2 Karten aufgedeckt haben.';
+  } else if (netzFremd) {
+    h = `<span class="who">${esc(p.name)} ist dran</span>` + ({choose: 'nimmt eine Karte vom Stapel oder von der Ablage.',
+      placeDeck: 'hat eine Karte vom Stapel gezogen.', placeDisc: 'hat die Karte von der Ablage genommen.',
+      flip: 'deckt eine eigene Karte auf.', busy: '&nbsp;'}[S.step] || '');
+  } else if (S.phase === 'reveal' && handy()) {
+    const q = S.players[V.fokus], r = 2 - upCount(q);
+    C.el.style.setProperty('--pc', q.color);
+    h = `<span class="who">${esc(q.name)}</span>` + (r > 0 ? `Decke ${r === 2 ? '2 deiner Karten' : 'noch 1 Karte'} auf.` : 'ist bereit.');
+  } else if (S.phase === 'reveal') h = '<span class="who" style="color:var(--ink)">Neue Runde</span>Alle decken gleichzeitig 2 eigene Karten auf.';
   else if (S.phase === 'scoring') h = '<span class="who" style="color:var(--ink)">Abrechnung</span>Alle Karten werden aufgedeckt.';
   else if (turn) {
-    const who = `<span class="who">${esc(p.name)}</span>`;
+    const who = `<span class="who">${Netz.laeuft ? 'Du bist dran' : esc(p.name)}</span>`;
     const msg = {choose: 'Nimm eine Karte vom Stapel oder von der Ablage.',
       placeDeck: 'Tausche sie gegen eine deiner Karten oder wirf sie auf die Ablage.',
       placeDisc: 'Tausche sie gegen eine deiner Karten.',
@@ -963,7 +1177,8 @@ function renderCenter() {
   if (S.ender !== null && S.phase === 'turn') {
     const left = S.players.length - 1 - S.finalDone.length;
     sub = `<span class="last">Letzte Runde · noch ${left} ${left === 1 ? 'Zug' : 'Züge'}</span>`;
-  } else if (S.note && turn) sub = esc(S.note);
+  } else if (S.phase === 'reveal' && handy() && !Netz.laeuft) sub = 'Neue Runde · Andere Felder oben antippen, um sie groß zu zeigen.';
+  else if (S.note && S.phase === 'turn') sub = esc(S.note);
   else if (turn && S.step === 'placeDisc') sub = 'Ablage nochmal antippen legt die Karte zurück.';
   else sub = `Runde ${S.round} · Spielende ab ${S.target} Punkten`;
   if (C.hint.innerHTML !== h) C.hint.innerHTML = h;
@@ -988,10 +1203,12 @@ function renderSummary() {
       <span class="rp${S.doubled === i ? ' x2' : ''}">${p.last > 0 ? '+' : ''}${fmt(p.last)}${S.doubled === i ? ' ×2' : ''}</span>
       <span class="tt${p.total === mn ? ' lead' : ''}">${p.total}</span>`;
   }).join('');
-  const btns = over ? '<button class="go" data-a="rematch">Revanche</button><button class="alt" data-a="setup">Neues Spiel</button>'
-                    : '<button class="go" data-a="next">Nächste Runde</button>';
+  let btns = over ? '<button class="go" data-a="rematch">Revanche</button><button class="alt" data-a="setup">Neues Spiel</button>'
+                  : '<button class="go" data-a="next">Nächste Runde</button>';
+  // Netzspiel: Wie es weitergeht, entscheidet nur der Gastgeber.
+  if (Netz.istGast) btns = `<div class="warte">${esc(S.players[0].name)} entscheidet, wie es weitergeht.</div>`;
   C.sum.innerHTML = `<div class="head"><div class="st">${title}</div><div class="ss">${ss}</div>
-    ${S.mode === 'table' ? `<button class="rot" data-a="rot">${ROT_SVG}<span>Drehen</span></button>` : ''}</div><div class="rows">${rows}</div><div class="btns">${btns}</div>`;
+    ${tischDreh() ? `<button class="rot" data-a="rot">${ROT_SVG}<span>Drehen</span></button>` : ''}</div><div class="rows">${rows}</div><div class="btns">${btns}</div>`;
   C.sum.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const a = b.dataset.a;
     if (a === 'next') nextRound();
@@ -1003,6 +1220,7 @@ function renderSummary() {
 
 /* ---------- Menü ---------- */
 let quitArm = 0;
+const quitText = () => (Netz.istHost ? 'Spiel für alle beenden' : Netz.istGast ? 'Spiel verlassen' : 'Spiel beenden');
 $('#menuBtn').onclick = () => {
   if (!S) return;
   $('#menuTitle').textContent = S.phase === 'gameEnd' ? 'Spiel beendet' : `Pause · Runde ${S.round}`;
@@ -1017,22 +1235,87 @@ $('#menuBtn').onclick = () => {
   });
   $('#scoreTbl').innerHTML = t + '</table>';
   $('#mSound').textContent = 'Ton: ' + (cfg.sound ? 'an' : 'aus');
-  const q = $('#mQuit'); q.classList.remove('armed'); q.textContent = 'Spiel beenden'; quitArm = 0;
+  const q = $('#mQuit'); q.classList.remove('armed'); q.textContent = quitText(); quitArm = 0;
   show('#menu');
 };
 $('#mRules').onclick = () => show('#rules');
-$('#mTisch').onclick = () => { location.href = '../index.html'; };
+$('#mTisch').onclick = () => {
+  if (Netz.aktiv) { Netz.verlassen(); setTimeout(() => { location.href = '../index.html'; }, 250); return; }
+  location.href = '../index.html';
+};
 try { localStorage.setItem('spieltisch.zuletzt', 'tiefpunkt'); } catch (e) {}
 $('#mSound').onclick = () => { cfg.sound = !cfg.sound; savePrefs(); $('#mSound').textContent = 'Ton: ' + (cfg.sound ? 'an' : 'aus'); if (cfg.sound) { ac(); sound('place'); } };
 $('#mQuit').onclick = () => {
   const q = $('#mQuit');
   if (Date.now() - quitArm < 4000) { quitToSetup(); return; }
   quitArm = Date.now(); q.classList.add('armed'); q.textContent = 'Wirklich beenden? Nochmal tippen';
-  setTimeout(() => { if (Date.now() - quitArm >= 4000) { q.classList.remove('armed'); q.textContent = 'Spiel beenden'; } }, 4100);
+  setTimeout(() => { if (Date.now() - quitArm >= 4000) { q.classList.remove('armed'); q.textContent = quitText(); } }, 4100);
 };
 
+/* ---------- Netzspiel ----------
+   Gastgeber = Sitz 0 (Spieler 1), Mitspieler = Sitz 1, 2, … in Beitrittsreihenfolge. Der Gastgeber führt das Spiel;
+   Mitspieler schicken ihre Tipps (feld/stapel/ablage) und zeichnen den Stand, den sie bekommen.
+   Geheim sind die Werte aller verdeckten Karten (auch der eigenen) und der Nachziehstapel: Sie gehen nur als null bzw.
+   als Anzahl hinaus. Die gezogene Karte in der Hand liegt offen in der Mitte – wie am Tisch. */
+function netzSicht() {
+  return {
+    p: S.players.map(p => ({name: p.name, color: p.color, total: p.total, hist: p.hist, last: p.last,
+      grid: p.grid.map(c => ({v: c.up || c.gone ? c.v : null, up: !!c.up, gone: !!c.gone}))})),
+    target: S.target, round: S.round, prevEnder: S.prevEnder, phase: S.phase, step: S.step, cur: S.cur, ender: S.ender,
+    finalDone: S.finalDone, note: S.note, doubled: S.doubled, held: S.held, heldFrom: S.heldFrom,
+    deckN: S.deck.length, top: S.discard.length ? S.discard[S.discard.length - 1] : null,
+  };
+}
+function netzStand(d) {
+  const alt = S, n = d.p.length;
+  S = {players: d.p, mode: 'table', target: d.target, round: d.round, prevEnder: d.prevEnder,
+    deck: new Array(d.deckN).fill(null), discard: d.top == null ? [] : [d.top], held: d.held, heldFrom: d.heldFrom,
+    phase: d.phase, step: d.step, cur: d.cur, ender: d.ender, finalDone: d.finalDone, note: d.note, doubled: d.doubled};
+  if (!alt || $('#game').hidden || V.boards.length !== n || !V.c) {
+    $('#setup').hidden = true; $('#game').hidden = false; V.fokus = ichSitz(); V.sumRot = 0;
+    buildTable(); layout(true); renderAll(true);
+    if (S.phase === 'reveal' && S.players.every(p => upCount(p) === 0)) dealAnim();
+    return;
+  }
+  const neueRunde = alt.round !== S.round || ((alt.phase === 'roundEnd' || alt.phase === 'gameEnd') && S.phase === 'reveal');
+  if (neueRunde) { V.c.sum.classList.add('noanim'); renderAll(true); dealAnim(); return; }
+  // Töne und kleine Bewegungen aus dem Unterschied zum vorigen Stand
+  const zahl = (st, f) => st.players.reduce((a, p) => a + p.grid.filter(f).length, 0);
+  const neuGezogen = alt.held == null && S.held != null;
+  if (zahl(S, c => c.gone) > zahl(alt, c => c.gone)) sound('column');
+  else if (zahl(S, c => c.up && !c.gone) > zahl(alt, c => c.up && !c.gone)) sound('flip');
+  else if (neuGezogen) sound('draw');
+  else if (alt.held != null && S.held == null) sound('place');
+  if (S.ender != null && alt.ender == null) sound('last');
+  if (alt.phase !== S.phase && (S.phase === 'roundEnd' || S.phase === 'gameEnd')) { V.sumRot = 0; sound(S.phase === 'gameEnd' ? 'win' : 'round'); }
+  renderAll(false);
+  if (neuGezogen) liftHeld();
+}
+Netz.einrichten({
+  spiel: 'tiefpunkt', min: 2, max: 6,
+  starten(spieler, optionen) { ac(); newGame(spieler, Number(optionen.target) || cfg.target); },
+  aktion(name, d, sitz) {
+    // sitz === null: alle am selben Gerät, keine Prüfung. Sonst nur das eigene Feld und nur, wenn dieser Sitz handeln darf.
+    if (!S) return;
+    if (name === 'feld') {
+      const i = Number(d.i), k = Number(d.k);
+      if (!(i >= 0 && i < S.players.length && k >= 0 && k < 12)) return Netz.melden();
+      if (sitz !== null && (i !== sitz || !(S.phase === 'reveal' || (S.phase === 'turn' && S.cur === sitz)))) return Netz.melden();
+      const r = onSlot(i, k); Netz.melden(); return r;
+    }
+    if (name === 'stapel' || name === 'ablage') {
+      if (sitz !== null && (S.phase !== 'turn' || S.cur !== sitz)) return Netz.melden();
+      const r = name === 'stapel' ? onDeck() : onDisc(); Netz.melden(); return r;
+    }
+  },
+  zustand: () => netzSicht(),
+  stand: d => netzStand(d),
+  beendet: () => zurStartseite(),
+});
+
 buildSetup(); renderSetup();
-window.__tp = {get S() { return S; }, onSlot, onDeck, onDisc, get busy() { return busy; }};
+window.__tp = {get S() { return S; }, onSlot: tippeFeld, onDeck: tippeStapel, onDisc: tippeAblage, get busy() { return busy; },
+  neuZeichnen() { renderAll(); Netz.melden(); }};
 })();
 </script>
 </body>

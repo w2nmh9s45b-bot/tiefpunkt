@@ -142,11 +142,13 @@
     if (opt.gedreht) { t.style.bottom = 'auto'; t.style.top = 'max(24px,calc(var(--sicher-o) + 16px))'; t.style.transform = 'translateX(-50%) rotate(180deg)'; t.style.animation = 'none'; }
     setTimeout(() => t.remove(), ms);
   }
+  // Wie das Gerät in Texten heißt: auf dem großen Bildschirm „iPad“, auf dem Telefon „Handy“.
+  const GERAET = Math.min(screen.width, screen.height) >= 700 ? 'iPad' : 'Handy';
   function sichtschutz({name = '', farbe = FARBEN[0], text = 'Nur du schaust jetzt hin.', knopf = null, titel = null} = {}) {
     return new Promise(res => {
       const s = el('div', 'k-sichtschutz');
       s.innerHTML = `<div class="k-sich-in"><span class="k-dot" style="--pc:${esc(farbe)}">${esc((name || '?').trim().charAt(0).toUpperCase())}</span>
-        <h2>${esc(titel || `Gib das iPad an ${name}`)}</h2><p>${text}</p></div>`;
+        <h2>${esc(titel || `Gib das ${GERAET} an ${name}`)}</h2><p>${text}</p></div>`;
       const b = el('button', 'k-btn gross', esc(knopf || `Ich bin ${name}`));
       s.firstChild.appendChild(b);
       document.body.appendChild(s);
@@ -156,7 +158,10 @@
 
   /* ---------- Kopfknöpfe und Menü ---------- */
   let KOPF = null;
-  function zumTisch() { location.href = '../index.html'; }
+  function zumTisch() {
+    if (window.Netz && window.Netz.aktiv) { window.Netz.verlassen(); setTimeout(() => { location.href = '../index.html'; }, 250); return; }
+    location.href = '../index.html';
+  }
   function regeln() { fenster(`<h2>Spielregeln</h2>${REGELN || '<p>Keine Regeln hinterlegt.</p>'}`); }
   function menue() {
     const box = el('div');
@@ -173,7 +178,7 @@
     if (ON_NEU) {
       let scharf = 0;
       const n = knopf('Spiel beenden', 'leise', () => {
-        if (Date.now() - scharf < 4000) { fe.schliessen(); ON_NEU(); return; }
+        if (Date.now() - scharf < 4000) { fe.schliessen(); if (window.Netz && window.Netz.aktiv) window.Netz.verlassen(); ON_NEU(); return; }
         scharf = Date.now(); n.className = 'k-btn gefahr'; n.textContent = 'Wirklich beenden? Nochmal tippen';
       });
     }
@@ -261,6 +266,10 @@
     const r = el('button', 'k-btn leise gross', 'Regeln'); r.style.flex = '0 0 auto'; r.onclick = regeln;
     const s = el('button', 'k-btn gross', esc(o.startText || 'Spiel starten')); s.id = 'k-start';
     akt.append(r, s); panel.appendChild(akt);
+    // Netzspiel: „Spiel erstellen“ / „Spiel beitreten“, wenn das Spiel sich bei Netz angemeldet hat.
+    if (window.Netz && window.Netz.adapter && o.netz !== false) {
+      panel.appendChild(window.Netz.setupBlock(() => Object.assign({}, optWahl), () => (namenFeld[0] && namenFeld[0].inp.value.trim()) || ''));
+    }
     function zeichnen() {
       if (o.spieler) {
         for (let n = o.spieler.min; n <= o.spieler.max; n++) $('#k-anzahl-' + n, panel).setAttribute('aria-pressed', n === anzahl);
@@ -346,6 +355,7 @@
   }
 
   window.Kern = {
+    geraet: GERAET,
     farben: FARBEN, icon: ICON, esc, el, tap, ton, speicher, einst, namen, fenster, frage, hinweis, sichtschutz,
     init, kopf, menue, regeln, zumTisch, setup, karte, karteSetzen, wuerfel, wuerfelSetzen, wuerfelRollen,
     zufall, mischen, feier, warte: ms => new Promise(r => setTimeout(r, REDUCED ? Math.min(ms, 60) : ms))

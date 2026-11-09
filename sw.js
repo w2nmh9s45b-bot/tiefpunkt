@@ -1,7 +1,7 @@
 /* Spieltisch - Service Worker. Offline zuerst: jeder Start kommt aus dem Speicher des Geraets.
    Eine neue Fassung laedt ALLE Dateien in einen eigenen Speicher und gilt ab dem naechsten Start.
    Ein laufendes Spiel wird dabei nie neu geladen. VERSION setzt Werkzeuge/bauen.py. */
-var VERSION = "1ae7b338372a";
+var VERSION = "2f4ce6ea32ff";
 var CACHE = "spieltisch-" + VERSION;
 var ASSETS = [
   "./",
@@ -10,6 +10,7 @@ var ASSETS = [
   "./fonts/bricolage.woff2",
   "./gemeinsam/kern.css",
   "./gemeinsam/kern.js",
+  "./gemeinsam/netz.js",
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

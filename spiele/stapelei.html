@@ -92,10 +92,41 @@
 .sb-start{display:flex;align-items:flex-end}
 .sb-start .sb-k{--w:66px}
 @media (prefers-reduced-motion:reduce){.sb-greif{transition:none!important}}
+.sb-luecke{display:none}
+/* Netzspiel: oben rechts sitzt die Verbindungsplakette (netz.js) – dort keine Person hinlegen */
+.sb-netz .sb-oben{padding-right:118px}
+/* ---------- Telefon hoch: Personen als Raster (erste Zelle frei für die Kopfknöpfe), je Person zwei Zeilen;
+   Beschriftungen der Aufbaustapel umbrechen, Abstände knapper. ---------- */
+@media (max-width:700px){
+  .sb-buehne{gap:8px}
+  .sb-oben{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 6px;padding:0;min-height:46px;align-content:start}
+  .sb-luecke{display:block;min-height:46px}
+  .sb-netz .sb-oben{padding-right:0}
+  .sb-person{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 5px;padding:5px;border-radius:12px;align-items:center}
+  .sb-person .k-dot{width:22px;height:22px;font-size:11px}
+  .sb-person b{font-size:13px;max-width:none;line-height:1.15}
+  .sb-person small{font-size:12px;line-height:1.2}
+  .sb-person .vr .sb-n{display:none} /* Zahl steht daneben („Vorrat 20“), auf der kleinen Karte verdeckte sie den Wert */
+  .sb-reihe{gap:calc(var(--hw)*.2)}
+  .sb-person .abl{gap:2px}
+  .sb-mitte{gap:8px}
+  .sb-satz{font-size:16px}
+  .sb-tisch > .sb-pile:not(.sb-zieh) .sb-cap{white-space:normal;width:calc(var(--pw) + 14px);letter-spacing:.03em}
+  .sb-zieh .sb-cap{letter-spacing:.03em}
+  .sb-log{font-size:13px;margin-top:34px;line-height:1.3}
+  .sb-unten{gap:6px}
+  .sb-leiste{gap:8px;min-height:40px}
+  .sb-leiste .sb-tipp{font-size:14px;line-height:1.3;flex:1 1 200px}
+  .sb-leiste .k-btn{flex:none}
+  .sb-gruppe{gap:5px}
+  .sb-hoch .sb-platz{row-gap:10px}
+  .sb-tab{font-size:15px}
+}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="stapelei.logik.js"></script>
 <script>
 "use strict";
@@ -105,7 +136,8 @@ const AKZENT = '#f2a25c';
 const esc = Kern.esc;
 const TEST = {rnd: null};
 const R = n => TEST.rnd ? TEST.rnd(n) : Kern.zufall(n);
-let S = null, OFFEN = null, BUSY = false, WAHL = null, START = null, B = null, FAKTOR = 1;
+let S = null, OFFEN = null, BUSY = false, WAHL = null, START = null, B = null, FAKTOR = 1, WERTUNG = null;
+const HANDY = matchMedia('(max-width:700px)');
 
 const REGELN = `
 <p>Spiele deinen <b>Vorrat</b> leer. Wer zuerst die letzte Karte seines Vorratsstapels ablegt, gewinnt.</p>
@@ -146,6 +178,7 @@ function hinweis(text, ms = 2600) {
 
 /* ---------- Startseite ---------- */
 function startseite() {
+  if (WERTUNG) { WERTUNG.schliessen(); WERTUNG = null; }
   document.querySelectorAll('.sb-buehne').forEach(e => e.remove());
   if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
   START.hidden = false; S = null; OFFEN = null;
@@ -163,30 +196,37 @@ function startseite() {
     onStart: ({namen, farben, optionen}) => neuesSpiel(namen, farben, optionen)
   });
 }
-function neuesSpiel(namen, farben, optionen) { S = SL.neu({namen, ziel: optionen.ziel, kurz: optionen.kurz}, R); S.farben = farben; speichern(); spielen(); }
+function neuesSpiel(namen, farben, optionen) { S = SL.neu({namen, ziel: optionen.ziel, kurz: optionen.kurz}, R); S.farben = farben; speichern(); spielen(); Netz.melden(); }
 const speichern = () => Kern.speicher.speichern({s: S});
 
 /* ---------- Spielfläche ---------- */
-function spielen() {
+function buehne() {
   if (START) START.hidden = true;
   document.querySelectorAll('.sb-buehne').forEach(e => e.remove());
   B = Kern.el('div', 'k-buehne sb-buehne');
   B.innerHTML = `<div class="sb-oben"></div><div class="sb-mitte"></div><div class="sb-unten"><div class="sb-leiste"></div><div class="sb-platz"></div></div>`;
   document.body.appendChild(B);
-  OFFEN = null; WAHL = null; zeichnen(); weiterAn();
+  B.classList.toggle('sb-netz', Netz.laeuft);
+  OFFEN = null; WAHL = null;
 }
+function spielen() { buehne(); zeichnen(); weiterAn(); }
 function masse() {
   const W = innerWidth, H = innerHeight, hoch = H > W * 1.05;
   B.classList.toggle('sb-hoch', hoch);
   const hw = Math.round(FAKTOR * Math.max(50, Math.min(hoch ? 112 : 100, hoch ? W / 6.6 : W / 12.4, H * (hoch ? .095 : .12))));
   const pw = Math.round(FAKTOR * Math.max(58, Math.min(hoch ? 130 : 118, H * (hoch ? .11 : .15), W / (hoch ? 7.4 : 9.5))));
-  const ow = Math.round(Math.max(22, Math.min(34, W / 40)));
+  let ow = Math.round(Math.max(22, Math.min(34, W / 40)));
+  // Telefon: Kartenbreite so, dass Vorrat + vier Ablagen in eine Rasterzelle (Drittel der Breite) passen
+  if (HANDY.matches) ow = Math.floor(Math.min(26, ((W - 2 * Math.max(10, parseFloat(getComputedStyle(B).paddingLeft) || 10) - 12) / 3 - 12 - 22 - 5 - 6) / 4));
   B.style.setProperty('--hw', hw + 'px'); B.style.setProperty('--pw', pw + 'px'); B.style.setProperty('--ow', ow + 'px');
 }
 addEventListener('resize', () => { FAKTOR = 1; if (B && S) zeichnen(); });
 const nm = i => esc(S.namen[i]);
 const farbe = i => S.farben[i];
-const amZug = () => OFFEN !== null && OFFEN === S.dran && S.phase === 'zug';
+/* Am selben Gerät: Die Person am Zug sieht nach dem Sichtschutz ihre Hand (OFFEN). Im Netzspiel liegt unten immer der
+   eigene Platz mit offener Hand; handeln darf das Gerät nur, wenn sein Sitz dran ist. */
+const amZug = () => S.phase === 'zug' && (Netz.laeuft ? S.dran === Netz.meinSitz : OFFEN !== null && OFFEN === S.dran);
+const untenSitz = () => (Netz.laeuft ? Netz.meinSitz : S.dran);
 const oben = a => a[a.length - 1];
 const quelleSchl = q => q.art === 'hand' ? 'h' + q.id : q.art === 'vorrat' ? 'v' : 'a' + q.nr;
 
@@ -201,9 +241,9 @@ function zeichnen() {
 }
 function zeichnenEinmal() {
   masse();
-  const offen = amZug(), ich = S.dran;
+  const offen = amZug(), ich = untenSitz();
   // Alle Personen kompakt
-  B.querySelector('.sb-oben').innerHTML = S.namen.map((n, i) => `<div class="sb-person${i === S.dran && S.phase === 'zug' ? ' dran' : ''}" style="--pc:${farbe(i)}">
+  B.querySelector('.sb-oben').innerHTML = '<div class="sb-luecke"></div>' + S.namen.map((n, i) => (i === 1 && Netz.laeuft ? '<div class="sb-luecke"></div>' : '') + `<div class="sb-person${i === S.dran && S.phase === 'zug' ? ' dran' : ''}" style="--pc:${farbe(i)}">
     <span class="k-dot">${esc(n.charAt(0).toUpperCase())}</span><span class="wer"><b>${esc(n)}</b><small>Vorrat <i class="k-zahl">${S.vorrat[i].length}</i>${S.ziel ? ` · <i class="k-zahl">${S.punkte[i]}</i> P` : ''}</small></span>
     <span class="vr">${S.vorrat[i].length ? karteHtml(oben(S.vorrat[i])) : leer()}<span class="sb-n k-zahl">${S.vorrat[i].length}</span></span>
     <span class="abl">${S.ablagen[i].map(a => a.length ? karteHtml(oben(a)) : leer()).join('')}</span></div>`).join('');
@@ -218,11 +258,16 @@ function zeichnenEinmal() {
     </div><div class="sb-log">${esc(S.log.slice(-2).join(' '))}</div>`;
   m.querySelectorAll('[data-ziel^="b"]').forEach(p => Kern.tap(p, () => aufAufbau(+p.dataset.ziel.slice(1))));
   leiste(offen);
-  platz(offen, ich);
+  platz(offen, ich, offen || Netz.laeuft);
 }
 function satz(offen) {
   const wer = `<b style="--pc:${farbe(S.dran)}">${nm(S.dran)}</b>`;
   if (S.phase !== 'zug') return 'Die Partie ist vorbei.';
+  if (Netz.laeuft) {
+    if (!offen) return `${wer} ist dran.`;
+    const du = `<b style="--pc:${farbe(S.dran)}">Du bist dran</b>`;
+    return WAHL ? `${du}: Tippe einen leuchtenden Stapel an.` : `${du}: Baue auf – und lege zum Schluss eine Handkarte ab.`;
+  }
   if (!offen) return `Gleich ist ${wer} dran.`;
   if (WAHL) return `${wer}, tippe einen leuchtenden Stapel an.`;
   return `${wer}, baue auf – und lege zum Schluss eine Handkarte ab.`;
@@ -233,7 +278,7 @@ function leiste(offen) {
   const h = S.haende[S.dran];
   if (!h.length) {
     l.innerHTML = '<span class="sb-tipp">Keine Handkarte mehr und nichts zum Nachziehen.</span>';
-    const b = Kern.el('button', 'k-btn', 'Zug beenden'); b.id = 'sb-passen'; b.onclick = () => { SL.passen(S, R); nachZug(); }; l.appendChild(b);
+    const b = Kern.el('button', 'k-btn', 'Zug beenden'); b.id = 'sb-passen'; b.onclick = () => Netz.tun('passen'); l.appendChild(b);
     return;
   }
   const tipp = !WAHL ? 'Tippe eine Karte an: Hand, Vorrat oder die oberste Karte einer Ablage.'
@@ -242,7 +287,7 @@ function leiste(offen) {
   l.appendChild(Kern.el('span', 'sb-tipp', tipp));
   if (WAHL) { const b = Kern.el('button', 'k-btn leise klein', 'Auswahl aufheben'); b.id = 'sb-leeren'; b.onclick = () => { WAHL = null; zeichnen(); }; l.appendChild(b); }
 }
-function platz(offen, ich) {
+function platz(offen, ich, sichtbar = offen) {
   const p = B.querySelector('.sb-platz');
   const vk = oben(S.vorrat[ich]);
   const passt = q => SL.ziele(S, q).length > 0;
@@ -259,7 +304,7 @@ function platz(offen, ich) {
   p.innerHTML = `
     <div class="sb-gruppe"><span>Vorrat · ${S.vorrat[ich].length}</span><div class="sb-vorrat" id="sb-vorrat">${vk ? karteHtml(vk, kl({art: 'vorrat'}), null, 'data-q="v"') : leer()}</div></div>
     <div class="sb-gruppe"><span>Ablagen</span><div class="sb-reihe">${S.ablagen[ich].map(fach).join('')}</div></div>
-    <div class="sb-gruppe"><span>${offen ? 'Hand' : 'Hand (verdeckt)'}</span><div class="sb-hand${offen ? '' : ' sb-zu'}" id="sb-hand">${offen
+    <div class="sb-gruppe"><span>${sichtbar ? 'Hand' : 'Hand (verdeckt)'}</span><div class="sb-hand${offen ? '' : ' sb-zu'}" id="sb-hand">${sichtbar
       ? S.haende[ich].map(k => karteHtml(k, kl({art: 'hand', id: k.id}), null, `data-q="h${k.id}"`)).join('')
       : Array.from({length: Math.max(S.haende[ich].length, 0)}, () => rueck()).join('')}</div></div>`;
   if (!offen) return;
@@ -305,29 +350,52 @@ function greifbar(el, q) {
 }
 
 /* ---------- Züge ---------- */
+/* Jeder Zug läuft über Netz.tun: am selben Gerät sofort, im Netzspiel beim Gastgeber (der prüft, wer dran ist). */
 function aufAufbau(nr) {
+  if (Netz.laeuft && S && S.phase === 'zug' && !amZug()) { hinweis(`${S.namen[S.dran]} ist dran.`); return; }
   if (!amZug() || BUSY) return;
   if (!WAHL) { hinweis('Wähle zuerst eine Karte.'); return; }
-  const r = SL.legen(S, WAHL, nr, R);
-  if (!r.ok) { Kern.ton('fehler'); hinweis(r.grund || 'Passt hier nicht.'); return; }
-  WAHL = null; Kern.ton(r.fertig ? 'punkt' : 'legen');
-  speichern();
-  if (r.sieg) { OFFEN = null; zeichnen(); setTimeout(wertung, 700); return; }
-  zeichnen();
-  if (r.fertig) hinweis('Stapel bis 12 fertig – er kommt beiseite.');
-  else if (r.nachgezogen) hinweis('Alle Handkarten gelegt: fünf neue!');
+  if (Netz.istGast) {  // Fehlgriff gleich hier erklären; ausgeführt wird beim Gastgeber
+    const st = S.aufbau[nr];
+    if (!SL.ziele(S, WAHL).includes(nr)) { Kern.ton('fehler'); hinweis(st && st.length ? `Hier fehlt eine ${st.length + 1}.` : 'Ein Aufbaustapel beginnt mit einer 1 oder einem Joker.'); return; }
+    const q = quelleSchl(WAHL); WAHL = null; Kern.ton('legen');
+    return Netz.tun('legen', {q, ziel: nr});
+  }
+  return Netz.tun('legen', {q: quelleSchl(WAHL), ziel: nr});
 }
 function aufAblage(nr) {
+  if (Netz.laeuft && S && S.phase === 'zug' && !amZug()) { hinweis(`${S.namen[S.dran]} ist dran.`); return; }
   if (!amZug() || BUSY) return;
   if (!WAHL || WAHL.art !== 'hand') { hinweis('Auf deine Ablagen kommt nur eine Handkarte – damit endet dein Zug.'); return; }
-  const r = SL.abwerfen(S, WAHL.id, nr, R);
-  if (!r.ok) { Kern.ton('fehler'); hinweis(r.grund); return; }
-  WAHL = null; Kern.ton('karte'); nachZug();
+  const id = WAHL.id;
+  if (Netz.istGast) { WAHL = null; Kern.ton('karte'); }
+  return Netz.tun('abwerfen', {id, ziel: nr});
+}
+/* Ausführung (ohne Netz direkt, sonst nur beim Gastgeber). sitz === null: am selben Gerät. */
+const amGeraet = sitz => sitz === null || sitz === Netz.meinSitz;
+function fuerSitz(sitz, text) {  // kurze Meldung nur an die Person, die gezogen hat
+  if (amGeraet(sitz)) hinweis(text); else Netz.ereignis({daten: {an: sitz, hinweis: text}});
+}
+function legenAus(q, nr, sitz) {
+  const r = SL.legen(S, q, nr, R);
+  if (!r.ok) { if (amGeraet(sitz)) { Kern.ton('fehler'); hinweis(r.grund || 'Passt hier nicht.'); } Netz.melden(); return; }
+  WAHL = null; Kern.ton(r.fertig ? 'punkt' : 'legen');
+  speichern(); Netz.melden();
+  if (r.sieg) { OFFEN = null; zeichnen(); setTimeout(wertung, 700); return; }
+  zeichnen();
+  if (r.fertig) fuerSitz(sitz, 'Stapel bis 12 fertig – er kommt beiseite.');
+  else if (r.nachgezogen) fuerSitz(sitz, 'Alle Handkarten gelegt: fünf neue!');
+}
+function abwerfenAus(id, nr, sitz) {
+  const r = SL.abwerfen(S, id, nr, R);
+  if (!r.ok) { if (amGeraet(sitz)) { Kern.ton('fehler'); hinweis(r.grund); } Netz.melden(); return; }
+  WAHL = null; Kern.ton('karte'); return nachZug();
 }
 async function nachZug() {
-  speichern(); OFFEN = null; WAHL = null; zeichnen();
+  speichern(); OFFEN = null; WAHL = null; zeichnen(); Netz.melden();
   if (S.phase !== 'zug') { await Kern.warte(700); wertung(); return; }
-  await Kern.warte(700); weiterAn();
+  if (!Netz.laeuft) await Kern.warte(700);  // im Netzspiel gibt es keinen Sichtschutz – gleich weiter
+  weiterAn();
 }
 async function weiterAn() {
   if (S.phase !== 'zug') { wertung(); return; }
@@ -347,15 +415,22 @@ function wertung() {
   box.innerHTML = `<h2>${titel}</h2><p>${text}</p><table class="sb-tab"><tr><th>Name</th><th class="r">Karten im Vorrat</th>${S.ziel ? '<th class="r">Punkte</th>' : ''}</tr>
     ${S.namen.map((n, i) => `<tr class="${e.sieger === i ? 'sieg' : ''}"><td><span class="k-dot" style="--pc:${farbe(i)};display:inline-grid;margin-right:8px;vertical-align:-5px">${esc(n.charAt(0))}</span>${esc(n)}</td>
       <td class="r">${e.rest[i]}</td>${S.ziel ? `<td class="r"><b>${S.punkte[i]}</b></td>` : ''}</tr>`).join('')}</table><div class="k-knoepfe"></div>`;
+  if (WERTUNG) WERTUNG.schliessen();
   const fe = Kern.fenster(box, {breit: true, schliessbar: false}), kn = box.querySelector('.k-knoepfe');
-  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { fe.schliessen(); fn(); }; kn.appendChild(b); };
+  WERTUNG = fe;
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { fe.schliessen(); WERTUNG = null; fn(); }; kn.appendChild(b); };
+  if (Netz.istGast) {  // Netzspiel: Wie es weitergeht, entscheidet der Gastgeber
+    if (ende && !e.festgefahren && e.spielSieger === Netz.meinSitz) { Kern.ton('sieg'); Kern.feier(); } else Kern.ton('runde');
+    kn.outerHTML = `<p id="sb-warte" style="margin:14px 0 0;color:var(--ink2)">${nm(0)} entscheidet, wie es weitergeht.</p>`;
+    return;
+  }
   if (ende) {
     Kern.speicher.loeschen(); if (!e.festgefahren) { Kern.ton('sieg'); Kern.feier(); }
-    knopf('Neues Spiel', 'sb-neu', 'leise', () => startseite());
+    knopf('Neues Spiel', 'sb-neu', 'leise', () => { if (Netz.aktiv) Netz.verlassen(); startseite(); });
     knopf('Nochmal', 'sb-nochmal', '', () => neuesSpiel(S.namen, S.farben, {ziel: S.ziel, kurz: S.kurz}));
   } else {
     Kern.ton('runde');
-    knopf('Nächste Partie', 'sb-weiter', '', () => { SL.naechstePartie(S, R); speichern(); weiterAn(); });
+    knopf('Nächste Partie', 'sb-weiter', '', () => { SL.naechstePartie(S, R); speichern(); weiterAn(); Netz.melden(); });
   }
 }
 function punkteFenster() {
@@ -367,8 +442,53 @@ function punkteFenster() {
 window.__test = {
   S: () => S, offen: () => OFFEN, logik: SL,
   zufall(seed) { let s = seed >>> 0; TEST.rnd = n => { s = (s * 1664525 + 1013904223) >>> 0; return s % n; }; },
-  setze(fn) { fn(S); speichern(); zeichnen(); }
+  setze(fn) { fn(S); speichern(); zeichnen(); Netz.melden(); }
 };
+
+/* ---------- Netzspiel ----------
+   Gastgeber = Sitz 0, Mitspieler = Sitz 1, 2, … Der Gastgeber führt das Spiel und prüft jeden Zug (nur wer dran ist).
+   Geheim: fremde Handkarten (nur Anzahl), Vorrat unter der obersten Karte, Nachziehstapel und beiseitegelegte Stapel
+   (nur Anzahl). Offen: oberste Vorratskarte, Ablagen, Aufbaustapel. */
+function sichtFuer(sitz) {
+  const leer = n => new Array(n).fill(null);
+  return Object.assign({}, S, {
+    stapel: leer(S.stapel.length), fertig: leer(S.fertig.length),
+    vorrat: S.vorrat.map(v => (v.length ? leer(v.length - 1).concat([v[v.length - 1]]) : [])),
+    haende: S.haende.map((h, i) => (i === sitz ? h : leer(h.length))),
+  });
+}
+function netzStand(d) {
+  const alt = S;
+  S = d;
+  if (!B || !B.isConnected) { buehne(); }
+  if (!amZug() || (WAHL && !SL.karteVon(S, WAHL))) WAHL = null;
+  zeichnen();
+  if (alt && alt.partie === S.partie) {  // Töne aus dem Unterschied
+    const aufbau = z => z.aufbau.reduce((a, x) => a + x.length, 0) + z.fertig.length;
+    if (aufbau(S) > aufbau(alt) && alt.dran !== Netz.meinSitz) Kern.ton(S.fertig.length > alt.fertig.length ? 'punkt' : 'legen');
+    if (S.dran !== alt.dran && S.phase === 'zug') { document.querySelectorAll('.sb-meldung').forEach(e => e.remove()); Kern.ton(S.dran === Netz.meinSitz ? 'tipp' : 'karte'); if (S.dran === Netz.meinSitz) hinweis('Du bist dran.', 1600); }
+  }
+  if (S.phase === 'zug') { if (WERTUNG) { WERTUNG.schliessen(); WERTUNG = null; } }
+  else if (!WERTUNG || !alt || alt.phase === 'zug' || alt.partie !== S.partie) setTimeout(() => { if (S && S.phase !== 'zug') wertung(); }, alt && alt.phase === 'zug' ? 700 : 0);
+}
+Netz.einrichten({
+  spiel: 'stapelei', min: 2, max: 6,
+  starten(spieler, o) {
+    neuesSpiel(spieler.map(p => p.name), spieler.map(p => p.farbe), {ziel: Number(o.ziel) || 0, kurz: o.kurz === true || o.kurz === 'true'});
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    // sitz === null: am selben Gerät. Sonst nur, wer dran ist.
+    if (sitz !== null && (S.phase !== 'zug' || S.dran !== sitz)) return Netz.melden();
+    if (name === 'legen') { const q = quelleAus(String(d.q || '')); return legenAus(q, Number(d.ziel), sitz); }
+    if (name === 'abwerfen') return abwerfenAus(Number(d.id), Number(d.ziel), sitz);
+    if (name === 'passen') { const r = SL.passen(S, R); if (!r.ok && sitz !== null) return Netz.melden(); return nachZug(); }
+  },
+  zustand: sitz => sichtFuer(sitz),
+  stand: d => netzStand(d),
+  ereignis(d) { if (d.hinweis && d.an === Netz.meinSitz) hinweis(d.hinweis); },
+  beendet: () => startseite(),
+});
 startseite();
 })();
 </script>

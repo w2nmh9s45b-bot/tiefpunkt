@@ -37,6 +37,7 @@ a:focus-visible{outline:3px solid var(--akzent);outline-offset:4px;border-radius
 header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:34px}
 h1{font-family:var(--f-disp);font-weight:800;font-size:clamp(52px,7vw,92px);letter-spacing:-.05em;line-height:.88;margin:0}
 .unter{color:var(--ink2);font-size:19px;margin:12px 0 0}
+.hub-rechts{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .zuletzt{display:flex;align-items:center;gap:14px;padding:12px 18px 12px 12px;border-radius:20px;border:1px solid var(--line);background:rgba(7,24,32,.6);max-width:100%}
 .zuletzt .ic{width:56px;height:56px;border-radius:15px;flex:none}
 .zuletzt small{display:block;color:var(--ink2);font-size:13px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
@@ -67,11 +68,15 @@ footer{margin-top:44px;color:var(--ink2);font-size:14px;line-height:1.5;max-widt
       <h1>Spieltisch</h1>
       <p class="unter" id="unter">18 Spiele für einen Tisch und ein iPad.</p>
     </div>
-    <a class="zuletzt" id="zuletzt" hidden></a>
+    <div class="hub-rechts">
+      <button class="nz-hub" id="nz-hub-beitreten"><span><small>Mit eigenem Gerät</small>Spiel beitreten</span></button>
+      <a class="zuletzt" id="zuletzt" hidden></a>
+    </div>
   </header>
   <main id="regale"></main>
-  <footer>Alle Spiele laufen ohne Internet. Ein angefangenes Spiel bleibt gespeichert, auch wenn du zwischendurch ein anderes öffnest; der gelbe Punkt zeigt, wo noch eins läuft.</footer>
+  <footer>Jeder mit eigenem Gerät: In einem Spiel „Spiel erstellen“ wählen, die anderen tippen hier auf „Spiel beitreten“ und geben den Code ein – über das Internet oder in der Nähe per Bluetooth (nur in der Spieltisch-App). Alle Spiele laufen ohne Internet. Ein angefangenes Spiel bleibt gespeichert, auch wenn du zwischendurch ein anderes öffnest; der gelbe Punkt zeigt, wo noch eins läuft.</footer>
 </div>
+<script src="gemeinsam/netz.js"></script>
 <script>
 "use strict";
 /* Jede Kachel: id = Dateiname in spiele/, laeuft = Schlüssel des gespeicherten Spiels. */
@@ -128,10 +133,11 @@ function laeuft(sp) {
 }
 function icon(sp) { return `<span class="ic" style="--bg:${sp.bg}"><svg viewBox="0 0 64 64" aria-hidden="true">${sp.svg}</svg>${laeuft(sp) ? '<span class="laeuft" title="Spiel läuft"></span>' : ''}</span>`; }
 const regale = document.getElementById('regale');
+Netz.stil(); document.getElementById('nz-hub-beitreten').onclick = () => Netz.beitretenDialog();
 const gruppen = [...new Set(SPIELE.map(s => s.regal))];
 regale.innerHTML = gruppen.map(g => `<section><h2>${g}</h2><div class="regal">${SPIELE.filter(s => s.regal === g).map(s =>
   `<a class="kachel" href="spiele/${s.id}.html">${icon(s)}<span class="nm">${s.name}</span><span class="sp">${s.sp} Spieler</span></a>`).join('')}</div></section>`).join('');
-document.getElementById('unter').textContent = `${SPIELE.length} Spiele für einen Tisch und ein iPad.`;
+document.getElementById('unter').textContent = `${SPIELE.length} Spiele für einen Tisch und ein ${Math.min(screen.width, screen.height) >= 700 ? 'iPad' : 'Handy'}.`;
 let zul = null; try { zul = localStorage.getItem('spieltisch.zuletzt'); } catch (e) {}
 const z = SPIELE.find(s => s.id === zul);
 if (z) {

@@ -39,10 +39,22 @@
 .ha-akt .k-btn{min-height:46px;font-size:16px;padding:0 16px}
 .ha-ende{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;gap:10px;z-index:7}
 @media (max-aspect-ratio:1/1){.ha-hint{width:min(230px,34vw);font-size:15px;padding:8px 10px}.ha-pl{font-size:14px}}
+/* Telefon hoch: Spielerliste rechts neben den Kopfknöpfen (bricht um), Hinweis unten bzw. für die Gegenseite oben,
+   Brett dazwischen – die Lage rechnet handyLage() */
+@media (max-width:700px){
+  .ha-liste{left:calc(max(10px,var(--sicher-l)) + 108px);right:max(10px,var(--sicher-r));transform:none;max-width:none;flex-wrap:wrap;justify-content:flex-end;gap:5px}
+  .ha-pl{font-size:14px;padding:4px 9px 4px 4px;gap:6px}
+  .ha-pl .nm{max-width:84px}
+  .ha-hint{width:min(380px,calc(100% - 24px));font-size:16px;padding:10px 14px}
+  .ha-akt .k-btn{min-height:44px}
+  .ha-ende{bottom:max(10px,calc(var(--sicher-u) + 6px));width:max-content;max-width:calc(100% - 20px)}
+  .ha-netz .ha-liste{right:calc(max(10px,var(--sicher-r)) + 92px)} /* Platz für die Code-Plakette */
+}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="halma.logik.js"></script>
 <script>
 "use strict";
@@ -62,7 +74,10 @@ function anker(sitz) { // Mittelpunkt der Hinweisbox je Sitzecke; quer: seitlich
   if (innerWidth > innerHeight) return {3: [165, px(100)], 4: [165, '66%'], 5: [165, '42%'], 0: [px(165), 100], 1: [px(165), '42%'], 2: [px(165), '66%']}[sitz];
   return {3: ['50%', px(100)], 0: ['50%', 100], 1: [px(130), '24%'], 2: [px(130), '76%'], 4: [130, '76%'], 5: [130, '24%']}[sitz];
 }
-let S = null, namen = [], farben = [], opt = {}, sel = null, weg = [], busy = false, stage = null, setupZiel = null;
+let S = null, namen = [], farben = [], opt = {}, sel = null, weg = [], busy = false, stage = null, setupZiel = null, gesendet = false;
+// Netzspiel: Das Brett dreht sich, bis die eigene Startecke unten liegt (Zacke 3 = unten, je Zacke 60°).
+const ich = () => (Netz.laeuft ? Netz.meinSitz + 1 : 0);
+const drehWinkel = () => (Netz.laeuft && S ? ((3 - S.sitze[ich()]) * 60 + 360) % 360 : 0);
 const $ = id => document.getElementById(id);
 
 function bild() {
@@ -78,7 +93,7 @@ function startseite() {
     bild: bild(), fakten: ['2 bis 6 Personen', 'ca. 20 Minuten'],
     spieler: {min: 2, max: 6, standard: 2, frage: 'Wie viele spielen mit? (2, 3, 4 oder 6)', namenLabel: 'Namen, Startecken im Uhrzeigersinn ab unten'},
     optionen: [
-      {id: 'gegenueber', label: 'Hinweise zur eigenen Seite drehen?', standard: 'an', werte: [{wert: 'an', text: 'Ja, gegenüber sitzen'}, {wert: 'aus', text: 'Nein, alle gleich'}]},
+      {id: 'gegenueber', label: 'Hinweise zur eigenen Seite drehen?', standard: matchMedia('(max-width:700px)').matches ? 'aus' : 'an', werte: [{wert: 'an', text: 'Ja, gegenüber sitzen'}, {wert: 'aus', text: 'Nein, alle gleich'}]},
       {id: 'regel', label: 'Blockiert ein fremder Stein dein Ziel', standard: 'blockade', werte: [{wert: 'blockade', text: 'Zählt als belegt'}, {wert: 'streng', text: 'Streng: alle Steine ins Ziel'}]}
     ],
     fortsetzen: ok ? `${g.S.n} Personen · ${g.namen[g.S.am - 1]} ist dran` : null,
@@ -96,12 +111,12 @@ function beginnen(d) {
   S = d.S; namen = d.namen; farben = d.farben; opt = d.opt; sel = null; weg = []; busy = false;
   if (setupZiel) { setupZiel.remove(); setupZiel = null; }
   Kern.speicher.speichern({S, namen, farben, opt});
-  aufbauen(); zeichne();
+  aufbauen(); zeichne(); Netz.melden();
 }
 
 function aufbauen() {
   if (stage) stage.remove();
-  stage = Kern.el('div', 'k-buehne ha-stage');
+  stage = Kern.el('div', 'k-buehne ha-stage' + (Netz.laeuft ? ' ha-netz' : ''));
   document.body.appendChild(stage);
   const svg = document.createElementNS(SVGNS, 'svg');
   svg.setAttribute('viewBox', `${GRENZE.a} ${GRENZE.c} ${GRENZE.b - GRENZE.a} ${GRENZE.d - GRENZE.c}`); svg.setAttribute('class', 'ha-svg'); svg.id = 'ha-svg';
@@ -110,7 +125,7 @@ function aufbauen() {
   let h = '';
   for (let i = 0; i < H.N; i++) { const c = P(i); h += `<circle class="ha-loch" cx="${c.x}" cy="${c.y}" r="15" ${tint[i] ? `style="fill:color-mix(in srgb,${tint[i]} 24%,transparent)"` : ''}/>`; }
   h += `<g id="ha-ziel"></g><g id="ha-wege"></g><g id="ha-spur"></g><g id="ha-steine"></g><g id="ha-hits"></g>`;
-  svg.innerHTML = h; stage.appendChild(svg);
+  svg.innerHTML = drehWinkel() ? `<g id="ha-dreh" transform="rotate(${drehWinkel()})">${h}</g>` : h; stage.appendChild(svg);
   const hits = svg.querySelector('#ha-hits');
   for (let i = 0; i < H.N; i++) {
     const c = P(i), k = document.createElementNS(SVGNS, 'circle');
@@ -145,6 +160,7 @@ function aktuelleZiele() {
 function nachrichtText() {
   const n = namen[S.am - 1];
   if (S.sieger) return '';
+  if (!Netz.binDran(S.am - 1)) return 'Warte auf den Zug.';
   if (weg.length > 1) return `Weiter hüpfen oder „Zug beenden“.`;
   if (sel != null) return `Tippe ein leuchtendes Feld.`;
   return `Tippe einen deiner Steine an.`;
@@ -167,14 +183,38 @@ function zeichne() {
   const hn = $('ha-hint'), an = opt.gegenueber === 'an' ? S.sitze[am] : 3, a = anker(an).map(v => typeof v === 'number' ? v + 'px' : v);
   hn.hidden = !!S.sieger; hn.style.setProperty('--pc', farben[am - 1]);
   hn.style.left = a[0]; hn.style.top = a[1]; hn.style.setProperty('--rot', opt.gegenueber === 'an' ? (an * 60 + 180) % 360 + 'deg' : '0deg');
-  hn.innerHTML = `<b>${Kern.esc(namen[am - 1])}</b> ist dran<br>${Kern.esc(nachrichtText())}${weg.length ? `<div class="ha-akt"><button class="k-btn leise" id="ha-zurueck">Zurück</button>${weg.length > 1 ? '<button class="k-btn" id="ha-fertig">Zug beenden</button>' : ''}</div>` : ''}`;
+  const wer = Netz.laeuft && am === ich() ? '<b>Du</b> bist dran' : `<b>${Kern.esc(namen[am - 1])}</b> ist dran`;
+  hn.innerHTML = `${wer}<br>${Kern.esc(nachrichtText())}${weg.length ? `<div class="ha-akt"><button class="k-btn leise" id="ha-zurueck">Zurück</button>${weg.length > 1 ? '<button class="k-btn" id="ha-fertig">Zug beenden</button>' : ''}</div>` : ''}`;
   const zb = $('ha-zurueck'), fb = $('ha-fertig');
   if (zb) Kern.tap(zb, zurueck); if (fb) Kern.tap(fb, beenden);
+  handyLage(hn, an);
+}
+// Telefon hoch: Brett zwischen Spielerliste und Hinweisband; Hinweis unten aufrecht, für Sitze oben (0, 1, 5) oben gedreht.
+const HANDY = matchMedia('(max-width:700px)'), BAND = 142;
+let sicherEl = null;
+function sicher() {
+  if (!sicherEl) { sicherEl = Kern.el('div'); sicherEl.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--sicher-o) 0 var(--sicher-u)'; document.body.appendChild(sicherEl); }
+  const c = getComputedStyle(sicherEl); return {o: parseFloat(c.paddingTop) || 0, u: parseFloat(c.paddingBottom) || 0};
+}
+function handyLage(hn, an) {
+  const svg = $('ha-svg'); if (!svg) return;
+  if (!HANDY.matches || innerWidth > innerHeight) { svg.style.top = svg.style.height = ''; return; }
+  const H = innerHeight, si = sicher(), oben = opt.gegenueber === 'an';
+  const lu = $('ha-liste').getBoundingClientRect().bottom + 8, kopf = document.querySelector('.k-kopf'), ku = kopf ? kopf.getBoundingClientRect().bottom + 8 : 0;
+  const start = Math.max(lu, ku), unten = Math.max(10, si.u) + BAND;
+  const top = start + (oben ? BAND : 0);
+  svg.style.top = top + 'px'; svg.style.height = Math.max(160, H - top - unten) + 'px';
+  if (S.sieger) return;
+  const obenSitz = oben && [0, 1, 5].includes(an);
+  hn.style.left = '50%';
+  hn.style.top = (obenSitz ? start + BAND / 2 : H - unten + BAND / 2) + 'px';
+  hn.style.setProperty('--rot', obenSitz ? '180deg' : '0deg');
 }
 
 function tippe(i) {
-  if (busy || S.sieger) return;
+  if (busy || S.sieger || gesendet) return;
   const am = S.am, z = aktuelleZiele();
+  if (!Netz.binDran(am - 1)) { Kern.ton('fehler'); return Kern.hinweis(`${namen[am - 1]} ist dran.`); }
   if (weg.length > 1) {
     if (z.huepfer.includes(i)) return hupf(i);
     Kern.ton('fehler'); return Kern.hinweis('Hüpfe weiter auf ein leuchtendes Feld oder tippe „Zug beenden“.');
@@ -210,13 +250,20 @@ function zurueck() {
   Kern.ton('tipp');
 }
 function beenden() { if (weg.length > 1 && !busy) commit(weg.slice()); }
-async function commit(w) {
-  if (busy) return; busy = true;
+// Der fertige Zug (Schritt oder ganze Hüpfkette) geht über Netz.tun; die Kette selbst bleibt bis dahin auf dem Gerät.
+function commit(w) {
+  if (busy || gesendet) return;
+  gesendet = Netz.istGast;
+  return Netz.tun('zug', {weg: w});
+}
+async function zugAusfuehren(w, eigen) {
+  if (busy) return Netz.melden(); busy = true;
   try {
     const von = w[0], nach = w[w.length - 1];
-    const wasChain = weg.length > 1;
-    S = H.ziehen(S, w); sel = null; weg = [];
-    Kern.speicher.speichern({S, namen, farben, opt});
+    const wasChain = eigen && weg.length > 1;
+    try { S = H.ziehen(S, w); } catch (e) { if (eigen) { sel = null; weg = []; zeichne(); } return Netz.melden(); }
+    sel = null; weg = [];
+    Kern.speicher.speichern({S, namen, farben, opt}); Netz.melden();
     zeichne(); if (!wasChain) animiere(von, nach); Kern.ton('stein');
     if (S.sieger) { await Kern.warte(350); await ende(); }
   } finally { busy = false; }
@@ -226,13 +273,15 @@ async function ende() {
   let t, u;
   if (S.sieger === 'remis') { t = 'Remis'; u = 'Niemand kann mehr ziehen.'; }
   else { t = `${namen[S.sieger - 1]} gewinnt!`; u = S.regel === 'blockade' && H.imZiel(S, S.sieger) < S.steine ? 'Der Zielhof zählt als gefüllt, ein fremder Stein blockiert nur noch das letzte Feld.' : 'Alle Steine stehen im gegenüberliegenden Ziel.'; Kern.ton('sieg'); Kern.feier(); }
+  if (Netz.laeuft) Netz.ereignis({daten: {ende: t}});
   const w = await dialog(t, u, [{text: 'Nochmal (Anfang wechselt)', wert: 'nochmal', art: 'gut'}, {text: 'Brett ansehen', wert: 'sehen', art: 'leise'}, {text: 'Neues Spiel', wert: 'neu', art: 'leise'}]);
   if (w === 'nochmal') return nochmal();
-  if (w === 'neu') return startseite();
+  if (w === 'neu') return neuesSpiel();
   const l = Kern.el('div', 'ha-ende'), a = Kern.el('button', 'k-btn gut', 'Nochmal'), b = Kern.el('button', 'k-btn leise', 'Neues Spiel');
-  a.onclick = nochmal; b.onclick = startseite; l.append(a, b); stage.appendChild(l);
+  a.onclick = nochmal; b.onclick = neuesSpiel; l.append(a, b); stage.appendChild(l);
 }
-function nochmal() { beginnen({S: H.neu({anzahl: S.n, regel: S.regel, start: (S.start || 1) % S.n + 1}), namen, farben, opt}); S.start = S.am; Kern.speicher.speichern({S, namen, farben, opt}); }
+function nochmal() { beginnen({S: H.neu({anzahl: S.n, regel: S.regel, start: (S.start || 1) % S.n + 1}), namen, farben, opt}); S.start = S.am; Kern.speicher.speichern({S, namen, farben, opt}); Netz.melden(); }
+function neuesSpiel() { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); }
 
 
 // Eigene Rückfrage statt Kern.frage: Kern.frage löst beim Schließen zuerst mit null auf, die gewählte Antwort ginge verloren.
@@ -245,6 +294,44 @@ function dialog(titel, text, knoepfe) {
 }
 
 Kern.init({id: 'halma', name: 'Halma', akzent: '#7fd49a', regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+
+/* Netzspiel: Sitz k = Spieler k+1 (Startecken im Uhrzeigersinn ab dem Gastgeber). Jedes Gerät dreht das Brett so,
+   dass die eigene Startecke unten liegt. Hüpfketten bleiben bis „Zug beenden“ auf dem eigenen Gerät. */
+Netz.einrichten({
+  spiel: 'halma', min: 2, max: 6, erlaubt: [2, 3, 4, 6],
+  starten(spieler, optionen) {
+    beginnen({S: H.neu({anzahl: spieler.length, regel: optionen.regel}), namen: spieler.map(p => p.name), farben: spieler.map(p => p.farbe),
+      opt: Object.assign({}, optionen, {gegenueber: 'aus'})});
+  },
+  aktion(name, d, sitz) {
+    if (name !== 'zug' || !S || S.sieger) return Netz.melden();
+    if (sitz !== null && sitz !== S.am - 1) return Netz.melden(); // nicht dran
+    const w = Array.isArray(d.weg) ? d.weg.map(Number).filter(Number.isInteger) : [];
+    return zugAusfuehren(w, sitz === null || sitz === Netz.meinSitz);
+  },
+  zustand: () => ({S, namen, farben}),
+  stand(d) {
+    const alt = S, neu = d.S;
+    const neuePartie = !alt || neu.n !== alt.n || neu.zuege < alt.zuege || (neu.zuege === 0 && alt.zuege > 0);
+    S = neu; namen = d.namen; farben = d.farben; opt = {gegenueber: 'aus'};
+    if (setupZiel) { setupZiel.remove(); setupZiel = null; }
+    document.querySelectorAll('.k-scroll').forEach(e => e.remove());
+    const eigen = gesendet; gesendet = false;
+    if (!stage || neuePartie) { sel = null; weg = []; aufbauen(); }
+    else if (neu.zuege !== alt.zuege || eigen) { sel = null; weg = []; }
+    zeichne();
+    if (alt && !neuePartie && neu.zuege > alt.zuege && neu.letzter) {
+      if (!eigen) animiere(neu.letzter[0], neu.letzter[neu.letzter.length - 1]);
+      Kern.ton('stein');
+    }
+  },
+  ereignis(d) {
+    if (!d.ende) return;
+    if (S.sieger && S.sieger !== 'remis') { Kern.ton(S.sieger === ich() ? 'sieg' : 'runde'); if (S.sieger === ich()) Kern.feier(); }
+    Kern.hinweis(`${d.ende} – ${namen[0]} entscheidet, wie es weitergeht.`, 4000);
+  },
+  beendet: () => startseite(),
+});
 startseite();
 addEventListener('resize', () => { if (S && stage) zeichne(); });
 window.__test = {zustand: () => S, laden: s => { S = s; sel = null; weg = []; zeichne(); }, hat: () => ({sel, weg: weg.slice()})};

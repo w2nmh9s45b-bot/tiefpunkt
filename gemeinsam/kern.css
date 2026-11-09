@@ -72,16 +72,29 @@ h1,h2,h3{font-family:var(--f-disp);font-weight:800;letter-spacing:-.03em;line-he
 .k-chip.warn{background:var(--warn);color:#2a1f05}
 
 /* ---------- Startseite eines Spiels (Kern.setup) ---------- */
-.k-setup{min-height:100%;max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1.05fr;align-items:center;gap:clamp(24px,5vw,68px);
+.k-setup{min-height:100%;max-width:1160px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center;gap:clamp(24px,5vw,68px);
   padding-block:max(70px,calc(var(--sicher-o) + 60px)) max(28px,var(--sicher-u));
   padding-left:max(24px,var(--sicher-l));padding-right:max(24px,var(--sicher-r))}
-@media (max-aspect-ratio:1/1){.k-setup{grid-template-columns:1fr;align-content:center}}
+@media (max-aspect-ratio:1/1){.k-setup{grid-template-columns:minmax(0,1fr);align-content:center}}
+/* Telefon (iPhone hoch und quer): Knopfreihen umbrechen nach Inhalt, Titel kleiner, Ränder knapper */
+@media (max-width:700px),(max-height:500px){
+  .k-sichtschutz .k-btn{white-space:normal;max-width:100%;line-height:1.2;padding-block:10px;min-height:52px;height:auto}
+  .k-seg button{flex:1 1 auto;min-height:46px;padding:0 10px;font-size:16px}
+  .k-setup{gap:22px;padding-left:max(16px,var(--sicher-l));padding-right:max(16px,var(--sicher-r))}
+  .k-setup .k-titel h1{font-size:clamp(40px,11vw,60px)}
+  .k-setup .k-titel .k-unter{font-size:16px;margin-top:10px}
+  .k-setup .k-titel .k-bild{margin-bottom:12px}
+  .k-setup .k-panel{gap:16px}
+  .k-feld{height:46px}
+  .k-panel{border-radius:20px}
+}
+@media (max-height:500px){.k-setup{padding-block:max(16px,var(--sicher-o)) max(16px,var(--sicher-u));padding-left:max(64px,var(--sicher-l));align-items:start}}
 .k-setup .k-titel h1{font-size:clamp(48px,7.4vw,96px);letter-spacing:-.05em;line-height:.9}
 .k-setup .k-titel .k-unter{font-size:clamp(17px,1.9vw,21px);color:var(--ink2);max-width:32ch;margin:16px 0 0;line-height:1.45}
 .k-setup .k-titel .k-bild{margin-bottom:22px}
 .k-setup .k-titel .k-fakten{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
 .k-setup .k-panel{display:flex;flex-direction:column;gap:22px}
-.k-namen{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k-namen{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .k-aktionen{display:flex;gap:12px}
 .k-aktionen .k-btn.gross{flex:1}
 .k-weiter{display:flex;align-items:center;gap:14px;text-align:left;width:100%;padding:16px 18px;border-radius:16px;border:1px solid var(--akzent);background:color-mix(in srgb,var(--akzent) 12%,transparent)}

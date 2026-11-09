@@ -28,6 +28,9 @@
 .fs-weg svg{width:13px;height:13px}
 .fs-plus{min-height:44px;border-radius:12px;border:1px dashed var(--line-stark);background:none;color:var(--ink2);font-weight:700;font-size:15px}
 .fs-hinw{font-size:14px;color:var(--ink2);margin:8px 0 0}
+/* Netzspiel: rechts oben sitzt die Verbindungsplakette */
+body.fs-netz .fs-oben{padding-right:118px}
+.fs-ich{font-size:14px;color:var(--ink2)}.fs-ich b{color:var(--pc)}
 
 /* ---------- Bühne ---------- */
 .fs-buehne{display:flex;flex-direction:column;gap:10px}
@@ -112,10 +115,47 @@
   .fs-halten{grid-row:span 3}
   .fs-zahlen{grid-column:2}
 }
+
+/* ---------- Telefon hoch (iPhone): Teams untereinander, Leisten als Spalten, Wörter getrennt statt zerrissen ---------- */
+@media (max-width:700px){
+  .fs-teams{grid-template-columns:minmax(0,1fr)}
+  .fs-geber{height:40px;padding:0 12px;font-size:13px}
+  .fs-weg{width:40px;height:40px}
+  .k-sichtschutz .k-btn{white-space:normal;line-height:1.2;padding-block:10px;max-width:100%;text-align:center}
+  .fs-buehne{gap:8px}
+  .fs-oben{padding-left:112px}
+  .fs-verlauf{max-height:62px}
+  .fs-verlauf .k-chip{font-size:13px}
+  .fs-wort{padding:0 4%;overflow-wrap:normal;word-break:normal;hyphens:auto;-webkit-hyphens:auto}
+  .fs-karte.strafe::before{font-size:max(11px,calc(var(--fs)*.5))}
+  .fs-zeichen{top:4%;right:4%;width:calc(var(--ch)*.17);height:calc(var(--ch)*.17)}
+  .fs-unten{grid-template-columns:minmax(0,1fr);grid-template-areas:"stand" "mitte" "knoepfe";gap:8px;min-height:0;padding:10px 12px;border-radius:18px}
+  .fs-unten .fs-stand{grid-area:stand;flex-direction:row;justify-content:center;flex-wrap:wrap}
+  .fs-unten .fs-mitte{grid-area:mitte}
+  .fs-unten .fs-knoepfe{grid-area:knoepfe;justify-content:stretch}
+  .fs-stand .k-chip{min-width:0;font-size:14px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .fs-satz{font-size:16px}
+  .fs-hinweis{gap:10px;flex-wrap:wrap;justify-content:center}
+  .fs-hinweis .w{font-size:30px;overflow-wrap:anywhere}
+  .fs-hinweis .z{font-size:30px}
+  .fs-knoepfe .k-btn{flex:1 1 auto;white-space:normal;line-height:1.2;padding-block:8px;text-align:center}
+  .fs-knoepfe .k-btn.klein{min-height:46px}
+  .fs-oben.gedreht{padding:10px 12px;margin-top:52px}
+  /* Hinweisgeber: Haltefläche, Wort, Zahlen, Knöpfe untereinander – oben, damit die Tastatur nichts verdeckt */
+  .fs-geberleiste{display:flex;flex-direction:column;gap:8px;margin:52px 0 0;padding:10px 12px;border-radius:18px}
+  .fs-halten{min-height:64px;flex:none}
+  .fs-eingabe .k-feld{max-width:none}
+  .fs-zahlen{gap:6px}
+  .fs-zahlen button{flex:1 1 44px;min-width:44px;padding:0 6px}
+  .fs-geberknoepfe{order:2}
+  .fs-geberknoepfe .k-btn{flex:1 1 auto}
+  .fs-geberleiste .fs-satz{font-size:15px}
+}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="funkstille.logik.js"></script>
 <script src="funkstille.daten.js"></script>
 <script>
@@ -139,7 +179,7 @@ const ZEICHEN = {
 const REGELN = `
 <p>Zwei Teams suchen ihre geheimen Wörter im Raster aus 25 Karten. Je Team gibt eine Person die Hinweise; nur die beiden Hinweisgeber kennen die Schlüsselkarte.</p>
 <h3>Die Schlüsselkarte</h3>
-<p>Sie legt fest, welche Wörter zu welchem Team gehören: Das Startteam hat 9 Wörter, das andere 8. Dazu kommen 7 Unbeteiligte und 1 Attentäter. Am iPad sieht der Hinweisgeber sie nur hinter dem Sichtschutz und nur, solange er den Knopf gedrückt hält.</p>
+<p>Sie legt fest, welche Wörter zu welchem Team gehören: Das Startteam hat 9 Wörter, das andere 8. Dazu kommen 7 Unbeteiligte und 1 Attentäter. Am ${Kern.geraet} sieht der Hinweisgeber sie nur hinter dem Sichtschutz und nur, solange er den Knopf gedrückt hält.</p>
 <h3>Hinweis geben</h3>
 <ul>
 <li>Der Hinweis besteht aus genau einem Wort und einer Zahl: Die Zahl sagt, wie viele Wörter des eigenen Teams dazu passen.</li>
@@ -157,9 +197,10 @@ const REGELN = `
 </ul>
 <h3>Sieg</h3>
 <p>Gewonnen hat das Team, dessen Wörter alle aufgedeckt sind – auch wenn das andere Team das letzte davon erwischt hat.</p>
-<h3>Am iPad</h3>
+<h3>Am ${Kern.geraet}</h3>
 <p>Die Farben tragen Zeichen: Kreis und Raute für die Teams, Strich für Unbeteiligte, Kreuz für den Attentäter. Wer sich gegenübersitzt, wählt auf der Startseite „Gegenüber sitzen“: Dann steht jedes Wort auch kopfüber auf der Karte.</p>`;
 
+const HANDY = matchMedia('(max-width:700px)');
 let S = null, MODUS = null;   // MODUS: null | 'geber' | 'strafe' (nur am Gerät, nicht gespeichert)
 let NEU_AUFGEDECKT = -1;
 const buehne = el('div', 'k-buehne fs-buehne'); buehne.hidden = true; document.body.appendChild(buehne);
@@ -270,8 +311,10 @@ function neuesSpiel(teams, sitz) {
   const gesehen = ls.get(K_GESEHEN, []);
   const z = L.woerterZiehen(WOERTER, gesehen, Kern.zufall);
   ls.set(K_GESEHEN, z.zuruecksetzen ? z.woerter : [...gesehen, ...z.woerter]);
+  const netz = S && S.netz;   // Netzspiel: Sitze der Teams bleiben bei „Nochmal“ erhalten
   S = L.neu({ teams, woerter: z.woerter, zufall: Kern.zufall });
   S.sitz = sitz || 'seite';
+  if (netz) S.netz = netz;
   MODUS = null; speichern(); spielZeigen();
   Kern.ton('runde');
 }
@@ -285,6 +328,8 @@ const zahlText = z => z === 'unbegrenzt' ? '∞' : z;
 
 function zeichnen() {
   if (!S) return;
+  if (NETZ()) MODUS = netzModus();
+  document.body.classList.toggle('fs-netz', NETZ());
   const t = S.amZug;
   buehne.style.setProperty('--zug', tf(S.phase === 'ende' ? S.sieger : t));
   const gegenueber = S.sitz === 'gegenueber';
@@ -297,15 +342,16 @@ function zeichnen() {
   S.karten.forEach((k, i) => {
     const b = el('button', `fs-karte art-${k.art}${k.offen ? ' offen' : ''}${k.strafe ? ' strafe' : ''}${i === NEU_AUFGEDECKT ? ' neu' : ''}`);
     b.dataset.i = i; b.type = 'button';
-    b.innerHTML = `${gegenueber ? `<span class="fs-wort zwei">${esc(k.wort)}</span><span class="fs-trenn"></span>` : ''}<span class="fs-wort">${esc(k.wort)}</span><span class="fs-zeichen">${ZEICHEN[k.art]}</span>`;
+    b.innerHTML = `${gegenueber ? `<span class="fs-wort zwei">${esc(k.wort)}</span><span class="fs-trenn"></span>` : ''}<span class="fs-wort">${esc(k.wort)}</span><span class="fs-zeichen">${ZEICHEN[k.art] || ''}</span>`;
     b.setAttribute('aria-label', k.offen ? `${k.wort}, ${artName(k.art)}` : k.wort);
     Kern.tap(b, () => karteGetippt(i));
     raster.appendChild(b);
   });
   NEU_AUFGEDECKT = -1;
-  if (S.phase === 'raten' && !MODUS) raster.classList.add('waehlbar');
+  if (S.phase === 'raten' && !MODUS && (!NETZ() || istRater(Netz.meinSitz))) raster.classList.add('waehlbar');
   if (MODUS === 'strafe') raster.classList.add('strafwahl');
   if (S.phase === 'ende') raster.classList.add('aufloesung');
+  if (NETZ() && istGeber(Netz.meinSitz)) raster.classList.add('schluessel');   // Hinweisgeber sehen die Schlüsselkarte immer
   buehne.innerHTML = '';
   buehne.append(oben, brett);
   if (!MODUS) { const u = el('div', 'fs-unten'); u.innerHTML = leisteHtml(false); buehne.appendChild(u); }
@@ -316,12 +362,13 @@ function zeichnen() {
 function artName(a) { return a === 'neutral' ? 'Unbeteiligter' : a === 'attentaeter' ? 'Attentäter' : S.teams[+a[1]].name; }
 
 function verlaufHtml() {
-  const v = S.verlauf.slice(-8);
+  let v = S.verlauf.slice(-8);
+  if (HANDY.matches) v = v.reverse();   // Telefon: neuester Hinweis zuerst, ältere fallen hinten weg
   return `<div class="fs-verlauf">${v.map(h => `<span class="k-chip${h.ungueltig ? ' ungueltig' : ''}" style="--pc:${tf(h.team)}">${esc(h.wort.toUpperCase())} ${zahlText(h.zahl)}</span>`).join('')}</div>`;
 }
 
 function standHtml() {
-  return `<div class="fs-stand">${[0, 1].map(i => `<span class="k-chip" style="--pc:${tf(i)}">${esc(S.teams[i].name)} <b class="k-zahl">noch ${L.uebrig(S, i)}</b></span>`).join('')}</div>`;
+  return `<div class="fs-stand">${[0, 1].map(i => `<span class="k-chip" style="--pc:${tf(i)}">${esc(S.teams[i].name)} <b class="k-zahl">noch ${S.rest ? S.rest[i] : L.uebrig(S, i)}</b></span>`).join('')}</div>`;
 }
 
 function leisteHtml(kopie) {
@@ -335,6 +382,12 @@ function leisteHtml(kopie) {
     mitte = `<div class="fs-hinweis"><span class="w">${esc(h.wort)}</span><span class="z k-zahl">${zahlText(h.zahl)}</span></div>
       <div class="fs-satz"><b style="color:${tf(t)}">${esc(S.teams[t].name)}</b> tippt ein Wort an · ${unb ? 'beliebig viele Tipps' : `noch ${rest} ${rest === 1 ? 'Tipp' : 'Tipps'}`}${h.tipps === 0 ? ' · mindestens einer' : ''}</div>`;
     knoepfe = `<button class="k-btn leise klein" id="fs-ungueltig${sfx}">Hinweis ungültig?</button><button class="k-btn" id="fs-beenden${sfx}" ${L.darfBeenden(S) ? '' : 'disabled'}>Zug beenden</button>`;
+    if (NETZ()) {   // Netzspiel: „ungültig“ meldet das andere Team, beenden darf nur das ratende Team
+      const ich = Netz.meinSitz;
+      knoepfe = (teamVon(ich) === g ? `<button class="k-btn leise klein" id="fs-ungueltig">Hinweis ungültig?</button>` : '')
+        + (istRater(ich) ? `<button class="k-btn" id="fs-beenden" ${L.darfBeenden(S) ? '' : 'disabled'}>Zug beenden</button>` : '');
+      if (istRater(ich)) mitte = mitte.replace('tippt ein Wort an', 'tippt ein Wort an – ihr seid dran');
+    }
   } else if (S.phase === 'strafe') {
     const f = S.strafeFuer;
     mitte = `<div class="fs-satz">Ungültiger Hinweis – Zug vorbei. <b>${esc(geber(f))}</b> darf zur Strafe ein Wort von <b style="color:${tf(f)}">${esc(S.teams[f].name)}</b> abdecken.</div>`;
@@ -345,6 +398,12 @@ function leisteHtml(kopie) {
       <div class="fs-satz">${S.grund === 'attentaeter' ? `${esc(S.teams[l].name)} hat den Attentäter erwischt.` : `Alle Wörter von ${esc(S.teams[w].name)} sind gefunden.`}</div>`;
     knoepfe = kopie ? '' : `<button class="k-btn leise" id="fs-neu">Neues Spiel</button><button class="k-btn" id="fs-nochmal">Nochmal</button>`;
   }
+  if (NETZ()) {   // Netzspiel: Hinweisgeber arbeiten in ihrer eigenen Leiste, über das Spielende entscheidet der Gastgeber
+    if (S.phase === 'hinweis' || S.phase === 'strafe') knoepfe = '';
+    if (S.phase === 'ende' && !Netz.istHost) knoepfe = `<span class="fs-satz">${esc(netzName(0))} entscheidet, wie es weitergeht.</span>`;
+    const ich = Netz.meinSitz, rolle = istGeber(ich) ? `Hinweisgeber · ${S.teams[teamVon(ich)].name}` : `Team ${S.teams[teamVon(ich)].name}`;
+    mitte += `<div class="fs-satz fs-ich" style="--pc:${tf(teamVon(ich))}">Du: <b>${esc(rolle)}</b></div>`;
+  }
   return `${standHtml()}<div class="fs-mitte">${mitte}</div><div class="fs-knoepfe">${knoepfe}</div>`;
 }
 
@@ -352,22 +411,25 @@ function leisteHtml(kopie) {
 let ZAHL = null;
 function geberLeiste() {
   const t = S.amZug, box = el('div', 'fs-geberleiste');
-  const halten = `<button class="fs-halten" id="fs-halten">Gedrückt halten: Schlüsselkarte<small>Loslassen verdeckt sie wieder</small></button>`;
+  const halten = NETZ() ? `<div class="fs-halten an" style="pointer-events:none">Schlüsselkarte<small>Nur die Hinweisgeber sehen die Farben</small></div>`
+    : `<button class="fs-halten" id="fs-halten">Gedrückt halten: Schlüsselkarte<small>Loslassen verdeckt sie wieder</small></button>`;
+  const abbruch = NETZ() ? '' : '<button class="k-btn leise" id="fs-abbruch">Abbrechen</button>';
   if (MODUS === 'geber') {
     box.innerHTML = `${halten}
       <div class="fs-eingabe"><label class="k-feld"><input id="fs-wort" type="text" maxlength="24" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="Ein Wort"></label></div>
-      <div class="fs-geberknoepfe"><button class="k-btn leise" id="fs-abbruch">Abbrechen</button><button class="k-btn" id="fs-geben">Hinweis geben</button></div>
+      <div class="fs-geberknoepfe">${abbruch}<button class="k-btn" id="fs-geben">Hinweis geben</button></div>
       <div class="fs-zahlen">${[...'0123456789', 'unbegrenzt'].map(z => `<button id="fs-zahl-${z}" data-z="${z}" aria-pressed="${ZAHL === z}">${zahlText(z)}</button>`).join('')}</div>`;
   } else {
     const f = S.strafeFuer;
     box.innerHTML = `${halten}
-      <div class="fs-satz"><b>${esc(geber(f))}</b>: Halte den Knopf gedrückt und tippe mit einem anderen Finger eines deiner Wörter an.</div>
-      <div class="fs-geberknoepfe"><button class="k-btn leise" id="fs-abbruch">Zurück</button><button class="k-btn leise" id="fs-verzicht">Verzichten</button></div>`;
+      <div class="fs-satz"><b>${esc(geber(f))}</b>: ${NETZ() ? 'Ungültiger Hinweis beim anderen Team – du darfst zur Strafe eines deiner Wörter abdecken. Tippe es an.' : 'Halte den Knopf gedrückt und tippe mit einem anderen Finger eines deiner Wörter an.'}</div>
+      <div class="fs-geberknoepfe">${NETZ() ? '' : '<button class="k-btn leise" id="fs-abbruch">Zurück</button>'}<button class="k-btn leise" id="fs-verzicht">Verzichten</button></div>`;
   }
   return box;
 }
 
 function schluessel(an) {
+  if (NETZ() && istGeber(Netz.meinSitz)) an = true;   // im Netzspiel bleibt die Schlüsselkarte beim Hinweisgeber offen
   const r = buehne.querySelector('.fs-raster'), h = buehne.querySelector('#fs-halten');
   if (r) r.classList.toggle('schluessel', an); if (h) h.classList.toggle('an', an);
 }
@@ -379,8 +441,8 @@ function knoepfeVerbinden() {
   ['', '-2'].forEach(s => { tap('fs-beenden' + s, zugBeenden); tap('fs-ungueltig' + s, ungueltigMelden); });
   tap('fs-strafe-los', strafeStart);
   tap('fs-verzicht', verzichten);
-  tap('fs-nochmal', () => neuesSpiel(L.naechsteTeams(S), S.sitz));
-  tap('fs-neu', () => { Kern.speicher.loeschen(); startseite(); });
+  tap('fs-nochmal', () => Netz.tun('nochmal'));
+  tap('fs-neu', () => { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); });
   tap('fs-abbruch', () => { MODUS = null; zeichnen(); });
   tap('fs-geben', hinweisAbschicken);
   buehne.querySelectorAll('.fs-zahlen button').forEach(b => Kern.tap(b, () => { ZAHL = b.dataset.z; Kern.ton('tipp');
@@ -408,7 +470,32 @@ function groesse() {
   cw = Math.min(cw, ch * 2.1);
   const laengstes = Math.max(...S.karten.map(k => k.wort.length));
   const fs = Math.min(cw * 1.55 / Math.max(laengstes, 7), ch * (gg ? .2 : .3));
+  if (HANDY.matches) return groesseHandy(brett, r, gg);
   r.style.setProperty('--cw', cw + 'px'); r.style.setProperty('--ch', ch + 'px'); r.style.setProperty('--gap', gap + 'px'); r.style.setProperty('--fs', fs + 'px');
+}
+/* Telefon hoch: Karten nutzen die ganze Breite und dürfen höher als breit sein. Die Schrift ist so groß, dass Wörter
+   bis 7 Buchstaben in eine Zeile passen; längere werden an der Silbe getrennt (hyphens), nie mitten im Buchstaben.
+   Passt ein Wort trotzdem nicht (mehr als 2 Zeilen oder seitlich zu breit), wird nur diese Karte kleiner. */
+let MESS = null, SCHRIFT_GEWARTET = false;
+function groesseHandy(brett, r, gg) {
+  const W = brett.clientWidth, H = brett.clientHeight, gap = 6;
+  const cw = (W - 4 * gap) / 5;
+  const ch = Math.max(cw * .8, Math.min((H - 4 * gap) / 5, cw * (gg ? 1.45 : 1.2)));
+  if (!MESS) MESS = document.createElement('canvas').getContext('2d');
+  const schrift = getComputedStyle(document.body).getPropertyValue('--f-disp');
+  // Messen erst mit geladener Schrift – sonst noch einmal, sobald sie da ist
+  if (document.fonts && !SCHRIFT_GEWARTET && !document.fonts.check(`800 20px ${schrift}`)) (SCHRIFT_GEWARTET = true) && document.fonts.load(`800 20px ${schrift}`).then(() => { if (S && !buehne.hidden) groesse(); }).catch(() => {});
+  MESS.font = `800 100px ${schrift}`;
+  const platz = cw * .84;
+  let fs = ch * (gg ? .19 : .26);
+  for (const k of S.karten) if (k.wort.length <= 7) fs = Math.min(fs, platz / (MESS.measureText(k.wort).width / 100) * .97);
+  fs = Math.max(13, fs);
+  r.style.setProperty('--cw', cw + 'px'); r.style.setProperty('--ch', ch + 'px'); r.style.setProperty('--gap', gap + 'px'); r.style.setProperty('--fs', fs + 'px');
+  r.querySelectorAll('.fs-karte').forEach(b => {
+    const ws = b.querySelectorAll('.fs-wort'); ws.forEach(w => { w.style.fontSize = ''; }); let f = parseFloat(getComputedStyle(ws[ws.length - 1]).fontSize);
+    const zuGross = () => [...ws].some(w => w.scrollWidth > w.clientWidth + 1 || w.offsetHeight > f * 1.05 * 2 + 2);
+    while (zuGross() && f > 11) { f -= 1; ws.forEach(w => { w.style.fontSize = f + 'px'; }); }
+  });
 }
 addEventListener('resize', () => { if (S && !buehne.hidden) groesse(); });
 
@@ -433,10 +520,16 @@ async function hinweisAbschicken() {
       knoepfe: [{ text: 'Ändern', wert: false, art: 'leise' }, { text: 'Trotzdem geben', wert: true }] });
     if (!w) return;
   }
-  L.hinweisGeben(S, wort, ZAHL);
+  const zahl = ZAHL;
+  if (NETZ()) { WORT_ENTWURF = ''; ZAHL = null; }
+  Netz.tun('hinweis', { wort, zahl });
+}
+function hinweisAusfuehren(wort, zahl) {
+  L.hinweisGeben(S, wort, zahl);
   MODUS = null; WORT_ENTWURF = ''; ZAHL = null;
   speichern(); Kern.ton('punkt'); zeichnen();
-  Kern.hinweis(`Hinweis für ${S.teams[S.amZug].name}: ${wort.toUpperCase()} ${zahlText(S.hinweis.zahl)}`, 2600);
+  const text = `Hinweis für ${S.teams[S.amZug].name}: ${wort.toUpperCase()} ${zahlText(S.hinweis.zahl)}`;
+  Kern.hinweis(text, 2600); Netz.melden(); Netz.ereignis({ hinweis: text, ton: 'punkt' });
 }
 
 /* ---------- Raten ---------- */
@@ -446,34 +539,47 @@ async function karteGetippt(i) {
   if (MODUS === 'strafe') return strafeGetippt(i);
   if (MODUS || S.phase !== 'raten' || k.offen || FRAGT) return;
   const t = S.amZug;
+  if (NETZ() && !istRater(Netz.meinSitz)) { Kern.hinweis(geberSitz(t) === Netz.meinSitz ? 'Dein Team rät – du gibst nur die Hinweise.' : `${S.teams[t].name} ist dran.`); return; }
   FRAGT = true;
   const ja = await frage({ titel: `„${k.wort}“ aufdecken?`, text: `${esc(S.teams[t].name)} tippt dieses Wort für den Hinweis ${esc(S.hinweis.wort.toUpperCase())} ${zahlText(S.hinweis.zahl)}.`,
     knoepfe: [{ text: 'Abbrechen', wert: false, art: 'leise' }, { text: 'Aufdecken', wert: true }] });
   FRAGT = false;
-  if (!ja || S.phase !== 'raten' || k.offen) return;
+  if (!ja || S.phase !== 'raten' || S.karten[i].offen) return;
+  Netz.tun('tippe', { i });
+}
+async function tippenAusfuehren(i) {
+  const t = S.amZug;
   const r = L.tippen(S, i);
   NEU_AUFGEDECKT = i;
   speichern();
   if (r.ende) Kern.speicher.loeschen();
   zeichnen();
-  if (r.art === 'attentaeter') { Kern.ton('gong'); Kern.hinweis(`Der Attentäter! ${S.teams[t].name} hat verloren.`, 3200); }
-  else if (r.eigen) { Kern.ton('punkt'); if (!r.ende) Kern.hinweis(r.zugEnde ? 'Treffer! Keine Tipps mehr – Zug vorbei.' : 'Treffer! Ihr dürft weiterraten.', 1400); }
-  else if (r.art === 'neutral') { Kern.ton('legen'); Kern.hinweis('Unbeteiligt – Zug vorbei.', 2200); }
-  else { Kern.ton('fehler'); if (!r.ende) Kern.hinweis(`Wort von ${S.teams[1 - t].name} – Zug vorbei.`, 2400); }
-  if (r.ende) { await Kern.warte(700); Kern.feier(); Kern.ton('sieg'); }
+  let ton = 'punkt', text = '';
+  if (r.art === 'attentaeter') { ton = 'gong'; text = `Der Attentäter! ${S.teams[t].name} hat verloren.`; }
+  else if (r.eigen) { if (!r.ende) text = r.zugEnde ? 'Treffer! Keine Tipps mehr – Zug vorbei.' : 'Treffer! Ihr dürft weiterraten.'; }
+  else if (r.art === 'neutral') { ton = 'legen'; text = 'Unbeteiligt – Zug vorbei.'; }
+  else { ton = 'fehler'; if (!r.ende) text = `Wort von ${S.teams[1 - t].name} – Zug vorbei.`; }
+  Kern.ton(ton); if (text) Kern.hinweis(text, r.art === 'attentaeter' ? 3200 : r.eigen ? 1400 : 2300);
+  Netz.melden(); Netz.ereignis({ ton, hinweis: text || undefined, daten: { neu: i } });
+  if (r.ende) { await Kern.warte(700); Kern.feier(); Kern.ton('sieg'); Netz.ereignis({ feier: true, ton: 'sieg' }); }
 }
 
 function zugBeenden() {
   if (!L.darfBeenden(S)) { Kern.hinweis('Tippt zuerst mindestens ein Wort an.'); return; }
-  L.zugBeenden(S); speichern(); Kern.ton('tipp'); zeichnen();
+  Netz.tun('beenden');
 }
+function zugBeendenAusfuehren() { L.zugBeenden(S); speichern(); Kern.ton('tipp'); zeichnen(); Netz.melden(); }
 
 async function ungueltigMelden() {
   const t = S.amZug, g = 1 - t;
   const ja = await frage({ titel: 'Hinweis ungültig?', text: `Nur wenn der Hinweis gegen die Regeln verstößt (z. B. Form oder Teil eines offenen Wortes, mehr als ein Wort). Der Zug von ${esc(S.teams[t].name)} endet sofort, und ${esc(geber(g))} darf zur Strafe ein Wort von ${esc(S.teams[g].name)} abdecken.`,
     knoepfe: [{ text: 'Doch gültig', wert: false, art: 'leise' }, { text: 'Ungültig', wert: true, art: 'gefahr' }] });
   if (!ja || S.phase !== 'raten') return;
+  Netz.tun('ungueltig');
+}
+function ungueltigAusfuehren() {
   L.ungueltig(S); speichern(); Kern.ton('fehler'); zeichnen();
+  Netz.melden(); Netz.ereignis({ ton: 'fehler', hinweis: 'Hinweis ungültig – der Zug ist vorbei.' });
 }
 
 /* ---------- Strafe ---------- */
@@ -491,12 +597,99 @@ async function strafeGetippt(i) {
   const ja = await frage({ titel: `„${k.wort}“ abdecken?`, text: `Das Wort zählt dann als gefunden für ${esc(S.teams[f].name)}.`,
     knoepfe: [{ text: 'Abbrechen', wert: false, art: 'leise' }, { text: 'Abdecken', wert: true }] });
   if (!ja || S.phase !== 'strafe') return;
+  Netz.tun('strafe', { i });
+}
+function strafeAusfuehren(i) {
   L.strafeAbdecken(S, i); MODUS = null; NEU_AUFGEDECKT = i;
   if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
   Kern.ton('punkt'); zeichnen();
-  if (S.phase === 'ende') { Kern.feier(); Kern.ton('sieg'); }
+  Netz.melden(); Netz.ereignis({ ton: 'punkt', daten: { neu: i } });
+  if (S.phase === 'ende') { Kern.feier(); Kern.ton('sieg'); Netz.ereignis({ feier: true, ton: 'sieg' }); }
 }
-function verzichten() { if (S.phase !== 'strafe') return; L.strafeVerzichten(S); MODUS = null; speichern(); Kern.ton('tipp'); zeichnen(); }
+function verzichten() { if (S.phase !== 'strafe') return; Netz.tun('verzicht'); }
+function verzichtAusfuehren() { L.strafeVerzichten(S); MODUS = null; speichern(); Kern.ton('tipp'); zeichnen(); Netz.melden(); }
+
+/* ---------- Netzspiel: jeder auf seinem Gerät ----------
+   Teams aus der Sitzreihenfolge: Sitz 0, 2, 4 … = Team 1, Sitz 1, 3, 5 … = Team 2. Hinweisgeber ist zuerst die erste
+   Person jedes Teams (Sitz 0 und 1), bei „Nochmal“ reihum. Nur die beiden Hinweisgeber bekommen die Schlüsselkarte;
+   alle anderen sehen nur aufgedeckte Karten. Raten und „Zug beenden“ darf das ratende Team (ohne Hinweisgeber),
+   „Hinweis ungültig“ meldet das andere Team, über „Nochmal“ entscheidet der Gastgeber. */
+const NETZ = () => !!(Netz.laeuft && S && S.netz);
+const teamVon = sitz => S.netz.teamSitze[0].includes(sitz) ? 0 : 1;
+const geberSitz = t => S.netz.teamSitze[t][S.teams[t].geber % S.netz.teamSitze[t].length];
+const istGeber = sitz => geberSitz(0) === sitz || geberSitz(1) === sitz;
+const istRater = sitz => teamVon(sitz) === S.amZug && geberSitz(S.amZug) !== sitz;
+const netzName = sitz => { const z = Netz.sitze; return z && z[sitz] ? z[sitz].name : 'Der Gastgeber'; };
+function netzModus() {
+  const ich = Netz.meinSitz;
+  if (S.phase === 'hinweis' && geberSitz(S.amZug) === ich) return 'geber';
+  if (S.phase === 'strafe' && S.strafeFuer != null && geberSitz(S.strafeFuer) === ich) return 'strafe';
+  return null;
+}
+let LETZTER_STAND = '';
+Netz.einrichten({
+  spiel: 'funkstille', min: 4, max: 10,
+  starten(spieler) {
+    const teamSitze = [spieler.filter(p => p.sitz % 2 === 0).map(p => p.sitz), spieler.filter(p => p.sitz % 2 === 1).map(p => p.sitz)];
+    const teams = ['Koralle', 'Türkis'].map((n, t) => ({ name: n, farbe: TEAMFARBEN[t], geber: 0, mitglieder: teamSitze[t].map(s => spieler[s].name) }));
+    S = { netz: { teamSitze } };
+    neuesSpiel(teams, 'seite');
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    const netz = sitz !== null && S.netz;
+    const nein = () => { if (sitz !== null) Netz.melden(sitz); };
+    switch (name) {
+      case 'hinweis': {
+        if (S.phase !== 'hinweis' || (netz && sitz !== geberSitz(S.amZug))) return nein();
+        const p = L.hinweisPruefen(S, d.wort, d.zahl);
+        if (!p.ok) return nein();
+        return hinweisAusfuehren(String(d.wort).trim(), String(d.zahl));
+      }
+      case 'tippe': {
+        const i = Number(d.i);
+        if (S.phase !== 'raten' || !S.karten[i] || S.karten[i].offen || (netz && !istRater(sitz))) return nein();
+        return tippenAusfuehren(i);
+      }
+      case 'beenden':
+        if (!L.darfBeenden(S) || (netz && !istRater(sitz))) return nein();
+        return zugBeendenAusfuehren();
+      case 'ungueltig':
+        if (S.phase !== 'raten' || (netz && teamVon(sitz) === S.amZug)) return nein();
+        return ungueltigAusfuehren();
+      case 'strafe': {
+        const i = Number(d.i), k = S.karten[i];
+        if (S.phase !== 'strafe' || !k || k.offen || k.art !== 't' + S.strafeFuer || (netz && sitz !== geberSitz(S.strafeFuer))) return nein();
+        return strafeAusfuehren(i);
+      }
+      case 'verzicht':
+        if (S.phase !== 'strafe' || (netz && sitz !== geberSitz(S.strafeFuer))) return nein();
+        return verzichtAusfuehren();
+      case 'nochmal':
+        if (S.phase !== 'ende' || (netz && sitz !== 0)) return nein();
+        neuesSpiel(L.naechsteTeams(S), S.sitz); Netz.melden(); return;
+    }
+  },
+  zustand(sitz) {
+    if (!S) return { warte: true };
+    const k = JSON.parse(JSON.stringify(S));
+    k.rest = [L.uebrig(S, 0), L.uebrig(S, 1)];   // offene Restzahl, auch wenn die Farben fehlen
+    if (k.phase !== 'ende' && !istGeber(sitz)) k.karten.forEach(c => { if (!c.offen) c.art = null; });   // Schlüsselkarte nur für Hinweisgeber
+    return k;
+  },
+  stand(d) {
+    if (!d || d.warte) return;
+    const json = JSON.stringify(d), fokus = document.activeElement && document.activeElement.id === 'fs-wort';
+    S = d;
+    if (setupZiel) setupZiel.hidden = true;
+    buehne.hidden = false;
+    if (json === LETZTER_STAND && fokus) return;   // nichts Neues: Eingabe des Hinweisgebers nicht stören
+    LETZTER_STAND = json;
+    zeichnen();
+  },
+  ereignis(d) { if (d && d.neu != null && S) { NEU_AUFGEDECKT = d.neu; zeichnen(); } },
+  beendet() { LETZTER_STAND = ''; startseite(); },
+});
 
 window.__test = { zustand: () => S, modus: () => MODUS };
 startseite();

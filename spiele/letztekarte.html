@@ -120,10 +120,45 @@
 .lk-start{display:flex;gap:0}
 .lk-start .lk-k{--w:74px}
 @media (prefers-reduced-motion:reduce){.lk-hand .lk-k,.lk-ablage .lk-k{animation:none!important;transition:none!important}}
+.lk-luecke{display:none}
+/* ---------- Telefon hoch: Plätze als Raster (erste Zelle frei für die Kopfknöpfe), alles etwas knapper ---------- */
+@media (max-width:700px){
+  .lk-buehne{gap:6px}
+  .lk-oben{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 6px;padding:0;min-height:46px;align-content:start}
+  .lk-luecke{display:block;min-height:46px}
+  .lk-platz{gap:6px;padding:4px 6px 4px 4px;border-radius:12px;min-height:46px}
+  .lk-platz .k-dot{width:24px;height:24px;font-size:12px}
+  .lk-platz > span:nth-child(2){min-width:0}
+  .lk-platz b{font-size:14px;max-width:none}
+  .lk-platz small{font-size:13px;gap:7px}
+  .lk-platz .lk-eins{right:-4px;top:-8px}
+  .lk-mitte{gap:calc(var(--pw)*.12 + 4px)}
+  .lk-satz{font-size:16px}
+  .lk-infos{gap:6px;margin-top:calc(var(--pw)*.06 + 14px)!important}
+  .lk-platz .lk-naechst{font-size:11px;bottom:-10px}
+  .lk-tab td:first-child{white-space:nowrap}
+  .lk-infos .k-chip{font-size:13px;padding:.25em .65em}
+  .lk-log{font-size:13px;line-height:1.3}
+  .lk-cap{font-size:12px;top:calc(100% + 8px)}
+  .lk-unten{gap:8px}
+  .lk-leiste{gap:8px;min-height:46px}
+  .lk-leiste > .k-btn{flex:1 1 0;min-height:46px;padding:4px 10px;font-size:15px;white-space:normal;line-height:1.15;border-radius:12px}
+  .lk-leiste > .lk-wahl{flex:1 1 100%;padding:12px 14px;gap:10px;border-radius:16px}
+  .lk-wahl p{font-size:15px}
+  .lk-wahl .k-knoepfe{width:100%}
+  .lk-wahl .k-knoepfe .k-btn{flex:1 1 0;min-height:48px;padding:0 12px;font-size:16px}
+  .lk-fang{flex-wrap:wrap;justify-content:center;gap:10px;padding:12px 14px;text-align:center}
+  .lk-fang span{font-size:15px}
+  .lk-tab{font-size:15px}
+  .lk-tab td,.lk-tab th{padding:7px 4px}
+  .lk-reste{--w:24px}
+  .lk-farben button{min-height:72px}
+}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="letztekarte.logik.js"></script>
 <script>
 "use strict";
@@ -135,6 +170,7 @@ const esc = Kern.esc;
 const TEST = {rnd: null};
 const R = n => TEST.rnd ? TEST.rnd(n) : Kern.zufall(n);
 const EINST = Kern.einst.laden({sort: 'farbe'});
+const HANDY = matchMedia('(max-width:700px)');
 let S = null, OFFEN = null, BUSY = false, WEITERGEBEN = false, FRISCH = new Set(), START = null, B = null, ZULETZT_OBEN = null;
 
 const REGELN = `
@@ -199,9 +235,23 @@ function hinweis(text, ms = 2600) {
   setTimeout(() => m.remove(), ms);
 }
 
+/* ---------- Netzspiel: Hilfen ----------
+   Am selben Gerät gilt die Sicht der Person hinter dem Sichtschutz (OFFEN), im Netzspiel immer der eigene Sitz.
+   Der Gastgeber führt S; Mitspieler bekommen einen gekürzten Stand (fremde Hände und Stapel nur als Anzahl). */
+const NETZ = () => Netz.laeuft;
+const meins = sitz => sitz == null || !Netz.laeuft || sitz === Netz.meinSitz;
+/** Hinweis für die Person, die gehandelt hat – auf ihrem eigenen Gerät. */
+function sag(sitz, text, ms) { if (meins(sitz)) hinweis(text, ms); else Netz.ereignis({daten: {an: sitz, hinweis: text, ms}}); }
+/** Darf dieses Gerät gerade für die Person am Zug bedienen? */
+const ichDran = () => (NETZ() ? S.dran === Netz.meinSitz : OFFEN === S.dran);
+const amEnde = () => S.phase === 'rundenende' || S.phase === 'spielende';
+let ZEIGE = null, ZNR = 0, ZEIGE_GESEHEN = 0, WERT_FE = null, WERT_MARKE = '', LETZTE_HAND = null;
+
 /* ---------- Startseite ---------- */
 function startseite() {
   document.querySelectorAll('.lk-buehne,.lk-fang').forEach(e => e.remove());
+  if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; }
+  ZEIGE = null; WERT_MARKE = ''; LETZTE_HAND = null;
   if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
   START.hidden = false; S = null; OFFEN = null;
   const alt = Kern.speicher.laden(), lauf = alt && alt.s && alt.s.phase !== 'spielende' ? alt.s : null;
@@ -218,25 +268,30 @@ function startseite() {
   });
 }
 function neuesSpiel(namen, farben, ziel) {
-  S = L.neu({namen, ziel}, R); S.farben = farben; speichern(); spielen();
+  S = L.neu({namen, ziel}, R); S.farben = farben; speichern();
+  if (NETZ()) { LETZTE_HAND = null; buehneBauen(); Netz.melden(); return; }
+  spielen();
 }
 const speichern = () => Kern.speicher.speichern({s: S});
 
 /* ---------- Spielfläche ---------- */
-function spielen() {
+function spielen() { buehneBauen(); weiterAn(); }
+function buehneBauen() {
   if (START) START.hidden = true;
   document.querySelectorAll('.lk-buehne').forEach(e => e.remove());
   B = Kern.el('div', 'k-buehne lk-buehne');
   B.innerHTML = `<div class="lk-oben"></div><div class="lk-mitte"></div><div class="lk-unten"><div class="lk-leiste"></div><div class="lk-hand"></div></div>`;
   document.body.appendChild(B);
   OFFEN = null; ZULETZT_OBEN = L.oben(S).id;
-  masse(); zeichnen(); weiterAn();
+  masse(); zeichnen();
 }
 function masse() {
   if (!B) return;
   const W = innerWidth, H = innerHeight, hoch = H > W * 1.05;
-  const hw = Math.round(Math.max(56, Math.min(hoch ? 128 : 124, W / (hoch ? 6.6 : 9.6), H * (hoch ? 0.13 : 0.165))));
-  const pw = Math.round(Math.max(60, Math.min(hoch ? 190 : 160, H * (hoch ? 0.165 : 0.19), W / (hoch ? 4.5 : 7.5))));
+  let hw = Math.round(Math.max(56, Math.min(hoch ? 128 : 124, W / (hoch ? 6.6 : 9.6), H * (hoch ? 0.13 : 0.165))));
+  let pw = Math.round(Math.max(60, Math.min(hoch ? 190 : 160, H * (hoch ? 0.165 : 0.19), W / (hoch ? 4.5 : 7.5))));
+  // Telefon hoch: Karten so groß, wie die Breite hergibt (die Mitte schrumpft bei Bedarf über einpassen()).
+  if (HANDY.matches && hoch) { hw = Math.round(Math.min(W / 5.6, H * .11)); pw = Math.round(Math.min(W / 3.8, H * .15)); }
   B.style.setProperty('--hw', hw + 'px'); B.style.setProperty('--pw', pw + 'px');
 }
 addEventListener('resize', () => { if (B && S) zeichnen(); });
@@ -246,12 +301,19 @@ const farbe = i => S.farben[i];
 function zeichnen() {
   if (!B || !S) return;
   masse();
-  const offen = OFFEN !== null && (OFFEN === S.dran || WEITERGEBEN) && !['rundenende', 'spielende'].includes(S.phase);
+  const netz = NETZ(), ich = netz ? Netz.meinSitz : null;
+  const offen = netz ? S.dran === ich && !amEnde()
+    : OFFEN !== null && (OFFEN === S.dran || WEITERGEBEN) && !['rundenende', 'spielende'].includes(S.phase);
+  if (netz) { // neu auf die eigene Hand gekommene Karten kurz hervorheben
+    const ids = S.haende[ich].map(k => k.id);
+    if (LETZTE_HAND) ids.forEach(id => { if (!LETZTE_HAND.has(id)) FRISCH.add(id); });
+    LETZTE_HAND = new Set(ids);
+  }
   // Plätze
   const naechst = L.weiter(S, S.dran);
-  B.querySelector('.lk-oben').innerHTML = S.namen.map((n, i) => `<div class="lk-platz${i === S.dran ? ' dran' : ''}" style="--pc:${farbe(i)}" id="lk-platz-${i}">
-    <span class="k-dot">${esc(n.charAt(0).toUpperCase())}</span><span><b>${esc(n)}</b><small><span><span class="lk-mini"></span><i class="k-zahl">${S.haende[i].length}</i></span><span><i class="k-zahl">${S.punkte[i]}</i> P</span></small></span>
-    ${S.haende[i].length === 1 ? '<span class="lk-eins">1</span>' : ''}${i === naechst && i !== S.dran && S.phase !== 'spielende' && S.phase !== 'rundenende' ? '<span class="lk-naechst">danach</span>' : ''}</div>`).join('');
+  B.querySelector('.lk-oben').innerHTML = '<div class="lk-luecke"></div>' + S.namen.map((n, i) => `<div class="lk-platz${i === S.dran ? ' dran' : ''}" style="--pc:${farbe(i)}" id="lk-platz-${i}">
+    <span class="k-dot">${esc(n.charAt(0).toUpperCase())}</span><span><b>${esc(n)}${netz && i === ich ? ' (du)' : ''}</b><small><span><span class="lk-mini"></span><i class="k-zahl">${S.haende[i].length}</i></span><span><i class="k-zahl">${S.punkte[i]}</i> P</span></small></span>
+    ${S.haende[i].length === 1 ? '<span class="lk-eins">1</span>' : ''}${i === naechst && i !== S.dran && S.phase !== 'spielende' && S.phase !== 'rundenende' ? '<span class="lk-naechst">danach</span>' : ''}</div>${netz && i === 0 ? '<div class="lk-luecke"></div>' : ''}`).join(''); // Telefon im Netzspiel: Zelle oben rechts bleibt für die Verbindungsplakette frei
   // Mitte
   const top = L.oben(S), alt = S.ablage.slice(-3, -1);
   const darfZiehen = offen && S.phase === 'zug' && !WEITERGEBEN;
@@ -273,20 +335,26 @@ function zeichnen() {
   Kern.tap(m.querySelector('#lk-stapel'), () => ziehen());
   // Leiste
   const lst = B.querySelector('.lk-leiste'); lst.innerHTML = '';
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + (art || ''), t); b.id = id; b.onclick = fn; lst.appendChild(b); return b; };
+  const sortKnopf = () => knopf(EINST.sort === 'farbe' ? 'Nach Zahl sortieren' : 'Nach Farbe sortieren', 'lk-sort', 'leise klein', () => {
+    EINST.sort = EINST.sort === 'farbe' ? 'zahl' : 'farbe'; Kern.einst.speichern(EINST); zeichnen(); });
+  // Netzspiel: Wer nur noch eine Karte hat, kann von allen anderen erwischt werden, bis die nächste Person handelt.
+  if (netz && S.einKarte && S.einKarte.sp !== ich && !amEnde()) {
+    const b = knopf('Erwischt!', 'lk-erwischt', 'gefahr', () => Netz.tun('erwisch'));
+    b.title = `${S.namen[S.einKarte.sp]} hat nur noch eine Karte. Nicht „Letzte Karte!“ gerufen?`;
+  }
   if (offen && !WEITERGEBEN && S.phase === 'farbeStart') lst.appendChild(farbStartPanel());
   else if (offen && !WEITERGEBEN && S.phase === 'zweifel') lst.appendChild(zweifelPanel());
   else if (offen) {
-    const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + (art || ''), t); b.id = id; b.onclick = fn; lst.appendChild(b); return b; };
     if (WEITERGEBEN) knopf('Fertig – weitergeben', 'lk-fertig', '', () => { WEITERGEBEN = false; nachZug(); });
     else if (S.phase === 'zug' || S.phase === 'gezogen') {
       if (S.phase === 'zug') knopf('Karte ziehen', 'lk-ziehen', L.legbare(S).length ? 'leise' : '', () => ziehen());
       if (S.phase === 'gezogen') knopf('Behalten – Zug beenden', 'lk-behalten', L.kannLegen(S, S.gezogen) ? 'leise' : '', () => behalten());
       const r = knopf('Letzte Karte!', 'lk-ruf', 'leise', () => rufen()); if (S.ruf) r.classList.add('an');
     }
-    knopf(EINST.sort === 'farbe' ? 'Nach Zahl sortieren' : 'Nach Farbe sortieren', 'lk-sort', 'leise klein', () => {
-      EINST.sort = EINST.sort === 'farbe' ? 'zahl' : 'farbe'; Kern.einst.speichern(EINST); zeichnen(); });
-  }
-  handZeichnen(offen);
+    sortKnopf();
+  } else if (netz) sortKnopf();
+  handZeichnen(offen, netz ? ich : undefined, netz ? true : offen);
   einpassen();
 }
 /* Mitte zu hoch (z. B. mit Entscheidungsfeld)? Dann die Stapel kleiner zeichnen. */
@@ -295,14 +363,29 @@ function einpassen() {
   for (let i = 0; i < 8 && m.scrollHeight > m.clientHeight + 1 && pw > 54; i++) { pw = Math.round(pw * .88); B.style.setProperty('--pw', pw + 'px'); }
 }
 function satz(offen) {
+  if (NETZ()) return satzNetz(offen);
   const d = WEITERGEBEN && OFFEN !== null ? OFFEN : S.dran, wer = `<b style="--pc:${farbe(d)}">${nm(d)}</b>`;
   if (S.phase === 'rundenende' || S.phase === 'spielende') return 'Die Runde ist vorbei.';
   if (!offen) return `Gleich ist ${wer} dran.`;
-  if (WEITERGEBEN) return `${wer}, dein Zug ist vorbei. Gib das iPad weiter.`;
+  if (WEITERGEBEN) return `${wer}, dein Zug ist vorbei. Gib das ${Kern.geraet} weiter.`;
   if (S.phase === 'farbeStart') return `${wer}, wähle die Farbe, mit der es losgeht.`;
   if (S.phase === 'zweifel') return `${wer}, du bekommst ein +4.`;
   if (S.phase === 'gezogen') return L.kannLegen(S, S.gezogen) ? `${wer}, die gezogene Karte passt. Lege sie – oder behalte sie.` : `${wer}, die gezogene Karte passt nicht. Behalte sie.`;
   return L.legbare(S).length ? `${wer}, lege eine passende Karte oder ziehe eine.` : `${wer}, keine Karte passt. Ziehe eine Karte.`;
+}
+function satzNetz(offen) {
+  const d = S.dran, wer = `<b style="--pc:${farbe(d)}">${nm(d)}</b>`;
+  if (amEnde()) return 'Die Runde ist vorbei.';
+  if (!offen) {
+    if (S.phase === 'farbeStart') return `${wer} wählt die Farbe, mit der es losgeht.`;
+    if (S.phase === 'zweifel') return `${wer} bekommt ein +4 und entscheidet, ob gezweifelt wird.`;
+    if (S.phase === 'gezogen') return `${wer} hat eine Karte gezogen.`;
+    return `${wer} ist dran.`;
+  }
+  if (S.phase === 'farbeStart') return 'Du bist dran: Wähle die Farbe, mit der es losgeht.';
+  if (S.phase === 'zweifel') return 'Du bekommst ein +4.';
+  if (S.phase === 'gezogen') return L.kannLegen(S, S.gezogen) ? 'Die gezogene Karte passt. Lege sie – oder behalte sie.' : 'Die gezogene Karte passt nicht. Behalte sie.';
+  return L.legbare(S).length ? 'Du bist dran: Lege eine passende Karte oder ziehe eine.' : 'Du bist dran. Keine Karte passt – ziehe eine.';
 }
 function sortiert(h) {
   const fo = {rot: 0, gelb: 1, gruen: 2, blau: 3}, wo = w => /^\d$/.test(w) ? +w : {aus: 10, rw: 11, z2: 12, fw: 13, z4: 14}[w];
@@ -310,11 +393,11 @@ function sortiert(h) {
     ? ((a.f ? fo[a.f] : 9) - (b.f ? fo[b.f] : 9)) || wo(a.w) - wo(b.w)
     : wo(a.w) - wo(b.w) || ((a.f ? fo[a.f] : 9) - (b.f ? fo[b.f] : 9)));
 }
-function handZeichnen(offen) {
-  const el = B.querySelector('.lk-hand'), sp = OFFEN !== null ? OFFEN : S.dran;
-  el.classList.toggle('zu', !offen);
+function handZeichnen(offen, sp = OFFEN !== null ? OFFEN : S.dran, zeigen = offen) {
+  const el = B.querySelector('.lk-hand');
+  el.classList.toggle('zu', !zeigen);
   const hw = parseFloat(getComputedStyle(B).getPropertyValue('--hw')) || 90;
-  if (!offen) {
+  if (!zeigen) {
     const n = Math.min(S.haende[S.dran].length, 12);
     el.innerHTML = Array.from({length: n}, () => rueckHtml()).join('');
     legeAus(el, hw);
@@ -322,8 +405,8 @@ function handZeichnen(offen) {
   }
   const h = sortiert(S.haende[sp]);
   el.innerHTML = h.map(k => {
-    const ja = !WEITERGEBEN && L.kannLegen(S, k.id);
-    const cls = (ja ? 'ja' : (S.phase === 'zug' || S.phase === 'gezogen') && !WEITERGEBEN ? 'nein' : '') + (k.id === S.gezogen ? ' frisch' : '') + (FRISCH.has(k.id) ? ' neuhand' : '');
+    const ja = offen && !WEITERGEBEN && L.kannLegen(S, k.id);
+    const cls = (ja ? 'ja' : offen && (S.phase === 'zug' || S.phase === 'gezogen') && !WEITERGEBEN ? 'nein' : '') + (k.id === S.gezogen ? ' frisch' : '') + (FRISCH.has(k.id) ? ' neuhand' : '');
     return karteHtml(k, cls);
   }).join('');
   FRISCH.clear();
@@ -332,8 +415,19 @@ function handZeichnen(offen) {
 }
 function legeAus(el, hw) {
   const ks = [...el.querySelectorAll('.lk-k')], n = ks.length, A = el.clientWidth;
+  // Telefon: wird der Fächer zu eng zum Antippen, liegt die Hand in zwei Reihen (die hintere halb verdeckt).
+  if (HANDY.matches && n > 1 && (A - hw) / (n - 1) < hw * .42) {
+    const vorn = Math.ceil(n / 2), dy = hw * 1.48 * .5;
+    el.style.height = `calc(${hw * 1.48 + dy}px + 22px)`;
+    [ks.slice(0, n - vorn), ks.slice(n - vorn)].forEach((reihe, r) => {
+      const m = reihe.length, step = m > 1 ? Math.min(hw * 1.06, (A - hw) / (m - 1)) : 0, x0 = (A - hw - step * (m - 1)) / 2;
+      reihe.forEach((c, i) => { c.style.left = (x0 + i * step) + 'px'; c.style.top = (18 + r * dy) + 'px'; c.style.zIndex = r * 100 + i + 1; });
+    });
+    return;
+  }
+  el.style.height = '';
   const step = n > 1 ? Math.min(hw * 1.06, (A - hw) / (n - 1)) : 0, breite = hw + step * (n - 1), x0 = (A - breite) / 2;
-  ks.forEach((c, i) => { c.style.left = (x0 + i * step) + 'px'; c.style.zIndex = i + 1; });
+  ks.forEach((c, i) => { c.style.left = (x0 + i * step) + 'px'; c.style.top = ''; c.style.zIndex = i + 1; });
 }
 
 /* Ziehen-und-Ablegen zusätzlich zum Antippen */
@@ -374,7 +468,8 @@ function ziehbar(c, id) {
 
 /* ---------- Züge ---------- */
 async function spieleKarte(id) {
-  if (BUSY || WEITERGEBEN || OFFEN !== S.dran) return;
+  if (BUSY || WEITERGEBEN) return;
+  if (!ichDran()) { if (NETZ() && !amEnde()) { Kern.ton('fehler'); hinweis(`${S.namen[S.dran]} ist dran.`); } return; }
   const k = S.haende[S.dran].find(c => c.id === id); if (!k) return;
   if (!L.kannLegen(S, id)) {
     Kern.ton('fehler');
@@ -389,13 +484,18 @@ async function spieleKarte(id) {
     if (!ok) return;
   }
   if (L.istWild(k)) { f = await farbeWaehlen(k.w === 'z4' ? 'Farbwahl +4' : 'Farbwahl'); if (!f) return; }
+  Netz.tun('lege', {id, farbe: f});
+}
+/* Karte legen – führt der Gastgeber (bzw. das Gerät am Tisch) aus; sitz = wer gelegt hat (null am selben Gerät). */
+function legeKarteAus(id, f, sitz) {
   BUSY = true;
   const r = L.legen(S, id, f, R);
   BUSY = false;
-  if (!r.ok) { hinweis(r.grund || 'Geht nicht.'); return; }
+  if (!r.ok) { sag(sitz, r.grund || 'Geht nicht.'); Netz.melden(); return; }
+  const k = r.karte;
   Kern.ton('legen');
   if (r.opfer !== null && r.opfer !== undefined) setTimeout(() => Kern.ton(k.w === 'z2' || k.w === 'z4' ? 'ziehen' : 'warn'), 260);
-  nachZug(r);
+  return nachZug(r, sitz);
 }
 function farbeWaehlen(titel) {
   return new Promise(res => {
@@ -410,18 +510,41 @@ function farbeWaehlen(titel) {
   });
 }
 function ziehen() {
-  if (BUSY || WEITERGEBEN || OFFEN !== S.dran || S.phase !== 'zug') return;
-  const r = L.ziehen(S, R); if (!r.ok) return;
-  Kern.ton('ziehen');
-  if (!r.karte) { hinweis('Der Stapel ist leer – du passt.'); nachZug(); return; }
-  FRISCH.add(r.karte.id); speichern(); zeichnen();
+  if (BUSY || WEITERGEBEN) return;
+  if (!ichDran()) { if (NETZ() && S.phase === 'zug') { Kern.ton('fehler'); hinweis(`${S.namen[S.dran]} ist dran.`); } return; }
+  if (S.phase !== 'zug') return;
+  Netz.tun('ziehe');
 }
-function behalten() { if (S.phase !== 'gezogen') return; L.behalten(S); Kern.ton('tipp'); nachZug(); }
-function rufen() {
+function ziehAus(sitz) {
+  if (S.phase !== 'zug') return Netz.melden();
+  const r = L.ziehen(S, R); if (!r.ok) return Netz.melden();
+  Kern.ton('ziehen');
+  if (!r.karte) { sag(sitz, 'Der Stapel ist leer – du passt.'); return nachZug(null, sitz); }
+  if (meins(sitz)) FRISCH.add(r.karte.id);
+  speichern(); zeichnen(); Netz.melden();
+}
+function behalten() { if (S.phase !== 'gezogen') return; Netz.tun('behalte'); }
+function behaltAus(sitz) { if (S.phase !== 'gezogen') return Netz.melden(); L.behalten(S); Kern.ton('tipp'); return nachZug(null, sitz); }
+function rufen() { Netz.tun('ruf'); }
+function rufAus(sitz) {
   const r = L.rufen(S);
-  if (!r.ok) { Kern.ton('fehler'); hinweis(r.grund); return; }
-  Kern.ton('warn'); speichern(); zeichnen();
-  hinweis('Letzte Karte!', 1500); const m = document.querySelector('.lk-meldung'); if (m) m.style.font = '800 34px var(--f-disp)';
+  if (!r.ok) { if (meins(sitz)) Kern.ton('fehler'); sag(sitz, r.grund); Netz.melden(); return; }
+  Kern.ton('warn'); speichern(); zeichnen(); Netz.melden();
+  rufZeigen(); Netz.ereignis({daten: {ruf: true}});
+}
+function rufZeigen() { hinweis('Letzte Karte!', 1500); const m = document.querySelector('.lk-meldung'); if (m) m.style.font = '800 34px var(--f-disp)'; }
+function startfarbeAus(f, sitz) {
+  if (!L.farbeStart(S, f).ok) return Netz.melden();
+  Kern.ton('tipp'); speichern(); zeichnen(); Netz.melden();
+}
+/* Netzspiel: jemand tippt „Erwischt!“ (jede Person außer der mit der einen Karte). */
+function erwischAus(sitz) {
+  if (!S.einKarte || amEnde() || (sitz !== null && S.einKarte.sp === sitz)) return Netz.melden();
+  const r = L.erwischen(S, R); speichern();
+  const text = r.strafe ? `Erwischt! ${S.namen[r.sp]} zieht 2 Strafkarten.` : `${S.namen[r.sp]} hat rechtzeitig gerufen – keine Strafe.`;
+  Kern.ton(r.strafe ? 'fehler' : 'tipp'); hinweis(text, 3000);
+  Netz.ereignis({daten: {hinweis: text, ms: 3000, ton: r.strafe ? 'fehler' : 'tipp'}});
+  zeichnen(); Netz.melden();
 }
 function farbStartPanel() {
   const p = Kern.el('div', 'lk-wahl');
@@ -429,7 +552,7 @@ function farbStartPanel() {
   p.classList.add('quer');
   L.FARBEN.forEach(f => {
     const b = Kern.el('button', '', L.FARBNAME[f]); b.style.background = FC[f]; b.id = 'lk-start-' + f; b.style.minHeight = '64px';
-    b.onclick = () => { L.farbeStart(S, f); Kern.ton('tipp'); speichern(); zeichnen(); };
+    b.onclick = () => Netz.tun('startfarbe', {f});
     p.querySelector('.lk-farben').appendChild(b);
   });
   return p;
@@ -441,32 +564,48 @@ function zweifelPanel() {
   const kn = p.querySelector('.k-knoepfe');
   const a = Kern.el('button', 'k-btn leise', '4 Karten nehmen'); a.id = 'lk-annehmen';
   const z = Kern.el('button', 'k-btn gefahr', 'Zweifeln'); z.id = 'lk-zweifeln';
-  a.onclick = () => zweifeln(false); z.onclick = () => zweifeln(true);
+  a.onclick = () => Netz.tun('zweifel', {ja: false}); z.onclick = () => Netz.tun('zweifel', {ja: true});
   kn.append(a, z);
   return p;
 }
-async function zweifeln(ja) {
-  if (BUSY || S.phase !== 'zweifel') return;
+async function zweifeln(ja, sitz = null) {
+  if (BUSY || S.phase !== 'zweifel') return Netz.melden();
   BUSY = true;
   const vorher = new Set(S.haende[S.dran].map(k => k.id)), r = L.zweifel(S, ja, R);
   BUSY = false; speichern();
+  if (NETZ()) { // nur das Gerät der zweifelnden Person sieht die Hand
+    if (r.gezweifelt) {
+      ZEIGE = {an: sitz, nr: ++ZNR, hand: r.hand, schuldig: r.schuldig, von: r.von};
+      if (meins(sitz)) { ZEIGE_GESEHEN = ZEIGE.nr; zeigeFenster(ZEIGE); }
+    } else Kern.ton('ziehen');
+    zeichnen(); Netz.melden(); return;
+  }
   S.haende[OFFEN].forEach(k => { if (!vorher.has(k.id)) FRISCH.add(k.id); });
-  if (r.gezweifelt) {
-    const box = Kern.el('div');
-    box.innerHTML = `<h2>${r.schuldig ? 'Erwischt!' : 'Das war erlaubt.'}</h2>
-      <p>Die Hand von ${nm(r.von)} – nur du siehst sie:</p><div class="lk-handzeig">${r.hand.map(k => karteHtml(k)).join('')}</div>
-      <p>${r.schuldig ? `${nm(r.von)} hatte noch eine passende Farbe und zieht 4 Karten. Du spielst jetzt deinen Zug.` : `${nm(r.von)} hatte keine passende Farbe. Du ziehst 6 Karten und setzt aus.`}</p>
-      <div class="k-knoepfe"><button class="k-btn" id="lk-zw-ok">Verstanden</button></div>`;
-    Kern.ton(r.schuldig ? 'punkt' : 'fehler');
-    await new Promise(res => { const fe = Kern.fenster(box, {schliessbar: false}); box.querySelector('#lk-zw-ok').onclick = () => { fe.schliessen(); res(); }; });
-  } else Kern.ton('ziehen');
+  if (r.gezweifelt) await zeigeFenster(r);
+  else Kern.ton('ziehen');
   if (r.gezweifelt && r.schuldig) { zeichnen(); return; }
   WEITERGEBEN = true; zeichnen();
 }
 
-/* Zug beendet: Hand zudecken, dann an die nächste Person übergeben. */
-async function nachZug() {
+/* Ergebnis eines Zweifels: die Hand der legenden Person (nur für die zweifelnde Person). */
+function zeigeFenster(z) {
+  const box = Kern.el('div');
+  box.innerHTML = `<h2>${z.schuldig ? 'Erwischt!' : 'Das war erlaubt.'}</h2>
+      <p>Die Hand von ${nm(z.von)} – nur du siehst sie:</p><div class="lk-handzeig">${z.hand.map(k => karteHtml(k)).join('')}</div>
+      <p>${z.schuldig ? `${nm(z.von)} hatte noch eine passende Farbe und zieht 4 Karten. Du spielst jetzt deinen Zug.` : `${nm(z.von)} hatte keine passende Farbe. Du ziehst 6 Karten und setzt aus.`}</p>
+      <div class="k-knoepfe"><button class="k-btn" id="lk-zw-ok">Verstanden</button></div>`;
+  Kern.ton(z.schuldig ? 'punkt' : 'fehler');
+  return new Promise(res => { const fe = Kern.fenster(box, {schliessbar: false}); box.querySelector('#lk-zw-ok').onclick = () => { fe.schliessen(); res(); }; });
+}
+
+/* Zug beendet: Hand zudecken, dann an die nächste Person übergeben. Im Netzspiel nur Stand melden. */
+async function nachZug(r, sitz = null) {
   speichern();
+  if (NETZ()) {
+    if (amEnde()) { zeichnen(); Netz.melden(); await Kern.warte(800); if (S && amEnde() && NETZ()) wertung(); return; }
+    if (S.dran === sitz && S.phase !== 'zweifel') { L.zugBeginnt(S); sag(sitz, 'Du bist gleich noch einmal dran.'); }
+    zeichnen(); Netz.melden(); return;
+  }
   if (S.phase === 'rundenende' || S.phase === 'spielende') { OFFEN = null; zeichnen(); await Kern.warte(800); wertung(); return; }
   if (S.dran === OFFEN && S.phase !== 'zweifel') { L.zugBeginnt(S); speichern(); zeichnen(); hinweis('Du bist gleich noch einmal dran.'); return; }
   OFFEN = null; zeichnen();
@@ -508,20 +647,30 @@ function tabelle(mitRunde) {
 }
 function wertung() {
   document.querySelectorAll('.lk-meldung').forEach(m => m.remove());
+  if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; }
+  const netz = NETZ(), gast = Netz.istGast;
   const e = S.ergebnis, ende = S.phase === 'spielende', box = Kern.el('div');
   const rechen = e.einzel.filter(x => x.sp !== e.sieger).map(x => x.wert).join(' + ');
   box.innerHTML = `<h2>${ende ? `${nm(e.sieger)} gewinnt!` : `${nm(e.sieger)} gewinnt Runde ${S.runde}`}</h2>
     <p>${nm(e.sieger)} bekommt ${rechen || '0'} = <b>${e.summe} Punkte</b>.${ende && S.ziel ? ` Damit sind es ${S.punkte[e.sieger]} – das Ziel von ${S.ziel} ist erreicht.` : ''}</p>
     ${tabelle(true)}<div class="k-knoepfe"></div>`;
-  const fe = Kern.fenster(box, {breit: true, schliessbar: false}), kn = box.querySelector('.k-knoepfe');
+  const fe = Kern.fenster(box, {breit: true, schliessbar: gast, beimSchliessen: () => { if (WERT_FE === fe) WERT_FE = null; }}), kn = box.querySelector('.k-knoepfe');
+  WERT_FE = fe;
   const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { fe.schliessen(); fn(); }; kn.appendChild(b); };
+  // Im Netzspiel entscheidet nur der Gastgeber, wie es weitergeht.
+  if (gast) kn.innerHTML = `<p class="lk-wartet" style="margin:0;color:var(--ink2)">${nm(0)} entscheidet, wie es weitergeht.</p>`;
   if (ende) {
     Kern.speicher.loeschen(); Kern.ton('sieg'); Kern.feier();
-    knopf('Neues Spiel', 'lk-neu', 'leise', () => startseite());
-    knopf('Nochmal', 'lk-nochmal', '', () => neuesSpiel(S.namen, S.farben, S.ziel));
+    if (!gast) {
+      knopf(netz ? 'Spiel beenden' : 'Neues Spiel', 'lk-neu', 'leise', () => { if (NETZ()) Netz.verlassen(); startseite(); });
+      knopf('Nochmal', 'lk-nochmal', '', () => neuesSpiel(S.namen, S.farben, S.ziel));
+    }
   } else {
     Kern.ton('runde');
-    knopf('Nächste Runde', 'lk-weiter', '', () => { L.naechsteRunde(S, R); speichern(); ZULETZT_OBEN = L.oben(S).id; weiterAn(); });
+    if (!gast) knopf('Nächste Runde', 'lk-weiter', '', () => {
+      L.naechsteRunde(S, R); speichern(); ZULETZT_OBEN = L.oben(S).id;
+      if (NETZ()) { zeichnen(); Netz.melden(); } else weiterAn();
+    });
   }
 }
 function punkteFenster() {
@@ -533,8 +682,68 @@ function punkteFenster() {
 window.__test = {
   S: () => S, offen: () => OFFEN, logik: L,
   zufall(seed) { let s = seed >>> 0; TEST.rnd = n => { s = (s * 1664525 + 1013904223) >>> 0; return s % n; }; },
-  setze(fn) { fn(S); speichern(); zeichnen(); }
+  setze(fn) { fn(S); speichern(); zeichnen(); Netz.melden(); }
 };
+
+/* ---------- Netzspiel ----------
+   Sitz 0 = Gastgeber. Alle zustandsändernden Tipps laufen über Netz.tun; der Gastgeber prüft, ob der Sitz dran ist.
+   Entscheidungen (Startfarbe, Farbwahl, Zweifel, Ruf) trifft das Gerät der betroffenen Person. */
+Netz.einrichten({
+  spiel: 'letztekarte', min: 2, max: 8,
+  starten(spieler, optionen) {
+    ZEIGE = null; ZNR = 0;
+    neuesSpiel(spieler.map(p => p.name), spieler.map(p => p.farbe), optionen.ziel != null ? Number(optionen.ziel) : 500);
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    if (name !== 'zweifel') ZEIGE = null;
+    if (name === 'erwisch') return erwischAus(sitz);
+    if (amEnde() || (sitz !== null && sitz !== S.dran)) return Netz.melden();
+    // Die nächste Person beginnt ihren Zug: ab jetzt kann niemand mehr erwischt werden.
+    if (sitz !== null && S.einKarte && S.einKarte.sp !== sitz) L.zugBeginnt(S);
+    switch (name) {
+      case 'lege': return legeKarteAus(Number(d.id), d.farbe || null, sitz);
+      case 'ziehe': return ziehAus(sitz);
+      case 'behalte': return behaltAus(sitz);
+      case 'ruf': return rufAus(sitz);
+      case 'startfarbe': return startfarbeAus(String(d.f), sitz);
+      case 'zweifel': return zweifeln(!!d.ja, sitz);
+    }
+    Netz.melden();
+  },
+  zustand(sitz) {
+    const ende = amEnde();
+    return {s: Object.assign({}, S, {
+      haende: S.haende.map((h, i) => (i === sitz || ende) ? h : h.length),
+      stapel: S.stapel.length, ablage: S.ablage.slice(-3),
+      gezogen: S.dran === sitz ? S.gezogen : null,
+      z4: S.z4 ? {von: S.z4.von} : null,
+      einKarte: S.einKarte ? {sp: S.einKarte.sp} : null,
+    }), zeige: ZEIGE && ZEIGE.an === sitz ? ZEIGE : null};
+  },
+  stand(d) {
+    const alt = S, altOben = alt && alt.ablage && alt.ablage.length ? L.oben(alt).id : null, warDran = alt && alt.dran;
+    const s = Object.assign({}, d.s); // den empfangenen Stand selbst nicht verändern
+    s.haende = s.haende.map(h => Array.isArray(h) ? h : Array.from({length: h}, (_, j) => ({id: -1 - j, f: null, w: '?'})));
+    s.stapel = Array.from({length: s.stapel}, () => null);
+    S = s;
+    if (!B || !document.body.contains(B)) buehneBauen(); else zeichnen();
+    if (altOben !== null && L.oben(S).id !== altOben) Kern.ton('legen');
+    else if (alt && warDran !== S.dran && S.dran === Netz.meinSitz) Kern.ton('tipp');
+    if (amEnde()) {
+      const m = S.runde + S.phase;
+      if (WERT_MARKE !== m) { WERT_MARKE = m; setTimeout(() => { if (S && amEnde() && WERT_MARKE === m && Netz.laeuft) wertung(); }, 800); }
+    } else { WERT_MARKE = ''; if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; } }
+    if (d.zeige && d.zeige.nr !== ZEIGE_GESEHEN) { ZEIGE_GESEHEN = d.zeige.nr; zeigeFenster(d.zeige); }
+  },
+  ereignis(d) {
+    if (d.an != null && d.an !== Netz.meinSitz) return;
+    if (d.ruf) { Kern.ton('warn'); rufZeigen(); }
+    if (d.ton) Kern.ton(d.ton);
+    if (d.hinweis) hinweis(d.hinweis, d.ms);
+  },
+  beendet: () => startseite(),
+});
 
 startseite();
 })();

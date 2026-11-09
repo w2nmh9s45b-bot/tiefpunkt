@@ -92,6 +92,13 @@
 .wv-pause{position:absolute;inset:0;border-radius:28px;background:#0f2e3a;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:3;text-align:center;padding:20px}
 .wv-pause h2{font-size:38px}
 .wv-leer{color:var(--ink2);text-align:center;padding:30px}
+/* Netzspiel: verdeckte Karte für das ratende Team, Rolle des eigenen Geräts */
+.wv-rate{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:100%;padding:24px;text-align:center}
+.wv-rate h2{font-size:clamp(28px,5vh,44px);color:#8f2858}
+.wv-rate p{font-size:17px;line-height:1.4;color:var(--papier-ink);opacity:.8;margin:0}
+.wv-ich{font-size:14px;color:var(--ink2)}.wv-ich b{color:var(--pc)}
+.wv-netzaus{visibility:hidden}
+@media (max-width:700px){body.wv-netz .wv-uhr{padding-right:96px}}
 
 /* ---------- Wertung ---------- */
 .wv-wertung{width:min(760px,100%);display:flex;flex-direction:column;gap:14px;min-height:0}
@@ -127,10 +134,63 @@
   .wv-kartenplatz .wv-karte{width:min(100%,560px)}
   .wv-tafel{grid-template-columns:1fr}
 }
+
+/* ---------- Telefon hoch (iPhone): Teams untereinander, Spielfläche als Spalte, nichts ragt raus ---------- */
+@media (max-width:700px){
+  .wv-teams{grid-template-columns:minmax(0,1fr)}
+  .wv-weg{width:40px;height:40px;margin-right:-6px}
+  .k-sichtschutz .k-btn{white-space:normal;line-height:1.2;padding-block:10px;max-width:100%;text-align:center}
+  /* Zwischenseiten rollen, falls es eng wird (Mitte bleibt mittig, solange Platz ist) */
+  .wv-zwischen{justify-content:flex-start;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:58px 0 4px;gap:16px}
+  .wv-zwischen::before,.wv-zwischen::after{content:"";flex:1 0 0}
+  .wv-titel{font-size:34px}
+  .wv-satz{font-size:17px}
+  .wv-tafel{gap:10px}
+  .wv-tk{padding:12px 16px;border-radius:18px}
+  .wv-tk h3{font-size:21px}
+  .wv-tk .wv-pkt{font-size:46px;margin:4px 0 8px}
+  .wv-knopfreihe{width:100%}
+  .wv-knopfreihe .k-btn{flex:1 1 auto;white-space:normal;line-height:1.2;padding-block:8px;text-align:center}
+  .wv-karten{max-height:none;overflow:visible}
+  .wv-rechnung{gap:8px}
+  .wv-rechnung div{padding:10px 12px}
+  .wv-rechnung b{font-size:28px}
+  .wv-sieger{font-size:clamp(34px,10vw,48px)}
+  .wv-verlauf{max-height:none;flex:none}
+  .wv-verlauf table{font-size:14px}
+  .wv-verlauf th,.wv-verlauf td{padding:6px 8px}
+  .wv-verlauf th{font-size:13px;letter-spacing:.03em}
+  /* laufender Durchgang: Uhr neben den Kopfknöpfen, darunter wer erklärt + Aufpasser-Knopf, Karte, Knöpfe */
+  .wv-spiel{gap:10px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto auto;
+    grid-template-areas:"uhr uhr" "links verboten" "karte karte" "weiter erraten" "unten unten"}
+  .wv-uhr{flex-direction:row;align-items:center;gap:14px;padding-left:112px;min-height:46px}
+  .wv-zeit{font-size:44px}
+  .wv-balken{flex:1;width:auto}
+  .wv-links{flex-direction:column;align-items:flex-start;justify-content:center;gap:6px}
+  .wv-wer b{font-size:19px}
+  .wv-stand .k-chip{font-size:14px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .wv-verboten{justify-self:stretch;align-self:center;align-items:stretch}
+  .wv-verboten .k-btn{min-height:64px;padding:0 12px;font-size:19px;white-space:normal;line-height:1.15}
+  .wv-verboten small{text-align:center}
+  .wv-seite .k-btn{height:96px;font-size:22px;gap:10px}
+  .wv-erratenbtn .k-btn{font-size:24px}
+  .wv-seite .k-btn svg{width:30px;height:30px}
+  .wv-kartenplatz .wv-karte{width:100%;max-height:100%}
+  .wv-karte{aspect-ratio:auto;height:100%;max-height:520px;border-radius:24px}
+  .wv-kopf small{font-size:13px}
+  .wv-begriff{font-size:clamp(28px,9vw,40px)}
+  .wv-liste{padding:4px 22px 10px}
+  .wv-liste li{font-size:clamp(19px,5.6vw,25px);padding:4px 0}
+  .wv-pause{border-radius:24px}
+  .wv-unten{gap:8px}
+  .wv-unten .k-btn{min-height:46px;padding:0 12px}
+  .wv-unten .wv-wer{font-size:14px;text-align:center}
+}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="wortverbot.logik.js"></script>
 <script src="wortverbot.daten.js"></script>
 <script>
@@ -157,7 +217,7 @@ const REGELN = `
 <h3>Ablauf</h3>
 <ul>
 <li>Die Teams sind abwechselnd dran. Im Team wechselt die erklärende Person reihum.</li>
-<li>Wer erklärt, hält das iPad. Eine Person aus dem anderen Team schaut über die Schulter mit und passt auf.</li>
+<li>Wer erklärt, hält das ${Kern.geraet}. Eine Person aus dem anderen Team schaut über die Schulter mit und passt auf.</li>
 <li>Die Uhr läuft eine Minute (einstellbar). Erraten? <b>Erraten</b> tippen, die nächste Karte kommt.</li>
 <li>Zu schwer? <b>Weiter</b> überspringt die Karte.</li>
 <li>Fällt ein verbotenes Wort, tippt die aufpassende Person auf <b>Verbotenes Wort</b>.</li>
@@ -174,7 +234,7 @@ const REGELN = `
 <p>Das erklärende Team bekommt 1 Punkt je erratenem Begriff. Das andere Team bekommt 1 Punkt je übersprungener Karte und je verbotenem Wort. Die Punkte werden am Ende jedes Durchgangs gutgeschrieben.</p>
 <h3>Spielende</h3>
 <p>Das Spiel endet, wenn alle gleich oft erklärt haben. Bei ungleich großen Teams spielen beide Teams gleich viele Durchgänge, bis jede Person mindestens einmal dran war. Als Variante könnt ihr eine feste Rundenzahl oder ein Punktziel wählen. Das meiste Punkte gewinnt; bei Gleichstand folgt noch eine Runde, bis ein Team vorn liegt.</p>
-<p>Gespielte Karten merkt sich das iPad. Sie kommen erst wieder, wenn alle Karten einmal dran waren.</p>`;
+<p>Gespielte Karten merkt sich das ${Kern.geraet}. Sie kommen erst wieder, wenn alle Karten einmal dran waren.</p>`;
 
 let S = null;          // Spielzustand (Logik)
 let UHR = null;        // laufende Uhr {ende, iv, letzteSek}
@@ -251,7 +311,7 @@ const BILD = `<svg width="190" height="130" viewBox="0 0 190 130" aria-hidden="t
 </svg>`;
 
 function startseite() {
-  uhrStopp(); S = null; buehne.hidden = true; buehne.innerHTML = '';
+  uhrStopp(); S = null; buehne.hidden = true; buehne.innerHTML = ''; document.body.classList.remove('wv-netz');
   Kern.kopf(true, 'links');
   if (!setupZiel) { setupZiel = el('div', 'k-scroll chart'); document.body.appendChild(setupZiel); }
   setupZiel.hidden = false;
@@ -260,7 +320,7 @@ function startseite() {
   Kern.setup({
     ziel: setupZiel,
     titel: 'Wortverbot', bild: BILD,
-    unter: 'Erkläre Begriffe, ohne die fünf verbotenen Wörter zu sagen. Zwei Teams, ein iPad, viel Gelächter.',
+    unter: 'Erkläre Begriffe, ohne die fünf verbotenen Wörter zu sagen. Zwei Teams, ein ' + Kern.geraet + ', viel Gelächter.',
     fakten: ['4–12 Personen', '2 Teams', `${KARTEN.length} Karten`],
     fortsetzen: alt && alt.phase !== 'ende' && alt.teams ? `Runde ${L.rundeNr(alt)} · ${alt.teams[0].name} ${alt.teams[0].punkte} : ${alt.teams[1].punkte} ${alt.teams[1].name}` : null,
     onFortsetzen: () => { S = alt; spielZeigen(); },
@@ -292,8 +352,10 @@ function neuesSpiel(teams, roh) {
   const gesehen = ls.get(K_GESEHEN, []);
   const st = L.stapelBauen(KARTEN.map(k => k.b), gesehen, Kern.zufall);
   if (st.zuruecksetzen) ls.set(K_GESEHEN, []);
+  const netz = S && S.netz;   // Netzspiel: Sitze der Teams bleiben bei „Nochmal“ erhalten
   S = L.neu({ teams, optionen: optionenAus(roh), stapel: st.stapel });
   S.roh = roh;
+  if (netz) S.netz = netz;
   speichern(); spielZeigen();
 }
 
@@ -338,9 +400,11 @@ function zeigeBereit() {
     <div class="wv-runde">${esc(rundenText())}</div>
     ${tafelHtml(t)}
     <p class="wv-satz"><b>${esc(wer)}</b> erklärt für <b style="color:${tf(t)}">${esc(S.teams[t].name)}</b>. Eine Person aus <b style="color:${tf(g)}">${esc(S.teams[g].name)}</b> schaut über die Schulter und passt auf.</p>
-    <div class="wv-knopfreihe"><button class="k-btn gross" id="wv-los">iPad an ${esc(wer)} geben</button></div>
+    <div class="wv-knopfreihe">${!NETZ() ? `<button class="k-btn gross" id="wv-los">${Kern.geraet} an ${esc(wer)} geben</button>`
+      : erklaererSitz() === Netz.meinSitz ? '<button class="k-btn gross" id="wv-los">Ich erkläre – Uhr starten</button>' : `<p class="wv-satz">Warte, bis ${esc(wer)} die Uhr startet.</p>`}</div>
+    ${ichHtml()}
   </div>`;
-  Kern.tap(buehne.querySelector('#wv-los'), () => durchgangStarten());
+  const los = buehne.querySelector('#wv-los'); if (los) Kern.tap(los, () => durchgangStarten());
 }
 
 async function durchgangStarten() {
@@ -348,22 +412,29 @@ async function durchgangStarten() {
   await Kern.sichtschutz({ name: wer, farbe: tf(t), knopf: `Ich bin ${wer} – Uhr starten`,
     text: `Du erklärst für ${esc(S.teams[t].name)}. Jemand aus ${esc(S.teams[g].name)} schaut mit. Die Uhr läuft, sobald du tippst.` });
   if (S.phase !== 'bereit') return;
-  L.starteZug(S); speichern();
+  Netz.tun('start');
+}
+function startAusfuehren() {
+  const sitz = S.netz ? erklaererSitz() : null;
+  L.starteZug(S); if (sitz != null) S.zug.sitz = sitz;
+  speichern();
   Kern.ton('runde');
   zeigeLaeuft(false); uhrStart();
+  Netz.melden(); Netz.ereignis({ ton: 'runde' });
 }
 
 /* ---------- Uhr ---------- */
-function uhrStart() {
+function uhrStart(nurAnzeige) {
   uhrStopp();
   const z = S.zug; if (!z) return;
-  UHR = { ende: performance.now() + z.restMs, letzteSek: Math.ceil(z.restMs / 1000), iv: setInterval(uhrTakt, 100), gespeichert: 0 };
+  UHR = { ende: performance.now() + z.restMs, letzteSek: Math.ceil(z.restMs / 1000), iv: setInterval(uhrTakt, 100), gespeichert: 0, nurAnzeige: !!nurAnzeige };
   uhrTakt();
 }
 function uhrStopp() { if (UHR) { clearInterval(UHR.iv); UHR = null; } }
 function uhrPause() {
-  if (!UHR || !S || !S.zug) return;
+  if (!UHR || UHR.nurAnzeige || !S || !S.zug) return;
   S.zug.restMs = Math.max(0, UHR.ende - performance.now()); uhrStopp(); S.zug.pause = true; speichern(); zeigeLaeuft(false);
+  Netz.melden();
 }
 function uhrTakt() {
   if (!UHR || !S || S.phase !== 'laeuft') return uhrStopp();
@@ -374,9 +445,9 @@ function uhrTakt() {
   if (sek !== UHR.letzteSek) {
     UHR.letzteSek = sek;
     if (sek <= 10 && sek > 0) Kern.ton(sek <= 3 ? 'warn' : 'zeit');
-    speichern();
+    if (!UHR.nurAnzeige) speichern();
   }
-  if (rest <= 0) zeitUm();
+  if (rest <= 0) { if (UHR.nurAnzeige) uhrStopp(); else zeitUm(); }   // Mitspieler zählen nur herunter; ablaufen lässt der Gastgeber
 }
 function uhrAnzeigen(rest) {
   const u = buehne.querySelector('.wv-uhr'); if (!u) return;
@@ -391,6 +462,7 @@ function zeitUm() {
   Kern.ton('gong');
   if (navigator.vibrate) try { navigator.vibrate(300); } catch (e) {}
   zeigeWertung(true);
+  Netz.melden(); Netz.ereignis({ ton: 'gong' });
 }
 
 /* ---------- Laufender Durchgang ---------- */
@@ -398,6 +470,7 @@ function zeigeLaeuft(nachLaden) {
   const z = S.zug, t = z.team, g = 1 - t, st = L.zugStand(z);
   if (nachLaden) z.pause = true;   // nach dem Neuladen nie sofort weiterlaufen
   const karte = z.aktuell != null ? KARTE[z.aktuell] : null;
+  const rolle = netzRolle();   // null = alle an einem Gerät
   buehne.innerHTML = `<div class="wv-spiel">
     <div class="wv-links">
       <div class="wv-wer">Erklärt für <span style="color:${tf(t)}">${esc(S.teams[t].name)}</span><b>${esc(z.erklaerer)}</b></div>
@@ -406,17 +479,18 @@ function zeigeLaeuft(nachLaden) {
     <div class="wv-uhr"><div class="wv-zeit k-zahl">1:00</div><div class="wv-balken"><i></i></div></div>
     <div class="wv-verboten"><button class="k-btn" id="wv-verboten">Verbotenes Wort</button><small>für ${esc(S.teams[g].name)}</small></div>
     <div class="wv-seite wv-weiterbtn"><button class="k-btn leise" id="wv-weiter">${ICON.weiter}Weiter</button></div>
-    <div class="wv-kartenplatz">${karte ? `
+    <div class="wv-kartenplatz">${z.verdeckt ? `
+      <div class="wv-karte rein" id="wv-karte"><div class="wv-rate"><h2>Rate mit!</h2><p>Die Karte sehen nur ${esc(z.erklaerer)} und ${esc(S.teams[g].name)}. Hör gut zu und ruf den Begriff.</p>${z.pause ? '<p><b>Pause – die Uhr steht.</b></p>' : ''}</div></div>` : karte ? `
       <div class="wv-karte rein" id="wv-karte">
         <div class="wv-kopf"><small>Erkläre</small><div class="wv-begriff">${esc(karte.b)}</div></div>
         <ul class="wv-liste">${karte.v.map(v => `<li>${esc(v)}</li>`).join('')}</ul>
-        ${z.pause ? `<div class="wv-pause"><h2>Pause</h2><p class="wv-satz">Die Uhr steht. Nur ${esc(z.erklaerer)} schaut.</p><button class="k-btn gross" id="wv-fortsetzen">Weiter erklären</button></div>` : ''}
-      </div>` : `<div class="wv-karte"><div class="wv-leer"><h2>Keine Karten mehr</h2><p>Der Stapel ist leer.</p><button class="k-btn" id="wv-leerende">Durchgang beenden</button></div></div>`}
+        ${z.pause ? `<div class="wv-pause"><h2>Pause</h2><p class="wv-satz">Die Uhr steht. Nur ${esc(z.erklaerer)} schaut.</p>${!rolle || rolle === 'erklaerer' ? '<button class="k-btn gross" id="wv-fortsetzen">Weiter erklären</button>' : ''}</div>` : ''}
+      </div>` : `<div class="wv-karte"><div class="wv-leer"><h2>Keine Karten mehr</h2><p>Der Stapel ist leer.</p>${!rolle || rolle === 'erklaerer' ? '<button class="k-btn" id="wv-leerende">Durchgang beenden</button>' : ''}</div></div>`}
     </div>
     <div class="wv-seite wv-erratenbtn"><button class="k-btn gut" id="wv-erraten">${ICON.haken}Erraten</button></div>
     <div class="wv-unten">
       <button class="k-btn leise klein" id="wv-rueck" ${z.karten.length ? '' : 'disabled'}>${ICON.zurueck}Rückgängig</button>
-      <span class="wv-wer k-zahl">Erraten ${st.erraten} · Verboten ${st.verboten} · Weiter ${st.weiter}</span>
+      <span class="wv-wer k-zahl">Erraten ${st.erraten} · Verboten ${st.verboten} · Weiter ${st.weiter}${rolle ? ` · ${ichHtml(true)}` : ''}</span>
       <button class="k-btn leise klein" id="wv-pause">${ICON.pause}Pause</button>
     </div>
   </div>`;
@@ -424,32 +498,46 @@ function zeigeLaeuft(nachLaden) {
   const aus = z.pause || !karte;
   ['#wv-erraten', '#wv-weiter', '#wv-verboten'].forEach(id => buehne.querySelector(id).disabled = aus);
   buehne.querySelector('#wv-pause').disabled = !!z.pause;
+  if (rolle) {   // Netzspiel: jedes Gerät zeigt nur seine Knöpfe – Erklärer: Erraten/Weiter/Pause, anderes Team: Verbotenes Wort
+    const zeigen = {erklaerer: ['#wv-erraten', '#wv-weiter', '#wv-rueck', '#wv-pause'], aufpasser: ['#wv-verboten'], rater: []}[rolle];
+    ['#wv-erraten', '#wv-weiter', '#wv-verboten', '#wv-rueck', '#wv-pause'].forEach(id => { const b = buehne.querySelector(id); if (!zeigen.includes(id)) { b.classList.add('wv-netzaus'); b.disabled = true; } });
+    const vb = buehne.querySelector('.wv-verboten small'); if (vb && rolle !== 'aufpasser') vb.classList.add('wv-netzaus');
+  }
   Kern.tap(buehne.querySelector('#wv-erraten'), () => werten('erraten'));
   Kern.tap(buehne.querySelector('#wv-weiter'), () => werten('weiter'));
   Kern.tap(buehne.querySelector('#wv-verboten'), () => werten('verboten'));
-  Kern.tap(buehne.querySelector('#wv-rueck'), () => { if (L.rueckgaengig(S)) { speichern(); Kern.ton('tipp'); zeigeLaeuft(false); } });
-  Kern.tap(buehne.querySelector('#wv-pause'), () => { Kern.ton('tipp'); uhrPause(); });
+  Kern.tap(buehne.querySelector('#wv-rueck'), () => { if (S.zug.karten.length) Netz.tun('rueck'); });
+  Kern.tap(buehne.querySelector('#wv-pause'), () => { Kern.ton('tipp'); Netz.tun('pause'); });
   const f = buehne.querySelector('#wv-fortsetzen');
   if (f) Kern.tap(f, async () => {
-    if (nachLaden) await Kern.sichtschutz({ name: z.erklaerer, farbe: tf(t), knopf: `Ich bin ${z.erklaerer} – weiter`, text: 'Die Uhr läuft weiter, sobald du tippst.' });
-    z.pause = false; speichern(); zeigeLaeuft(false); uhrStart();
+    if (nachLaden && !NETZ()) await Kern.sichtschutz({ name: z.erklaerer, farbe: tf(t), knopf: `Ich bin ${z.erklaerer} – weiter`, text: 'Die Uhr läuft weiter, sobald du tippst.' });
+    Netz.tun('fortsetzen');
   });
   const le = buehne.querySelector('#wv-leerende');
-  if (le) Kern.tap(le, () => zeitUm());
+  if (le) Kern.tap(le, () => Netz.tun('leer'));
 }
+function fortsetzenAusfuehren() { S.zug.pause = false; speichern(); zeigeLaeuft(false); uhrStart(); Netz.melden(); }
+function rueckAusfuehren() { if (L.rueckgaengig(S)) { speichern(); Kern.ton('tipp'); zeigeLaeuft(false); Netz.melden(); } }
 
 let sperre = 0;
 function werten(art) {
-  if (!S || S.phase !== 'laeuft' || S.zug.pause || S.zug.aktuell == null) return;
+  if (!S || S.phase !== 'laeuft' || S.zug.pause || (S.zug.aktuell == null && !S.zug.verdeckt)) return;
   if (performance.now() - sperre < 350) return;   // Doppeltipp abfangen
   sperre = performance.now();
+  Netz.tun('werten', { art });
+}
+function wertenAusfuehren(art) {
+  if (!S || S.phase !== 'laeuft' || S.zug.pause || S.zug.aktuell == null) return;
   const begriff = S.zug.aktuell;
   L.werten(S, art);
   gesehenMerken(begriff);
   speichern();
-  Kern.ton(art === 'erraten' ? 'punkt' : art === 'verboten' ? 'fehler' : 'karte');
-  if (art === 'verboten') Kern.hinweis(`Verboten! Punkt für ${S.teams[1 - S.zug.team].name}`, 1300);
+  const ton = art === 'erraten' ? 'punkt' : art === 'verboten' ? 'fehler' : 'karte';
+  Kern.ton(ton);
+  const text = art === 'verboten' ? `Verboten! Punkt für ${S.teams[1 - S.zug.team].name}` : undefined;
+  if (text) Kern.hinweis(text, 1300);
   zeigeLaeuft(false);
+  Netz.melden(); Netz.ereignis({ ton, hinweis: text });
 }
 
 /* ---------- Wertung ---------- */
@@ -466,12 +554,14 @@ function zeigeWertung() {
         <div style="--pc:${tf(g)}"><small>${esc(S.teams[g].name)} · ${v.stand.verboten} verboten, ${v.stand.weiter} übersprungen</small><b class="k-zahl">+${v.punkte[g]}</b><small>jetzt ${pkt(S.teams[g].punkte)}</small></div>
       </div>
     </div>
-    <div class="wv-knopfreihe"><button class="k-btn gross" id="wv-naechst">Weiter</button></div>
+    <div class="wv-knopfreihe">${!NETZ() || darfWeiter(Netz.meinSitz) ? '<button class="k-btn gross" id="wv-naechst">Weiter</button>' : `<p class="wv-satz">Weiter geht es bei ${esc(netzName(0))} oder ${esc(L.erklaerer(S, 1 - t))}.</p>`}</div>
   </div>`;
-  Kern.tap(buehne.querySelector('#wv-naechst'), () => {
-    L.weiter(S);
-    if (S.phase === 'ende') { Kern.speicher.loeschen(); zeigeEnde(true); } else { speichern(); Kern.ton('tipp'); zeigeBereit(); }
-  });
+  const nx = buehne.querySelector('#wv-naechst'); if (nx) Kern.tap(nx, () => Netz.tun('weiter'));
+}
+function weiterAusfuehren() {
+  L.weiter(S);
+  if (S.phase === 'ende') { Kern.speicher.loeschen(); zeigeEnde(true); Netz.melden(); Netz.ereignis({ ton: 'sieg', feier: true }); }
+  else { speichern(); Kern.ton('tipp'); zeigeBereit(); Netz.melden(); }
 }
 
 /* ---------- Spielende ---------- */
@@ -484,16 +574,98 @@ function zeigeEnde(feiern) {
     <div class="wv-verlauf"><table><thead><tr><th>Runde</th><th>Erklärt</th><th>Erraten</th><th>Verboten</th><th>Weiter</th><th>${esc(S.teams[0].name)}</th><th>${esc(S.teams[1].name)}</th></tr></thead><tbody>
     ${S.verlauf.map((v, i) => `<tr><td>${Math.floor(i / 2) + 1}</td><td><span class="k-dot" style="--pc:${tf(v.team)};display:inline-grid;width:12px;height:12px;vertical-align:-1px;margin-right:6px"></span>${esc(v.erklaerer)}</td><td>${v.stand.erraten}</td><td>${v.stand.verboten}</td><td>${v.stand.weiter}</td><td>+${v.punkte[0]}</td><td>+${v.punkte[1]}</td></tr>`).join('')}
     </tbody></table></div>
-    <div class="wv-knopfreihe"><button class="k-btn gross" id="wv-nochmal">Nochmal</button><button class="k-btn gross leise" id="wv-neu">Neues Spiel</button></div>
+    <div class="wv-knopfreihe">${NETZ() && !Netz.istHost ? `<p class="wv-satz">${esc(netzName(0))} entscheidet, wie es weitergeht.</p>` : '<button class="k-btn gross" id="wv-nochmal">Nochmal</button><button class="k-btn gross leise" id="wv-neu">Neues Spiel</button>'}</div>
   </div>`;
   if (feiern) { Kern.feier(); Kern.ton('sieg'); }
-  Kern.tap(buehne.querySelector('#wv-nochmal'), () => neuesSpiel(S.teams.map(t => ({ name: t.name, farbe: t.farbe, mitglieder: t.mitglieder })), S.roh || { zeit: S.optionen.zeit, ende: 'alle1' }));
-  Kern.tap(buehne.querySelector('#wv-neu'), () => { Kern.speicher.loeschen(); startseite(); });
+  const nm = buehne.querySelector('#wv-nochmal'); if (nm) Kern.tap(nm, () => Netz.tun('nochmal'));
+  const ne = buehne.querySelector('#wv-neu'); if (ne) Kern.tap(ne, () => { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); });
 }
+function nochmalAusfuehren() { neuesSpiel(S.teams.map(t => ({ name: t.name, farbe: t.farbe, mitglieder: t.mitglieder })), S.roh || { zeit: S.optionen.zeit, ende: 'alle1' }); Netz.melden(); }
 
 /* Seite verlassen oder in den Hintergrund: Uhr anhalten und speichern. */
-document.addEventListener('visibilitychange', () => { if (document.hidden && UHR) uhrPause(); });
-addEventListener('pagehide', () => { if (UHR && S && S.zug) { S.zug.restMs = Math.max(0, UHR.ende - performance.now()); S.zug.pause = true; speichern(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden && UHR && !UHR.nurAnzeige) uhrPause(); });
+addEventListener('pagehide', () => { if (UHR && !UHR.nurAnzeige && S && S.zug) { S.zug.restMs = Math.max(0, UHR.ende - performance.now()); S.zug.pause = true; speichern(); } });
+
+/* ---------- Netzspiel: jeder auf seinem Gerät ----------
+   Teams aus der Sitzreihenfolge: Sitz 0, 2, 4 … = Team 1, Sitz 1, 3, 5 … = Team 2; im Team erklärt reihum, wer an der
+   Reihe ist. Die Karte sehen der Erklärer (Erraten, Weiter, Rückgängig, Pause) und das andere Team (Verbotenes Wort);
+   das ratende Team sieht nur Uhr und Stand. Der Gastgeber führt die Uhr, die anderen zählen von der Restzeit herunter;
+   ablaufen lässt sie nur der Gastgeber. Weiter nach der Wertung: Gastgeber oder der nächste Erklärer; über „Nochmal“
+   entscheidet der Gastgeber. */
+const NETZ = () => !!(Netz.laeuft && S && S.netz);
+const teamVon = sitz => S.netz.teamSitze[0].includes(sitz) ? 0 : 1;
+const erklaererSitz = (t = S.amZug) => { const z = S.netz.teamSitze[t]; return z[S.teams[t].naechster % z.length]; };
+const netzName = sitz => { const z = Netz.sitze; return z && z[sitz] ? z[sitz].name : 'Der Gastgeber'; };
+function zugErklaererSitz() { const z = S.zug; return z && z.sitz != null ? z.sitz : erklaererSitz(); }
+function netzRolle(sitz = Netz.meinSitz) {
+  if (!NETZ() || !S.zug) return null;
+  if (sitz === zugErklaererSitz()) return 'erklaerer';
+  return teamVon(sitz) === S.zug.team ? 'rater' : 'aufpasser';
+}
+function darfWeiter(sitz) { return sitz === 0 || sitz === erklaererSitz(1 - S.amZug); }
+function ichHtml(kurz) {
+  if (!NETZ()) return '';
+  const ich = Netz.meinSitz, t = teamVon(ich), r = netzRolle();
+  const was = r === 'erklaerer' ? 'du erklärst' : r === 'rater' ? 'du rätst mit' : r === 'aufpasser' ? 'du passt auf' : `Team ${esc(S.teams[t].name)}`;
+  return kurz ? was : `<p class="wv-ich" style="--pc:${tf(t)}">Du: <b>${esc(S.teams[t].name)}</b> · ${was}</p>`;
+}
+function netzZeichnen() {
+  uhrStopp(); document.body.classList.add('wv-netz');
+  if (S.phase === 'laeuft') { zeigeLaeuft(false); if (!S.zug.pause && S.zug.laeuft) uhrStart(true); }
+  else zeichnen();
+}
+Netz.einrichten({
+  spiel: 'wortverbot', min: 4, max: 12,
+  starten(spieler, optionen) {
+    const teamSitze = [spieler.filter(p => p.sitz % 2 === 0).map(p => p.sitz), spieler.filter(p => p.sitz % 2 === 1).map(p => p.sitz)];
+    const teams = ['Füchse', 'Eulen'].map((n, t) => ({ name: n, farbe: TEAMFARBEN[t], mitglieder: teamSitze[t].map(s => spieler[s].name) }));
+    S = { netz: { teamSitze } };
+    neuesSpiel(teams, { zeit: optionen.zeit || 60, ende: optionen.ende || 'alle1' });
+    document.body.classList.add('wv-netz');
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    const netz = sitz !== null && S.netz;
+    const nein = () => { if (sitz !== null) Netz.melden(sitz); };
+    const erkl = () => !netz || sitz === zugErklaererSitz();
+    switch (name) {
+      case 'start':
+        if (S.phase !== 'bereit' || (netz && sitz !== erklaererSitz())) return nein();
+        return startAusfuehren();
+      case 'werten': {
+        const art = d.art;
+        if (!['erraten', 'verboten', 'weiter'].includes(art) || S.phase !== 'laeuft' || S.zug.pause || S.zug.aktuell == null) return nein();
+        if (netz && (art === 'verboten' ? teamVon(sitz) === S.zug.team : sitz !== zugErklaererSitz())) return nein();
+        return wertenAusfuehren(art);
+      }
+      case 'rueck': if (S.phase !== 'laeuft' || !erkl()) return nein(); return rueckAusfuehren();
+      case 'pause': if (S.phase !== 'laeuft' || !erkl() || !UHR) return nein(); return uhrPause();
+      case 'fortsetzen': if (S.phase !== 'laeuft' || !S.zug.pause || !erkl()) return nein(); return fortsetzenAusfuehren();
+      case 'leer': if (S.phase !== 'laeuft' || S.zug.aktuell != null || !erkl()) return nein(); return zeitUm();
+      case 'weiter': if (S.phase !== 'wertung' || (netz && !darfWeiter(sitz))) return nein(); return weiterAusfuehren();
+      case 'nochmal': if (S.phase !== 'ende' || (netz && sitz !== 0)) return nein(); return nochmalAusfuehren();
+    }
+  },
+  zustand(sitz) {
+    if (!S) return { warte: true };
+    const k = JSON.parse(JSON.stringify(S));
+    k.stapelAnz = S.stapel.length; k.stapel = [];   // der Stapel ist für alle verdeckt
+    if (k.zug) {
+      if (UHR && !UHR.nurAnzeige) k.zug.restMs = Math.max(0, UHR.ende - performance.now());
+      k.zug.laeuft = !!(UHR && !UHR.nurAnzeige);
+      if (k.phase === 'laeuft' && netzRolle(sitz) === 'rater') { k.zug.aktuell = null; k.zug.verdeckt = true; }   // das ratende Team sieht die Karte nicht
+    }
+    return k;
+  },
+  stand(d) {
+    if (!d || d.warte) return;
+    S = d;
+    if (setupZiel) setupZiel.hidden = true;
+    buehne.hidden = false;
+    netzZeichnen();
+  },
+  beendet() { document.body.classList.remove('wv-netz'); startseite(); },
+});
 
 window.__test = { zustand: () => S, uhrSetzen: ms => { if (UHR) UHR.ende = performance.now() + ms; }, karten: () => KARTEN.length };
 startseite();

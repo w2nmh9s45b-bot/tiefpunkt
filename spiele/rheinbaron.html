@@ -71,6 +71,13 @@
   box-shadow:inset 0 0 0 1px var(--line);min-width:0;text-align:left;border:0;color:var(--ink);font:inherit;min-height:46px}
 .rb-sk.dran{background:color-mix(in srgb,var(--pc) 20%,rgba(7,24,32,.6));box-shadow:inset 0 0 0 2px var(--pc)}
 .rb-sk.raus{opacity:.4}
+/* Netzspiel: eigene Figur und eigenes Konto hervorgehoben, Handelsangebot */
+.rb-sk.ich{outline:2px dashed var(--pc);outline-offset:2px}
+.rb-sk .rb-du{font-size:.68em;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-left:.4em;padding:.05em .45em;border-radius:99px;background:var(--pc);color:#0c2430;vertical-align:.12em}
+.rb-figur.ich{filter:drop-shadow(0 0 3px var(--akzent)) drop-shadow(0 0 6px var(--akzent))}
+.rb-angebot{border-radius:14px;padding:.6em .8em;background:rgba(92,196,138,.12);box-shadow:inset 0 0 0 2px var(--akzent);font-size:.95em;display:grid;gap:.5em}
+.rb-angebot p{margin:0;color:var(--ink)}
+.rb-angebot .rb-knoepfe{justify-content:flex-start}
 .rb-sk svg{width:2em;height:2em;flex:none}
 .rb-sk .rb-skn{font-weight:700;font-size:.92em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .rb-sk .rb-skg{font:800 1.12em var(--f-disp);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -153,11 +160,54 @@
 .rb-wert svg{width:28px;height:28px}
 .rb-wert .k{color:var(--ink2);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
 .rb-wert b{font-family:var(--f-disp)}
+
+/* ---------- Telefon hoch (iPhone): Brett oben über die ganze Breite, in seiner Mitte Spielerkarten, Bank und Zeit;
+   darunter eine rollbare Leiste mit wer dran ist, Würfeln/Kaufen/Bieten und den Knöpfen. Felder antippen = Karte. */
+.rb-zentrum{position:absolute;left:var(--c);top:var(--c);width:var(--M);height:var(--M);box-sizing:border-box;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 45%,#174353,#0b2531 75%);box-shadow:inset 0 0 0 2px #1b2a2f,inset 0 10px 40px rgba(0,0,0,.35);
+  padding:8px;display:flex;flex-direction:column;justify-content:center;gap:6px;font-size:13px}
+.rb-zentrum > *:not(#rb-fluss){position:relative}
+.rb-zentrum .rb-titel{font-size:13px;letter-spacing:.38em;margin:0}
+.rb-zentrum .rb-spieler{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.rb-zentrum .rb-sk{min-height:40px;padding:4px 6px;gap:6px;border-radius:10px}
+.rb-zentrum .rb-sk svg{width:24px;height:24px}
+.rb-zentrum .rb-sk .rb-skn{font-size:13px}
+.rb-zentrum .rb-sk .rb-skg{font-size:15px}
+.rb-zentrum .rb-sk .rb-skx{font-size:13px}
+.rb-zentrum .rb-zinfo{display:flex;justify-content:center;gap:4px 12px;flex-wrap:wrap;color:var(--ink2);font-size:13px;font-variant-numeric:tabular-nums}
+.rb-zentrum .rb-zinfo b{color:var(--ink)}
+.rb-handy #rb-mitte{--mf:15px;left:max(10px,var(--sicher-l));right:max(10px,var(--sicher-r));bottom:max(10px,var(--sicher-u));width:auto;height:auto;
+  overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;border-radius:20px;padding:12px 12px 14px;gap:10px;
+  background:var(--panel-fest);border:1px solid var(--line);box-shadow:none}
+.rb-handy #rb-mitte > *{flex-shrink:0}
+.rb-handy .rb-aktion{flex:1 0 auto;gap:12px}
+.rb-handy .rb-status{min-height:0}
+.rb-handy .rb-status .rb-fg{width:2.2em;height:2.2em}
+.rb-handy .rb-knoepfe{width:100%}
+.rb-handy .rb-knoepfe .k-btn{flex:1 1 auto;max-width:100%;white-space:normal;line-height:1.2;padding-block:8px;text-align:center}
+.rb-handy .rb-leiste .k-btn{flex:1 1 0;min-height:46px;font-size:16px}
+.rb-handy .rb-auk-z{flex-wrap:wrap;padding:6px 8px}
+.rb-handy .rb-auk-z .n{flex:1 1 calc(100% - 46px)}
+.rb-handy .rb-auk-z .k-btn{flex:1 1 0;min-width:0;padding:0 6px}
+.rb-handy .rb-karte,.rb-handy .rb-urkunde{width:100%}
+.rb-handy .rb-urkunde header small{font-size:12px}
+.rb-handy .rb-delta{font-size:13px}
+.rb-wert2{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.rb-wert2 > div{display:grid;grid-template-columns:auto 28px 1fr auto;gap:2px 10px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--panel-hell);font-variant-numeric:tabular-nums}
+.rb-wert2 svg{width:28px;height:28px}
+.rb-wert2 b{font-family:var(--f-disp)}
+.rb-wert2 small{grid-column:1/-1;color:var(--ink2);font-size:14px}
+@media (max-width:700px){
+  .rb-zeile .k-btn{flex:1 1 auto}
+  .rb-fwahl button{flex:1 1 auto}
+  .rb-geld input{flex:1 1 4em;min-width:4em}
+}
 @media (prefers-reduced-motion:reduce){.rb-figur{transition:none}.rb-feld.ziel{animation:none}}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="rheinbaron.logik.js"></script>
 <script>
 "use strict";
@@ -228,6 +278,15 @@ const hellGruppe = g => ['hellblau', 'gelb'].includes(g);
 let S = null, BUSY = false, FEST = [], ANZEIGE = [], LETZT_TICK = 0, ZEIT_SPEICHERN = 0;
 const MAN = {fenster: null, sp: null}; // offenes Verwalten-Fenster
 const speichern = () => { if (!S) return; if (S.ende) Kern.speicher.loeschen(); else Kern.speicher.speichern(S); };
+/* Netzspiel-Hilfen: ICH = eigener Sitz (im Netzspiel), sonst null; darf = darf dieses Gerät für Sitz i bedienen */
+const NETZ = () => !!(Netz.laeuft && S);
+const ICH = () => (NETZ() ? Netz.meinSitz : null);
+const darf = i => Netz.binDran(i);
+let WARTE = false;   // Mitspieler: Aktion abgeschickt, Antwort steht aus (gegen Doppeltipps)
+function sende(name, d = {}) {
+  if (Netz.istGast) { if (WARTE) return; WARTE = true; setTimeout(() => { WARTE = false; }, 2500); }
+  return Netz.tun(name, d);
+}
 function wurf() { return FEST.length ? FEST.shift() : [1 + Kern.zufall(6), 1 + Kern.zufall(6)]; }
 window.__test = {zustand: () => S, laden(s) { S = s; ANZEIGE = []; aufbauen(); zeichnen(); speichern(); }, wuerfel(...p) { FEST.push(...p); }, R, busy: () => BUSY};
 
@@ -260,16 +319,20 @@ function bildSvg() {
 function neuesSpiel(namen, farben, optionen) {
   Kern.speicher.loeschen();
   S = R.neu({namen, farben, figuren: namen.map((n, i) => i), optionen: {zeit: optionen.zeit}, zufall: Kern.zufall});
+  S.netzId = Date.now().toString(36) + Kern.zufall(1e6);   // erkennt im Netzspiel ein neues Spiel
   speichern(); spielZeigen();
-  if (S.startwurf.length) {
-    const r = S.startwurf.map((runde, k) => `<p>${k ? 'Stechen: ' : ''}${runde.map(x => `${E(S.spieler[x.sp].name)} ${x.w[0]}+${x.w[1]}`).join(' · ')}</p>`).join('');
-    Kern.fenster(`<h2>${E(S.spieler[S.dran].name)} beginnt</h2><p>Alle haben gewürfelt, die höchste Summe fängt an.</p>${r}`);
-  }
+  startwurfZeigen();
   Kern.ton('runde');
+}
+function startwurfZeigen() {
+  if (!S.startwurf.length) return;
+  const r = S.startwurf.map((runde, k) => `<p>${k ? 'Stechen: ' : ''}${runde.map(x => `${E(S.spieler[x.sp].name)} ${x.w[0]}+${x.w[1]}`).join(' · ')}</p>`).join('');
+  Kern.fenster(`<h2>${E(S.spieler[S.dran].name)} beginnt</h2><p>Alle haben gewürfelt, die höchste Summe fängt an.</p>${r}`);
 }
 
 /* ---------- Spielfläche aufbauen ---------- */
-let BUEHNE, BRETT, MITTE, SEITE, FELDEL = [], FIGEL = [], WUERFEL = [];
+let BUEHNE, BRETT, MITTE, SEITE, ZENTRUM = null, FELDEL = [], FIGEL = [], WUERFEL = [];
+const HANDY = matchMedia('(max-width:700px)');   // iPhone hoch: Brett oben, Steuerung als Leiste darunter
 function spielZeigen() {
   if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
   ANZEIGE = []; aufbauen(); zeichnen();
@@ -286,7 +349,9 @@ function aufbauen() {
     Kern.tap(e, () => feldTippen(i));
     return e;
   });
-  MITTE = Kern.el('div'); MITTE.id = 'rb-mitte'; BRETT.appendChild(MITTE);
+  MITTE = Kern.el('div'); MITTE.id = 'rb-mitte';
+  if (HANDY.matches) { BUEHNE.classList.add('rb-handy'); BUEHNE.appendChild(MITTE); ZENTRUM = Kern.el('div', 'rb-zentrum'); BRETT.appendChild(ZENTRUM); }
+  else { BRETT.appendChild(MITTE); ZENTRUM = null; }
   if (!WUERFEL.length) WUERFEL = [Kern.wuerfel(3), Kern.wuerfel(4)];
   FIGEL = S.spieler.map((p, i) => { const e = Kern.el('div', 'rb-figur', figurSvg(p.figur, p.farbe)); BRETT.appendChild(e); return e; });
   layout();
@@ -311,8 +376,15 @@ let GEO = null;
 function layout() {
   if (!BRETT) return;
   const W = innerWidth, H = innerHeight, rand = 10;
-  const B = Math.floor(Math.min(W, H) - 2 * rand), c = Math.round(B * .13), w = (B - 2 * c) / 9, M = B - 2 * c;
-  const x0 = Math.round((W - B) / 2), y0 = Math.round((H - B) / 2);
+  let B = Math.floor(Math.min(W, H) - 2 * rand), x0, y0;
+  if (ZENTRUM) {   // Telefon: Brett direkt unter den Kopfknöpfen, so breit wie möglich, unten bleibt Platz für die Leiste
+    const k = document.querySelector('.k-kopf'), oben = Math.round(k ? k.getBoundingClientRect().bottom + 8 : 64);
+    B = Math.floor(Math.max(240, Math.min(W - 12, H - oben - 280)));
+    x0 = Math.round((W - B) / 2); y0 = oben;
+    MITTE.style.top = (y0 + B + 8) + 'px';
+  }
+  const c = Math.round(B * .13), w = (B - 2 * c) / 9, M = B - 2 * c;
+  if (!ZENTRUM) { x0 = Math.round((W - B) / 2); y0 = Math.round((H - B) / 2); }
   GEO = {B, c, w, M, x0, y0};
   Object.assign(BRETT.style, {left: x0 + 'px', top: y0 + 'px'});
   BRETT.style.setProperty('--B', B + 'px'); BRETT.style.setProperty('--c', c + 'px'); BRETT.style.setProperty('--w', w + 'px');
@@ -331,7 +403,7 @@ function layout() {
   });
   // Seitenleiste in den freien Raum
   const frei = Math.max(W - B - 2 * rand, H - B - 2 * rand) / 2;
-  if (frei >= 170) {
+  if (frei >= 170 && !ZENTRUM) {
     SEITE.hidden = false;
     if (W > H) Object.assign(SEITE.style, {left: (x0 + B + 14) + 'px', top: '16px', width: (W - x0 - B - 30) + 'px', height: (H - 32) + 'px'});
     else Object.assign(SEITE.style, {left: '16px', top: (y0 + B + 14) + 'px', width: (W - 32) + 'px', height: (H - y0 - B - 30) + 'px'});
@@ -381,7 +453,7 @@ function figurenSetzen(sofort) {
     e.style.left = pt.x + 'px'; e.style.top = pt.y + 'px';
     if (sofort) { void e.offsetWidth; e.style.transition = ''; }
   }));
-  S.spieler.forEach((p, i) => { FIGEL[i].hidden = p.raus; FIGEL[i].classList.toggle('dran', i === S.dran && !S.ende); });
+  S.spieler.forEach((p, i) => { FIGEL[i].hidden = p.raus; FIGEL[i].classList.toggle('dran', i === S.dran && !S.ende); FIGEL[i].classList.toggle('ich', i === ICH()); });
 }
 addEventListener('resize', () => { if (S && BRETT) { layout(); zeichnen(); } });
 
@@ -419,23 +491,30 @@ function geldText(n) { return `<span class="k-zahl">${euro(n)}</span>`; }
 function mitteZeichnen() {
   const a = S.akt, wer = handelnde(), P = sp(wer);
   const satz = statusSatz();
-  MITTE.innerHTML = `${flussSvg()}<div class="rb-titel">RHEINBARON</div>
-    <div class="rb-status" style="--pc:${P.farbe}"><div class="rb-fg">${figurSvg(P.figur, P.farbe)}</div><div><b class="rb-wer">${S.ende ? 'Spiel vorbei' : E(P.name)}</b><span class="rb-satz" id="rb-satz">${satz}</span></div></div>
+  MITTE.innerHTML = `${ZENTRUM ? '' : `${flussSvg()}<div class="rb-titel">RHEINBARON</div>`}
+    <div class="rb-status" style="--pc:${P.farbe}"><div class="rb-fg">${figurSvg(P.figur, P.farbe)}</div><div><b class="rb-wer">${S.ende ? 'Spiel vorbei' : E(P.name) + (wer === ICH() ? ' <span style="font-weight:400;color:var(--ink2)">(du)</span>' : '')}</b><span class="rb-satz" id="rb-satz">${satz}</span></div></div>
+    ${angebotHtml()}
     <div class="rb-aktion" id="rb-aktion"></div>
-    ${S.ende || (a && (a.t === 'auktion' || a.t === 'karte')) ? '' : `<div class="rb-leiste"><button class="k-btn leise klein" id="rb-verwalten">Grundstücke</button><button class="k-btn leise klein" id="rb-handeln">Handeln</button></div>`}
-    ${a && a.t === 'auktion' ? '' : `<div class="rb-spieler" id="rb-spieler"></div>`}`;
+    ${S.ende || (a && (a.t === 'auktion' || a.t === 'karte')) || (NETZ() && sp(ICH()).raus) ? '' : `<div class="rb-leiste"><button class="k-btn leise klein" id="rb-verwalten">Grundstücke</button><button class="k-btn leise klein" id="rb-handeln">Handeln</button></div>`}
+    ${a && a.t === 'auktion' || ZENTRUM ? '' : `<div class="rb-spieler" id="rb-spieler"></div>`}`;
+  if (ZENTRUM) {   // Telefon: Spielerkarten, Bank und Restzeit in der Brettmitte
+    const rest = S.zeit.limit ? Math.max(0, S.zeit.limit - S.zeit.gespielt) : null;
+    ZENTRUM.innerHTML = `${flussSvg()}<div class="rb-titel">RHEINBARON</div><div class="rb-spieler" id="rb-spieler"></div>
+      <div class="rb-zinfo"><span>Bank: <b>${S.bank.haeuser}</b> Häuser · <b>${S.bank.hotels}</b> Hotels</span>${rest != null ? `<span>Zeitlimit: <b class="k-zahl" id="rb-rest">${Math.ceil(rest / 60000)} Min.</b></span>` : ''}</div>`;
+  }
   const akt = MITTE.querySelector('#rb-aktion');
   aktionBauen(akt);
   const v = MITTE.querySelector('#rb-verwalten'), h = MITTE.querySelector('#rb-handeln');
-  if (v) v.onclick = () => verwalten(wer);
-  if (h) h.onclick = () => handelFenster(wer);
-  const liste = MITTE.querySelector('#rb-spieler');
+  if (v) v.onclick = () => verwalten(NETZ() ? ICH() : wer);
+  if (h) h.onclick = () => handelFenster(NETZ() ? ICH() : wer);
+  angebotVerbinden();
+  const liste = (ZENTRUM || MITTE).querySelector('#rb-spieler');
   if (liste) S.spieler.forEach((p, i) => {
     const n = R.felderVon(S, i).length;
     const x = [p.raus ? 'pleite' : null, p.turm && !p.raus ? 'im Hexenturm' : null, n ? `${n} Grundst.` : null, p.karten.length ? `${p.karten.length} Schlüssel` : null].filter(Boolean).join(' · ') || 'noch nichts';
-    const b = Kern.el('button', 'rb-sk' + (i === S.dran && !S.ende ? ' dran' : '') + (p.raus ? ' raus' : ''));
+    const b = Kern.el('button', 'rb-sk' + (i === S.dran && !S.ende ? ' dran' : '') + (p.raus ? ' raus' : '') + (i === ICH() ? ' ich' : ''));
     b.style.setProperty('--pc', p.farbe); b.dataset.sp = i;
-    b.innerHTML = `${figurSvg(p.figur, p.farbe)}<span style="min-width:0;flex:1"><span class="rb-skn">${E(p.name)}</span><span class="rb-skg">${euro(p.geld)}</span><span class="rb-skx">${x}</span></span>`;
+    b.innerHTML = `${figurSvg(p.figur, p.farbe)}<span style="min-width:0;flex:1"><span class="rb-skn">${E(p.name)}${i === ICH() ? '<span class="rb-du">du</span>' : ''}</span><span class="rb-skg">${euro(p.geld)}</span><span class="rb-skx">${x}</span></span>`;
     b.onclick = () => verwalten(i);
     liste.appendChild(b);
   });
@@ -486,59 +565,63 @@ function aktionBauen(box) {
   const kn = Kern.el('div', 'rb-knoepfe'), leise = t => Kern.el('div', 'rb-leise', t);
   if (S.ende) {
     box.append(leise(S.ende.art === 'zeit' ? 'Nach Vermögen gewertet.' : 'Alle anderen sind pleite.'), kn);
-    kn.append(knopf('Wertung', '', endeFenster), knopf('Nochmal', 'leise', nochmal), knopf('Neues Spiel', 'leise', startseite));
+    kn.append(knopf('Wertung', '', endeFenster));
+    if (NETZ() && !Netz.istHost) box.append(leise(`${E(Netz.sitze[0].name)} entscheidet, wie es weitergeht.`));
+    else kn.append(knopf('Nochmal', 'leise', () => sende('neustart')), knopf('Neues Spiel', 'leise', () => { if (Netz.aktiv) Netz.verlassen(); startseite(); }));
     return;
   }
+  // Netzspiel: Entscheidungen nur auf dem Gerät der handelnden Person; die anderen sehen, was passiert
+  const fremd = a.t !== 'auktion' && !darf(wer);
   switch (a.t) {
     case 'wurf':
       box.append(wuerfelReihe(), kn);
-      kn.append(knopf('Würfeln', 'gross', () => wuerfelnUndZiehen()));
+      kn.append(knopf('Würfeln', 'gross', () => sende('wurf')));
       break;
     case 'turm':
       box.append(wuerfelReihe(), kn);
-      kn.append(knopf('Pasch versuchen', '', () => wuerfelnUndZiehen(R.turmWuerfeln)));
-      kn.append(knopf(`${euro(R.TURM_STRAFE)} zahlen`, 'leise', () => tu(() => R.turmZahlen(S)), P.geld < R.TURM_STRAFE));
-      if (P.karten.length) kn.append(knopf('Schlüssel nutzen', 'leise', () => tu(() => R.turmKarte(S))));
+      kn.append(knopf('Pasch versuchen', '', () => sende('turmWurf')));
+      kn.append(knopf(`${euro(R.TURM_STRAFE)} zahlen`, 'leise', () => sende('turmZahlen'), P.geld < R.TURM_STRAFE));
+      if (P.karten.length) kn.append(knopf('Schlüssel nutzen', 'leise', () => sende('turmKarte')));
       break;
     case 'kauf': {
       box.append(urkundeEl(a.feld, true), kn);
       const f = F[a.feld], fehlt = f.p - P.geld;
-      kn.append(knopf(`Kaufen · ${euro(f.p)}`, 'gut', () => tu(() => { R.kaufen(S); Kern.ton('punkt'); }), fehlt > 0), knopf('Versteigern', 'leise', () => tu(() => R.versteigern(S))));
-      if (fehlt > 0) box.append(leise(`Dir fehlen ${euro(fehlt)}. Über „Grundstücke“ kannst du vorher Geld beschaffen.`));
+      kn.append(knopf(`Kaufen · ${euro(f.p)}`, 'gut', () => sende('kaufen'), fehlt > 0), knopf('Versteigern', 'leise', () => sende('versteigern')));
+      if (fehlt > 0 && !fremd) box.append(leise(`Dir fehlen ${euro(fehlt)}. Über „Grundstücke“ kannst du vorher Geld beschaffen.`));
       break;
     }
     case 'zahlen': {
       const kann = P.geld >= a.betrag;
       const b = Kern.el('div', 'rb-betrag', euro(a.betrag)); box.append(b, kn);
-      kn.append(knopf(`${euro(a.betrag)} zahlen`, kann ? 'gross' : '', () => tu(() => { R.zahlen(S); Kern.ton('legen'); }), !kann));
+      kn.append(knopf(`${euro(a.betrag)} zahlen`, kann ? 'gross' : '', () => sende('zahlen'), !kann));
       if (!kann) {
         kn.append(knopf('Geld beschaffen', 'leise', () => verwalten(a.von)));
         if (R.kannBankrott(S)) kn.append(knopf('Aufgeben', 'gefahr', aufgeben));
-        box.append(leise(R.kannBankrott(S) ? 'Auch mit allen Verkäufen und Hypotheken reicht es nicht. Du kannst noch handeln – oder aufgeben.' : 'Verkaufe Gebäude oder nimm Hypotheken auf, dann zahle.'));
+        if (!fremd) box.append(leise(R.kannBankrott(S) ? 'Auch mit allen Verkäufen und Hypotheken reicht es nicht. Du kannst noch handeln – oder aufgeben.' : 'Verkaufe Gebäude oder nimm Hypotheken auf, dann zahle.'));
       } else if (a.grund === 'miete' && a.doppelt) box.append(leise('Doppelte Bahnhofsmiete wegen der Karte.'));
       break;
     }
     case 'werk':
       box.append(wuerfelReihe(S.werkWurf), kn);
-      kn.append(knopf('Würfeln', 'gross', () => wuerfelnUndZiehen(R.werkWuerfeln)));
+      kn.append(knopf('Würfeln', 'gross', () => sende('werkWurf')));
       break;
     case 'karte': {
       const k = Kern.el('div', 'rb-karte');
       k.style.setProperty('--kc', a.deck === 'E' ? '#c86a1e' : '#2a7f8f');
       k.innerHTML = `<header>${R.DECKNAME[a.deck]}</header><p>${E(R.KARTEN[a.id].text)}</p>`;
-      box.append(k, kn); kn.append(knopf('OK', 'gross', () => tu(() => R.karteOk(S))));
+      box.append(k, kn); kn.append(knopf('OK', 'gross', () => sende('karteOk')));
       break;
     }
     case 'uebernahme': {
       box.append(urkundeEl(a.feld, false), kn);
       const ab = R.abloesePreis(a.feld), zi = R.zinsen(a.feld);
-      kn.append(knopf(`Ablösen · ${euro(ab)}`, '', () => tu(() => R.uebernehmen(S, 'abloesen')), P.geld < ab), knopf(`Nur Zinsen · ${euro(zi)}`, 'leise', () => tu(() => R.uebernehmen(S, 'zinsen'))));
+      kn.append(knopf(`Ablösen · ${euro(ab)}`, '', () => sende('uebernehmen', {wahl: 'abloesen'}), P.geld < ab), knopf(`Nur Zinsen · ${euro(zi)}`, 'leise', () => sende('uebernehmen', {wahl: 'zinsen'})));
       break;
     }
     case 'gutschein': {
       const fl = R.gutscheinFelder(S);
       box.append(leise(fl.length ? fl.map(f => E(F[f].n)).join(' · ') : 'Es gibt keinen erlaubten Platz mehr.'), kn);
-      if (!fl.length) kn.append(knopf('Verzichten', 'leise', () => tu(() => R.gutscheinVerzichten(S))));
+      if (!fl.length) kn.append(knopf('Verzichten', 'leise', () => sende('gutscheinVerzichten')));
       break;
     }
     case 'auktion': auktionBauen(box); break;
@@ -547,11 +630,12 @@ function aktionBauen(box) {
       const zuletzt = S.log.slice(-2).map(E).join('<br>');
       box.append(leise(zuletzt), kn);
       const naechste = (() => { let i = S.dran; for (let k = 0; k < S.spieler.length; k++) { i = (i + 1) % S.spieler.length; if (!sp(i).raus) return i; } return i; })();
-      if (a.nochmal) kn.append(knopf('Noch einmal würfeln', 'gross', () => { if (BUSY) return; tu(() => R.weiter(S)).then(() => wuerfelnUndZiehen()); }));
-      else kn.append(knopf(`Zug beenden · ${E(sp(naechste).name)} ist dran`, 'gross', () => tu(() => { R.weiter(S); Kern.ton('tipp'); })));
+      if (a.nochmal) kn.append(knopf('Noch einmal würfeln', 'gross', () => { if (BUSY) return; sende('nochmal'); }));
+      else kn.append(knopf(`Zug beenden · ${E(sp(naechste).name)} ist dran`, 'gross', () => sende('weiter')));
       break;
     }
   }
+  if (fremd) kn.replaceChildren(leise(a.t === 'karte' ? `${E(P.name)} liest die Karte.` : `${E(P.name)} ist dran.`));   // Netzspiel: fremde Entscheidung
 }
 function urkundeEl(f, kurz) {
   const d = Kern.el('div', 'rb-urkunde'); d.innerHTML = urkundeHtml(f, kurz); return d;
@@ -594,16 +678,16 @@ function auktionBauen(box) {
     const p = sp(i), raus = a.raus.includes(i), hoch = a.hoechster === i;
     const z = Kern.el('div', 'rb-auk-z' + (hoch ? ' hoch' : '') + (raus ? ' raus' : '')); z.style.setProperty('--pc', p.farbe); z.dataset.sp = i;
     z.innerHTML = `${figurSvg(p.figur, p.farbe)}<span class="n"><b>${E(p.name)}</b><small>${euro(p.geld)}${hoch ? ' · bietet am meisten' : raus ? ' · ausgestiegen' : ''}</small></span>`;
-    if (!raus && !hoch) {
+    if (!raus && !hoch && darf(i)) {
       const stufen = a.hoechster == null ? [min, 50, 100] : [a.gebot + 1, a.gebot + 10, a.gebot + 50];
       [...new Set(stufen)].forEach((v, k) => {
         const b = Kern.el('button', 'k-btn' + (k ? ' leise' : ''), euro(v)); b.dataset.gebot = v;
         if (v > p.geld) b.disabled = true;
-        Kern.tap(b, () => tu(() => { R.bieten(S, i, v); Kern.ton('stein'); }));
+        Kern.tap(b, () => sende('bieten', {sp: i, v}));
         z.appendChild(b);
       });
       const r = Kern.el('button', 'k-btn leise', 'Raus'); r.dataset.raus = i;
-      Kern.tap(r, () => tu(() => R.aussteigen(S, i))); z.appendChild(r);
+      Kern.tap(r, () => sende('aussteigen', {sp: i})); z.appendChild(r);
     }
     liste.appendChild(z);
   });
@@ -620,23 +704,27 @@ function seiteZeichnen() {
 }
 
 /* ---------- Handlungen ---------- */
-async function tu(fn) {
-  if (BUSY || !S) return; BUSY = true;
+async function tu(fn, sitz = null) {
+  if (!S) return;
+  if (BUSY) { if (sitz !== null) Netz.melden(sitz); return; }
+  BUSY = true;
   const vorher = S.spieler.map(p => p.pos);
   try { fn(); }
-  catch (e) { BUSY = false; if (e.regel) { Kern.hinweis(e.message); Kern.ton('fehler'); return; } throw e; }
+  catch (e) { BUSY = false; if (e.regel) { meldeFehler(e.message, sitz); return; } throw e; }
+  S.animNr = (S.animNr || 0) + 1; Netz.melden();   // Mitspieler animieren gleichzeitig
   try { await animieren(vorher); } finally { BUSY = false; }
   speichern(); zeichnen();
   S.anim.filter(an => an.art === 'geld').forEach(geldBlitz);
   if (S.ende) spielVorbei();
 }
-async function wuerfelnUndZiehen(aktion = R.wuerfeln) {
-  if (BUSY) return;
+async function wuerfelnUndZiehen(aktion = R.wuerfeln, sitz = null) {
+  if (BUSY) { if (sitz !== null) Netz.melden(sitz); return; }
   const w = wurf();
+  S.wurfAnim = {nr: ((S.wurfAnim && S.wurfAnim.nr) || 0) + 1, w}; Netz.melden();   // Mitspieler rollen mit
   BUSY = true; Kern.ton('wuerfel');
   await Promise.all([Kern.wuerfelRollen(WUERFEL[0], w[0]), Kern.wuerfelRollen(WUERFEL[1], w[1])]);
   BUSY = false;
-  await tu(() => aktion(S, w));
+  await tu(() => aktion(S, w), sitz);
 }
 async function animieren(vorher) {
   ANZEIGE = vorher.slice();
@@ -659,14 +747,14 @@ async function animieren(vorher) {
 }
 function geldBlitz(an) {
   const zeige = (i, plus) => {
-    const k = MITTE.querySelector(`.rb-sk[data-sp="${i}"]`); if (!k) return;
+    const k = (ZENTRUM || MITTE).querySelector(`.rb-sk[data-sp="${i}"]`); if (!k) return;
     const d = Kern.el('span', 'rb-delta' + (plus ? '' : ' minus'), (plus ? '+' : '−') + euro(an.betrag).replace('−', ''));
     k.appendChild(d); setTimeout(() => d.remove(), 1900);
   };
   setTimeout(() => { if (an.von != null) zeige(an.von, false); if (an.an != null) zeige(an.an, true); }, 30);
 }
 function feldTippen(i) {
-  if (S && S.akt && S.akt.t === 'gutschein' && R.gutscheinFelder(S).includes(i)) { tu(() => { R.gutscheinSetzen(S, i); Kern.ton('legen'); }); return; }
+  if (S && S.akt && S.akt.t === 'gutschein' && R.gutscheinFelder(S).includes(i) && darf(S.akt.sp)) { sende('gutschein', {f: i}); return; }
   const f = F[i];
   if (f.p) { Kern.fenster(`<div style="display:grid;place-items:center">${'<div class="rb-urkunde" style="font-size:17px;width:100%;max-width:26em">' + urkundeHtml(i, false) + '</div>'}</div>`); return; }
   const text = {
@@ -687,7 +775,7 @@ async function aufgeben() {
   box.innerHTML = `<h2>${E(P.name)} gibt auf?</h2><p>${a.an != null ? `Alles, was ${E(P.name)} besitzt, geht an ${E(sp(a.an).name)}.` : 'Die Grundstücke gehen an die Bank und werden einzeln versteigert.'}</p>`;
   const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
   const fe = Kern.fenster(box);
-  k.append(knopf('Abbrechen', 'leise', () => fe.schliessen()), knopf('Aufgeben', 'gefahr', () => { fe.schliessen(); tu(() => { R.bankrott(S); Kern.ton('fehler'); }); }));
+  k.append(knopf('Abbrechen', 'leise', () => fe.schliessen()), knopf('Aufgeben', 'gefahr', () => { fe.schliessen(); sende('bankrott'); }));
 }
 
 /* ---------- Grundstücke verwalten ---------- */
@@ -733,25 +821,26 @@ function verwaltenFuellen() {
       html += `<div class="rb-zeile"><span class="nm"><small>Für ein Hotel fehlen der Bank 4 Häuser zum Tausch.</small></span><button class="k-btn leise" data-alle="${gr.g}">Alle Gebäude verkaufen +${euro(R.gruppeErloes(S, gr.g))}</button></div>`;
     html += `</div>`;
   });
-  html += `<div class="k-knoepfe"><button class="k-btn leise" data-handel="1">Handeln</button><button class="k-btn" data-zu="1">Fertig</button></div>`;
+  html += `<div class="k-knoepfe">${darf(i) ? '<button class="k-btn leise" data-handel="1">Handeln</button>' : ''}<button class="k-btn" data-zu="1">Fertig</button></div>`;
   box.innerHTML = html;
+  if (!darf(i)) box.querySelectorAll('[data-bauen],[data-verkauf],[data-hypo],[data-abl],[data-alle]').forEach(b => b.remove());   // fremde Grundstücke nur ansehen
   MAN.fenster.fenster.scrollTop = roll;
   box.querySelectorAll('[data-wahl]').forEach(b => b.onclick = () => { MAN.sp = +b.dataset.wahl; verwaltenFuellen(); });
-  const mach = fn => () => { try { fn(); Kern.ton('legen'); speichern(); zeichnen(); } catch (e) { if (e.regel) { Kern.hinweis(e.message); Kern.ton('fehler'); } else throw e; } };
+  const mach = (name, d) => () => sende(name, Object.assign({sp: i}, d));
   box.querySelectorAll('[data-bauen]').forEach(b => b.onclick = () => bauen(i, +b.dataset.bauen));
-  box.querySelectorAll('[data-verkauf]').forEach(b => b.onclick = mach(() => R.hausVerkaufen(S, i, +b.dataset.verkauf)));
-  box.querySelectorAll('[data-hypo]').forEach(b => b.onclick = mach(() => R.hypothek(S, i, +b.dataset.hypo)));
-  box.querySelectorAll('[data-abl]').forEach(b => b.onclick = mach(() => R.abloesen(S, i, +b.dataset.abl)));
-  box.querySelectorAll('[data-alle]').forEach(b => b.onclick = mach(() => R.gruppeVerkaufen(S, i, b.dataset.alle)));
+  box.querySelectorAll('[data-verkauf]').forEach(b => b.onclick = mach('verkaufen', {f: +b.dataset.verkauf}));
+  box.querySelectorAll('[data-hypo]').forEach(b => b.onclick = mach('hypothek', {f: +b.dataset.hypo}));
+  box.querySelectorAll('[data-abl]').forEach(b => b.onclick = mach('abloesen', {f: +b.dataset.abl}));
+  box.querySelectorAll('[data-alle]').forEach(b => b.onclick = mach('gruppe', {g: b.dataset.alle}));
   box.querySelector('[data-zu]').onclick = () => MAN.fenster.schliessen();
-  box.querySelector('[data-handel]').onclick = () => { MAN.fenster.schliessen(); handelFenster(i); };
+  const hb = box.querySelector('[data-handel]'); if (hb) hb.onclick = () => { MAN.fenster.schliessen(); handelFenster(i); };
 }
 // Bauen mit Mangel-Prüfung (A8)
 function bauen(i, f) {
   const hotel = S.besitz[f].h === 4, art = hotel ? 'hotel' : 'haus';
   const vorrat = hotel ? S.bank.hotels : S.bank.haeuser;
   const andere = vorrat === 1 ? R.mangelInteressenten(S, i, art) : [];
-  const kaufen = () => { try { R.hausKaufen(S, i, f); Kern.ton('legen'); speichern(); zeichnen(); } catch (e) { if (e.regel) { Kern.hinweis(e.message); Kern.ton('fehler'); } else throw e; } };
+  const kaufen = () => sende('bauen', {sp: i, f});
   if (!andere.length) { kaufen(); return; }
   const wahl = new Set();
   const box = Kern.el('div');
@@ -759,7 +848,7 @@ function bauen(i, f) {
   const fe = Kern.fenster(box);
   box.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const k = +b.dataset.k; wahl.has(k) ? wahl.delete(k) : wahl.add(k); b.setAttribute('aria-pressed', wahl.has(k)); box.querySelector('[data-auk]').disabled = !wahl.size; });
   box.querySelector('[data-niemand]').onclick = () => { fe.schliessen(); kaufen(); };
-  box.querySelector('[data-auk]').onclick = () => { fe.schliessen(); if (MAN.fenster) MAN.fenster.schliessen(); tu(() => R.mangelAuktion(S, art, [i, ...wahl])); };
+  box.querySelector('[data-auk]').onclick = () => { fe.schliessen(); if (MAN.fenster) MAN.fenster.schliessen(); sende('mangel', {art, teilnehmer: [i, ...wahl]}); };
 }
 
 /* ---------- Handeln ---------- */
@@ -767,6 +856,7 @@ function handelFenster(a) {
   if (!S || S.ende) return;
   if (!R.verwaltenErlaubt(S)) { Kern.hinweis('Erst die Versteigerung bzw. Karte abschließen.'); return; }
   const akt = R.aktive(S);
+  if (NETZ()) { a = ICH(); if (S.angebot && S.angebot.a === a) { Kern.hinweis('Dein Angebot ist noch offen.'); return; } }
   const H = {a, b: akt.find(k => k !== a), gA: {felder: new Set(), karten: new Set(), geld: 0}, gB: {felder: new Set(), karten: new Set(), geld: 0}, okA: false, okB: false};
   const fe = Kern.fenster(Kern.el('div'), {breit: true, beimSchliessen: () => zeichnen()});
   const neuFuellen = () => {
@@ -780,11 +870,14 @@ function handelFenster(a) {
         <div class="rb-geld"><button data-g="${key}:-50">−50</button><button data-g="${key}:-10">−10</button><input data-gi="${key}" inputmode="numeric" value="${g.geld}" aria-label="Betrag"><button data-g="${key}:10">+10</button><button data-g="${key}:50">+50</button><span class="rb-leer" style="font-size:14px">von ${euro(P.geld)}</span></div></div>`;
     };
     const w = R.warumNichtHandeln(S, plan());
-    box.innerHTML = `<h2>Handeln</h2><div class="rb-fwahl">${akt.map(k => `<button data-pa="${k}" aria-pressed="${k === H.a}" style="--pc:${sp(k).farbe}">${figurSvg(sp(k).figur, sp(k).farbe)}${E(sp(k).name)}</button>`).join('')}</div>
+    box.innerHTML = `<h2>Handeln</h2>${NETZ() ? '' : `<div class="rb-fwahl">${akt.map(k => `<button data-pa="${k}" aria-pressed="${k === H.a}" style="--pc:${sp(k).farbe}">${figurSvg(sp(k).figur, sp(k).farbe)}${E(sp(k).name)}</button>`).join('')}</div>`}
       <div class="rb-fwahl" style="margin-top:-6px"><span style="align-self:center;color:var(--ink2)">mit</span>${akt.filter(k => k !== H.a).map(k => `<button data-pb="${k}" aria-pressed="${k === H.b}" style="--pc:${sp(k).farbe}">${figurSvg(sp(k).figur, sp(k).farbe)}${E(sp(k).name)}</button>`).join('')}</div>
       <div class="rb-handel">${seite(H.a, H.gA, 'A')}${seite(H.b, H.gB, 'B')}</div>
       <p class="rb-leer" style="margin-top:10px">${w && w !== 'Es wird nichts getauscht.' ? E(w) : 'Belastete Grundstücke: Wer sie bekommt, löst sofort ab oder zahlt 10 % Zinsen.'}</p>
-      <div class="rb-ok"><button class="k-btn leise" data-ok="A" aria-pressed="${H.okA}" ${w ? 'disabled' : ''}>${E(sp(H.a).name)} ist einverstanden</button><button class="k-btn leise" data-ok="B" aria-pressed="${H.okB}" ${w ? 'disabled' : ''}>${E(sp(H.b).name)} ist einverstanden</button></div>`;
+      ${NETZ() ? `<div class="rb-ok"><button class="k-btn" data-angebot="1" ${w ? 'disabled' : ''}>Angebot an ${E(sp(H.b).name)} schicken</button></div>`
+      : `<div class="rb-ok"><button class="k-btn leise" data-ok="A" aria-pressed="${H.okA}" ${w ? 'disabled' : ''}>${E(sp(H.a).name)} ist einverstanden</button><button class="k-btn leise" data-ok="B" aria-pressed="${H.okB}" ${w ? 'disabled' : ''}>${E(sp(H.b).name)} ist einverstanden</button></div>`}`;
+    const ang = box.querySelector('[data-angebot]');
+    if (ang) ang.onclick = () => { fe.schliessen(); sende('angebot', plan()); Kern.hinweis(`Angebot an ${sp(H.b).name} geschickt.`); };
     const geaendert = () => { H.okA = H.okB = false; neuFuellen(); };
     box.querySelectorAll('[data-pa]').forEach(b => b.onclick = () => { H.a = +b.dataset.pa; if (H.b === H.a) H.b = akt.find(k => k !== H.a); leeren(); geaendert(); });
     box.querySelectorAll('[data-pb]').forEach(b => b.onclick = () => { H.b = +b.dataset.pb; H.gB = {felder: new Set(), karten: new Set(), geld: 0}; geaendert(); });
@@ -794,7 +887,7 @@ function handelFenster(a) {
     box.querySelectorAll('[data-gi]').forEach(inp => inp.onchange = () => { const k = inp.dataset.gi, g = k === 'A' ? H.gA : H.gB, max = sp(k === 'A' ? H.a : H.b).geld; g.geld = Math.max(0, Math.min(max, parseInt(inp.value, 10) || 0)); geaendert(); });
     box.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => {
       if (b.dataset.ok === 'A') H.okA = !H.okA; else H.okB = !H.okB;
-      if (H.okA && H.okB) { fe.schliessen(); tu(() => { R.handeln(S, plan()); Kern.ton('punkt'); Kern.hinweis('Handel abgeschlossen'); }); return; }
+      if (H.okA && H.okB) { fe.schliessen(); sende('handeln', plan()); return; }
       neuFuellen();
     });
   };
@@ -813,11 +906,13 @@ function endeFenster() {
   const zeilen = e.wertung.map((w, k) => `<span>${k + 1}.</span>${figurSvg(sp(w.sp).figur, sp(w.sp).farbe)}<b>${E(sp(w.sp).name)}</b>${w.raus ? `<span class="rb-leer" style="grid-column:span 4">pleite in Zug ${w.rausZug}</span>` : `<span class="k-zahl">${euro(w.geld)}</span><span class="k-zahl">+ ${euro(w.grund)}</span><span class="k-zahl">+ ${euro(w.gebaeude)}</span><b class="k-zahl">= ${euro(w.summe)}</b>`}`).join('');
   const box = Kern.el('div');
   box.innerHTML = `<h2>${E(namen)} ${e.sieger.length > 1 ? 'gewinnen' : 'gewinnt'}!</h2><p>${e.art === 'zeit' ? 'Die Zeit ist um. Gewertet wird das Vermögen.' : 'Alle anderen sind pleite.'}</p>
-    <div class="rb-wert"><span></span><span></span><span></span><span class="k">Bargeld</span><span class="k">Grund</span><span class="k">Gebäude</span><span class="k">Vermögen</span>${zeilen}</div>
+    ${HANDY.matches ? `<div class="rb-wert2">${e.wertung.map((w, k) => `<div><span>${k + 1}.</span>${figurSvg(sp(w.sp).figur, sp(w.sp).farbe)}<b>${E(sp(w.sp).name)}</b>${w.raus ? `<span class="rb-leer">pleite in Zug ${w.rausZug}</span>` : `<b class="k-zahl">${euro(w.summe)}</b><small class="k-zahl">Bargeld ${euro(w.geld)} + Grund ${euro(w.grund)} + Gebäude ${euro(w.gebaeude)}</small>`}</div>`).join('')}</div>`
+    : `<div class="rb-wert"><span></span><span></span><span></span><span class="k">Bargeld</span><span class="k">Grund</span><span class="k">Gebäude</span><span class="k">Vermögen</span>${zeilen}</div>`}
     <p class="rb-leer">Grund: Kaufpreis, belastete Grundstücke zum Hypothekenwert. Gebäude: Kaufpreis, ein Hotel zählt fünf Hauspreise.</p>`;
   const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
   const fe = Kern.fenster(box, {breit: true});
-  k.append(knopf('Nochmal', '', () => { fe.schliessen(); nochmal(); }), knopf('Neues Spiel', 'leise', () => { fe.schliessen(); startseite(); }), knopf('Brett ansehen', 'leise', () => fe.schliessen()));
+  if (NETZ() && !Netz.istHost) { box.insertBefore(Kern.el('p', 'rb-leer', `${E(Netz.sitze[0].name)} entscheidet, wie es weitergeht.`), k); k.append(knopf('Brett ansehen', 'leise', () => fe.schliessen())); return; }
+  k.append(knopf('Nochmal', '', () => { fe.schliessen(); sende('neustart'); }), knopf('Neues Spiel', 'leise', () => { fe.schliessen(); if (Netz.aktiv) Netz.verlassen(); startseite(); }), knopf('Brett ansehen', 'leise', () => fe.schliessen()));
 }
 function nochmal() {
   const alt = S; neuesSpiel(alt.spieler.map(p => p.name), alt.spieler.map(p => p.farbe), {zeit: alt.zeit.limit / 60000});
@@ -834,6 +929,157 @@ setInterval(() => {
 
 Kern.init({id: 'rheinbaron', name: 'Rheinbaron', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); S = null; startseite(); },
   menue: [{text: 'Verlauf', aktion: () => { if (S) Kern.fenster(`<h2>Verlauf</h2>${S.log.slice().reverse().map(t => `<p>${E(t)}</p>`).join('')}`); }}]});
+/* ---------- Netzspiel: jeder auf seinem Gerät ----------
+   Der Gastgeber ist die Bank: nur er würfelt, mischt und rechnet. Jede Entscheidung (würfeln, kaufen oder versteigern,
+   zahlen, Karte bestätigen, Hexenturm, Hypothek übernehmen, Gebäude setzen) erscheint nur auf dem Gerät der Person,
+   die gerade handelt; bei Versteigerungen bietet jede Person auf ihrem eigenen Gerät. Bauen, verkaufen und beleihen
+   geht jederzeit für die eigenen Grundstücke. Handel: Wer anbietet, stellt das Angebot zusammen und schickt es; nur
+   die Person, der es gilt, nimmt an oder lehnt ab. Geheim sind nur die Kartenstapel (Reihenfolge). */
+const HINW = {};   // Hinweis nur für ein Gerät (abgewiesener Zug): {nr, text}
+let HINW_NR = 0, HINW_GESEHEN = 0, STAND_Q = Promise.resolve();
+function meldeFehler(text, sitz) {
+  if (sitz != null && NETZ() && sitz !== Netz.meinSitz) { HINW[sitz] = {nr: ++HINW_NR, text}; Netz.melden(sitz); return; }
+  Kern.hinweis(text); Kern.ton('fehler');
+}
+function angebotText(h) {
+  const teil = (wer, g) => {
+    const x = [...(g.felder || []).map(f => F[f].n), ...(g.karten || []).map(() => 'Turmschlüssel')];
+    if (g.geld) x.push(euro(g.geld));
+    return `<b>${E(sp(wer).name)}</b> gibt ${x.length ? E(x.join(', ')) : 'nichts'}`;
+  };
+  return `${teil(h.a, h.gibA || {})} · ${teil(h.b, h.gibB || {})}`;
+}
+function angebotHtml() {
+  const h = S && S.angebot; if (!h || !NETZ()) return '';
+  if (h.b === ICH()) return `<div class="rb-angebot" id="rb-angebot"><p><b>${E(sp(h.a).name)}</b> bietet dir einen Handel an:</p><p>${angebotText(h)}</p>
+    <div class="rb-knoepfe"><button class="k-btn gut klein" id="rb-annehmen">Annehmen</button><button class="k-btn leise klein" id="rb-ablehnen">Ablehnen</button></div></div>`;
+  if (h.a === ICH()) return `<div class="rb-angebot" id="rb-angebot"><p>Dein Angebot an <b>${E(sp(h.b).name)}</b> wartet auf Antwort.</p><p>${angebotText(h)}</p>
+    <div class="rb-knoepfe"><button class="k-btn leise klein" id="rb-zurueckziehen">Zurückziehen</button></div></div>`;
+  return '';
+}
+function angebotVerbinden() {
+  const q = id => MITTE.querySelector('#' + id);
+  if (q('rb-annehmen')) q('rb-annehmen').onclick = () => sende('antwort', {ja: true});
+  if (q('rb-ablehnen')) q('rb-ablehnen').onclick = () => sende('antwort', {ja: false});
+  if (q('rb-zurueckziehen')) q('rb-zurueckziehen').onclick = () => sende('zurueckziehen');
+}
+// Züge, die an S.akt hängen: Art des erwarteten Schritts und Ausführung
+const NETZ_AKT = {
+  wurf: ['wurf', sitz => wuerfelnUndZiehen(R.wuerfeln, sitz)],
+  turmWurf: ['turm', sitz => wuerfelnUndZiehen(R.turmWuerfeln, sitz)],
+  turmZahlen: ['turm', sitz => tu(() => R.turmZahlen(S), sitz)],
+  turmKarte: ['turm', sitz => tu(() => R.turmKarte(S), sitz)],
+  kaufen: ['kauf', sitz => tu(() => { R.kaufen(S); Kern.ton('punkt'); }, sitz)],
+  versteigern: ['kauf', sitz => tu(() => R.versteigern(S), sitz)],
+  zahlen: ['zahlen', sitz => tu(() => { R.zahlen(S); Kern.ton('legen'); }, sitz)],
+  bankrott: ['zahlen', sitz => tu(() => { R.bankrott(S); Kern.ton('fehler'); }, sitz)],
+  werkWurf: ['werk', sitz => wuerfelnUndZiehen(R.werkWuerfeln, sitz)],
+  karteOk: ['karte', sitz => tu(() => R.karteOk(S), sitz)],
+  uebernehmen: ['uebernahme', (sitz, d) => tu(() => R.uebernehmen(S, d.wahl === 'abloesen' ? 'abloesen' : 'zinsen'), sitz)],
+  gutschein: ['gutschein', (sitz, d) => tu(() => { R.gutscheinSetzen(S, +d.f); Kern.ton('legen'); }, sitz)],
+  gutscheinVerzichten: ['gutschein', sitz => tu(() => R.gutscheinVerzichten(S), sitz)],
+  weiter: ['fertig', sitz => tu(() => { R.weiter(S); Kern.ton('tipp'); }, sitz)],
+  nochmal: ['fertig', sitz => tu(() => R.weiter(S), sitz).then(() => { if (S.akt && S.akt.t === 'wurf') return wuerfelnUndZiehen(R.wuerfeln, sitz); })],
+};
+// Verwalten der eigenen Grundstücke (jederzeit, auch außerhalb des eigenen Zuges)
+const NETZ_VERW = {
+  bauen: d => R.hausKaufen(S, d.sp, +d.f), verkaufen: d => R.hausVerkaufen(S, d.sp, +d.f), hypothek: d => R.hypothek(S, d.sp, +d.f),
+  abloesen: d => R.abloesen(S, d.sp, +d.f), gruppe: d => R.gruppeVerkaufen(S, d.sp, String(d.g)),
+};
+function netzAktion(name, d, sitz) {
+  if (!S) return;
+  const netz = sitz !== null;
+  const nein = () => { if (netz) Netz.melden(sitz); };
+  if (NETZ_AKT[name]) {
+    const [art, run] = NETZ_AKT[name];
+    if (S.ende || !S.akt || S.akt.t !== art || (netz && sitz !== handelnde())) return nein();
+    return run(sitz, d);
+  }
+  if (NETZ_VERW[name]) {
+    if (netz && sitz !== +d.sp) return nein();
+    try { NETZ_VERW[name](Object.assign({}, d, {sp: +d.sp})); Kern.ton('legen'); speichern(); zeichnen(); Netz.melden(); }
+    catch (e) { if (e.regel) meldeFehler(e.message, sitz); else throw e; }
+    return;
+  }
+  switch (name) {
+    case 'bieten': if (netz && sitz !== +d.sp) return nein(); return tu(() => { R.bieten(S, +d.sp, +d.v); Kern.ton('stein'); }, sitz);
+    case 'aussteigen': if (netz && sitz !== +d.sp) return nein(); return tu(() => R.aussteigen(S, +d.sp), sitz);
+    case 'mangel': {
+      const t = (d.teilnehmer || []).map(Number);
+      if (!['haus', 'hotel'].includes(d.art) || !t.length || (netz && sitz !== t[0])) return nein();
+      return tu(() => R.mangelAuktion(S, d.art, t), sitz);
+    }
+    case 'handeln':   // am selben Gerät: beide haben am Gerät zugestimmt
+      if (netz) return nein();
+      return tu(() => { R.handeln(S, d); Kern.ton('punkt'); Kern.hinweis('Handel abgeschlossen'); });
+    case 'angebot': {
+      if (!netz || sitz !== +d.a) return nein();
+      if (S.angebot && S.angebot.a !== sitz) { meldeFehler('Gerade läuft schon ein anderes Handelsangebot.', sitz); return; }
+      const h = {a: +d.a, b: +d.b, gibA: d.gibA || {}, gibB: d.gibB || {}};
+      const w = R.warumNichtHandeln(S, h); if (w) { meldeFehler(w, sitz); return; }
+      S.angebot = h; zeichnen(); Netz.melden();
+      if (h.b === Netz.meinSitz) { Kern.ton('tipp'); Kern.hinweis(`${sp(h.a).name} bietet dir einen Handel an.`); }
+      return;
+    }
+    case 'zurueckziehen':
+      if (!S.angebot || (netz && sitz !== S.angebot.a)) return nein();
+      S.angebot = null; zeichnen(); Netz.melden(); return;
+    case 'antwort': {
+      const h = S.angebot;
+      if (!h || (netz && sitz !== h.b)) return nein();
+      if (!d.ja) { S.angebot = null; zeichnen(); Netz.melden(); meldeFehler(`${sp(h.b).name} lehnt dein Angebot ab.`, h.a); return; }
+      const w = R.warumNichtHandeln(S, h); if (w) { meldeFehler(w, sitz); return; }
+      S.angebot = null;
+      return tu(() => { R.handeln(S, h); Kern.ton('punkt'); }, sitz).then(() => meldeFehler(`Handel mit ${sp(h.b).name} abgeschlossen.`, h.a));
+    }
+    case 'neustart':
+      if (!S.ende || (netz && sitz !== 0)) return nein();
+      nochmal(); Netz.melden(); return;
+  }
+}
+async function standAnwenden(d) {
+  if (!d || d.warte) return;
+  WARTE = false;
+  if (d.hinweis && d.hinweis.nr > HINW_GESEHEN) { HINW_GESEHEN = d.hinweis.nr; Kern.hinweis(d.hinweis.text, 2800); }
+  const alt = S;
+  if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
+  if (!alt || alt.netzId !== d.netzId || !BRETT) {   // neues Spiel
+    S = d; ANZEIGE = []; aufbauen(); zeichnen(); if (S.zug === 1 && !S.wurf) startwurfZeigen(); return;
+  }
+  if (d.angebot && d.angebot.b === Netz.meinSitz && !(alt.angebot && alt.angebot.b === Netz.meinSitz)) { Kern.ton('tipp'); Kern.hinweis(`${d.spieler[d.angebot.a].name} bietet dir einen Handel an.`); }
+  if (d.wurfAnim && d.animNr === alt.animNr && (!alt.wurfAnim || alt.wurfAnim.nr !== d.wurfAnim.nr)) {   // Würfel rollen
+    S = d; zeichnen(); Kern.ton('wuerfel');
+    BUSY = true;
+    try { await Promise.all([Kern.wuerfelRollen(WUERFEL[0], d.wurfAnim.w[0]), Kern.wuerfelRollen(WUERFEL[1], d.wurfAnim.w[1])]); } finally { BUSY = false; }
+    return;
+  }
+  if (d.animNr !== alt.animNr) {   // Figuren ziehen wie beim Gastgeber
+    const vorher = alt.spieler.map(p => p.pos);
+    S = d; ANZEIGE = vorher.slice(); zeichnen();
+    BUSY = true;
+    try { await animieren(vorher); } finally { BUSY = false; }
+    zeichnen();
+    S.anim.filter(an => an.art === 'geld').forEach(geldBlitz);
+    if (S.ende && !alt.ende) spielVorbei();
+    return;
+  }
+  S = d; zeichnen();
+  if (S.ende && !alt.ende) spielVorbei();
+}
+Netz.einrichten({
+  spiel: 'rheinbaron', min: 2, max: 6,
+  starten(spieler, optionen) { neuesSpiel(spieler.map(p => p.name), spieler.map(p => p.farbe), {zeit: Number(optionen.zeit) || 0}); },
+  aktion: netzAktion,
+  zustand(sitz) {
+    if (!S) return {warte: true};
+    const k = JSON.parse(JSON.stringify(S));
+    k.stapelAnz = {E: S.stapel.E.length, G: S.stapel.G.length}; k.stapel = {E: [], G: []};   // Reihenfolge der Karten bleibt geheim
+    if (HINW[sitz]) k.hinweis = HINW[sitz];
+    return k;
+  },
+  stand(d) { STAND_Q = STAND_Q.then(() => standAnwenden(d)).catch(e => console.error(e)); },
+  beendet() { S = null; startseite(); },
+});
 startseite();
 </script>
 </body>

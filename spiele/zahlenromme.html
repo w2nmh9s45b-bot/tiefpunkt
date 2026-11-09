@@ -18,6 +18,10 @@
 .zr-person{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 7px;border-radius:99px;background:var(--panel);border:1.5px solid var(--line);font-size:15px;white-space:nowrap}
 .zr-person.dran{border-color:var(--pc);box-shadow:0 0 0 2px color-mix(in srgb,var(--pc) 50%,transparent)}
 .zr-person small{color:var(--ink2);font-size:13px}
+.zr-person.ich{background:color-mix(in srgb,var(--pc) 16%,var(--panel))}
+.zr-du{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:99px;background:var(--pc);color:#0c2430;vertical-align:2px}
+body.zr-netz .zr-kopf{padding-right:104px}
+@media (max-width:700px){body.zr-netz .zr-kopf{padding-right:0}body.zr-netz .zr-rechts{padding-right:96px}}
 .zr-pool{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:15px;white-space:nowrap}
 .zr-pool b{font-family:var(--f-disp)}
 .zr-uhr{font:800 20px var(--f-disp);padding:4px 14px;border-radius:99px;background:var(--panel-fest);border:1.5px solid var(--line);min-width:72px;text-align:center}
@@ -78,10 +82,47 @@
 .zr-erg .rest{display:flex;flex-wrap:wrap;gap:3px}
 .zr-erg .rest .zr-stein{--tw:24px}
 .zr-erg .plus{color:var(--gut);font-weight:700}.zr-erg .minus{color:var(--fehler)}
+.zr-leute,.zr-rechts{display:contents}
+
+/* ---------- Telefon hoch: Kopf zweizeilig (Pool/Uhr neben den Kopfknöpfen, Personen als 2er-Raster), Tisch rollt,
+   wenn er voll ist, Knöpfe als Raster. Steingrößen rechnen einpassen() und unten(). ---------- */
+@media (max-width:700px){
+  #zr{grid-template-columns:minmax(0,1fr);gap:8px;padding-left:max(8px,var(--sicher-l));padding-right:max(8px,var(--sicher-r))}
+  .zr-kopf{display:flex;flex-direction:column;align-items:stretch;gap:6px;padding-left:0;min-height:0}
+  .zr-rechts{order:-1;display:flex;justify-content:flex-end;align-items:center;gap:8px;min-height:46px;padding-left:112px}
+  .zr-leute{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .zr-person{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:7px;row-gap:1px;align-items:center;align-content:center;border-radius:14px;padding:4px 9px 4px 6px;white-space:normal;font-size:14px;min-width:0}
+  .zr-person .k-dot{grid-row:span 2}
+  .zr-person b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+  .zr-person small{font-size:13px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .zr-person .k-chip{grid-column:2;justify-self:start;font-size:12px;margin-top:2px}
+  .zr-pool{padding:5px 12px;font-size:15px}
+  .zr-uhr{font-size:19px;min-width:64px;padding:4px 10px}
+  .zr-tisch{overflow-y:auto;overflow-x:hidden;touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px 8px;border-radius:18px}
+  .zr-tisch.mehr-unten{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 34px),rgba(0,0,0,.25));mask-image:linear-gradient(to bottom,#000 calc(100% - 34px),rgba(0,0,0,.25))}
+  .zr-neu{font-size:15px;padding:0 12px}
+  .zr-unten{padding:9px 10px 10px;gap:8px;border-radius:18px}
+  .zr-status{flex:1 1 100%;font-size:15px}
+  .zr-zeile{gap:8px}
+  .zr-zeile .zr-knoepfe{flex:1 1 100%;flex-wrap:nowrap}
+  .zr-zeile .zr-knoepfe .k-btn{flex:1 1 0}
+  .zr-bank{gap:5px 4px;padding:10px 8px 8px;border-radius:14px}
+  .zr-unten > .zr-knoepfe{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
+  .zr-unten > .zr-knoepfe .k-btn{min-height:48px;padding:0 8px;font-size:15px;white-space:normal;line-height:1.12;text-align:center}
+  .zr-erg{margin:0 -6px}
+  .zr-erg table{font-size:14px;display:block;overflow-x:auto;clear:both}
+  .zr-erg tbody{display:table;width:100%}
+  .zr-erg td,.zr-erg th{padding:6px 3px}
+  .zr-erg th{font-size:11.5px;letter-spacing:.02em;white-space:normal;-webkit-hyphens:auto;hyphens:auto}
+  .zr-erg td:first-child{overflow-wrap:anywhere}
+  .zr-erg .rest{min-width:96px}
+  .zr-erg .rest .zr-stein{--tw:21px}
+}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
 <script src="zahlenromme.logik.js"></script>
 <script>
 "use strict";
@@ -102,8 +143,10 @@ const $ = (s, r = document) => r.querySelector(s);
 const Z = Zahlenromme;
 let S = null, BUEHNE = null, SETUP = null, LAUF = 0, OFFEN = false;
 let WAHL = new Set();
-let UHR = null, UHR_ENDE = 0;
+let UHR = null, UHR_ENDE = 0, UHR_ANZEIGE = false, WFE = null;
 const rnd = n => Kern.zufall(n);
+const HANDY_MQ = matchMedia('(max-width:700px)');
+const handy = () => HANDY_MQ.matches;
 
 Kern.init({id: 'zahlenromme', name: 'Zahlenrommé', akzent: '#e9ad45', regeln: REGELN_HTML, onNeu: () => { Kern.speicher.loeschen(); startseite(); },
   menue: [{text: 'Punktestand', aktion: () => punktestand()}]});
@@ -118,6 +161,7 @@ function steinEl(id) {
 /* ---------- Startseite ---------- */
 function startseite() {
   if (BUEHNE) { BUEHNE.remove(); BUEHNE = null; }
+  if (WFE) { WFE.schliessen(); WFE = null; }
   uhrStopp(); S = null; LAUF++; OFFEN = false; document.querySelectorAll('.k-sichtschutz').forEach(x => x.remove());
   const gesp = Kern.speicher.laden();
   const t = (x, z, f, j) => `<g transform="translate(${x} 18)"><rect width="30" height="40" rx="5" fill="${j ? '#22343c' : '#fbf8f1'}"/><rect y="34" width="30" height="6" rx="2" fill="${f}"/><text x="15" y="25" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="${j ? 20 : 18}" fill="${f}">${z}</text></g>`;
@@ -143,14 +187,15 @@ function speichern() { if (S && S.phase !== 'spielende') Kern.speicher.speichern
 /* ---------- Spielfläche ---------- */
 function spielStarten() {
   if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
-  if (!BUEHNE) {
-    BUEHNE = Kern.el('div', 'k-buehne'); BUEHNE.id = 'zr';
-    BUEHNE.innerHTML = `<div class="zr-kopf" id="zr-kopf"></div><div class="zr-tisch" id="zr-tisch"></div><div class="zr-unten" id="zr-unten"></div>`;
-    document.body.appendChild(BUEHNE);
-  }
+  if (!BUEHNE) spielStarten.bauen();
   S.neu = S.neu || {};
   ablauf();
 }
+spielStarten.bauen = () => {
+  BUEHNE = Kern.el('div', 'k-buehne'); BUEHNE.id = 'zr';
+  BUEHNE.innerHTML = `<div class="zr-kopf" id="zr-kopf"></div><div class="zr-tisch" id="zr-tisch"></div><div class="zr-unten" id="zr-unten"></div>`;
+  document.body.appendChild(BUEHNE);
+};
 async function ablauf() {
   const id = ++LAUF; OFFEN = false; WAHL.clear(); uhrStopp(); zeichnen();
   if (S.phase === 'rundenende' || S.phase === 'spielende') { wertung(); return; }
@@ -160,30 +205,34 @@ async function ablauf() {
   if (S.opt.zeit) text += ` Du hast ${S.opt.zeit === 60 ? 'eine Minute' : S.opt.zeit / 60 + ' Minuten'}.`;
   await Kern.sichtschutz({name: sp.name, farbe: sp.farbe, text});
   if (id !== LAUF) return;
-  OFFEN = true; zeichnen();
-  if (S.opt.zeit) uhrStart(S.opt.zeit);
+  OFFEN = !Netz.laeuft || Netz.binDran(S.amZug);   // im Netzspiel legt nur, wer dran ist; der Gastgeber führt trotzdem die Uhr
+  zeichnen();
+  if (S.opt.zeit && (OFFEN || Netz.laeuft)) { uhrStart(S.opt.zeit); if (!OFFEN) zeichnen(); }
+  Netz.melden();
 }
 
 /* ---------- Uhr (Option) ---------- */
-function uhrStart(sek) {
-  uhrStopp(); UHR_ENDE = performance.now() + sek * 1000;
+function uhrStart(sek, nurAnzeige) {
+  uhrStopp(); UHR_ENDE = performance.now() + sek * 1000; UHR_ANZEIGE = !!nurAnzeige;
   let letzte = -1;
   UHR = setInterval(() => {
     const rest = Math.max(0, Math.ceil((UHR_ENDE - performance.now()) / 1000));
     const u = $('#zr-uhr'); if (u) { u.textContent = `${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, '0')}`; u.classList.toggle('knapp', rest <= 10); }
-    if (rest !== letzte && rest <= 10 && rest > 0) Kern.ton('zeit');
+    if (rest !== letzte && rest <= 10 && rest > 0 && (OFFEN || !Netz.laeuft)) Kern.ton('zeit');
     letzte = rest;
-    if (rest <= 0) { uhrStopp(); zeitUm(); }
+    if (rest <= 0) { uhrStopp(); if (!nurAnzeige) zeitUm(); }   // Mitspieler zählen nur herunter, ablaufen lässt der Gastgeber
   }, 250);
 }
 function uhrStopp() { if (UHR) clearInterval(UHR); UHR = null; }
 async function zeitUm() {
-  if (!OFFEN) return;
+  if (!OFFEN && !(Netz.laeuft && Netz.istHost)) return;
   const name = S.spieler[S.amZug].name;
   OFFEN = false; drag = null; document.querySelectorAll('.zr-geist').forEach(g => g.remove());
   const r = Z.strafe(S, 'Zeit abgelaufen');
   Kern.ton('warn'); merkeNeu(r.gezogen); speichern(); zeichnen();
-  await Kern.frage({titel: 'Zeit abgelaufen', text: `${Kern.esc(name)} bekommt den Tisch wie zu Zugbeginn zurück und nimmt ${r.gezogen.length} Strafsteine.`, knoepfe: [{text: 'Weiter', wert: 1}]});
+  const text = `${Kern.esc(name)} bekommt den Tisch wie zu Zugbeginn zurück und nimmt ${r.gezogen.length} Strafsteine.`;
+  if (Netz.laeuft) { zugWeiter({ton: 'warn', hinweis: `Zeit abgelaufen: ${name} nimmt ${r.gezogen.length} Strafsteine.`}); Kern.hinweis(`Zeit abgelaufen: ${name} nimmt ${r.gezogen.length} Strafsteine.`, 3000); }
+  else await Kern.frage({titel: 'Zeit abgelaufen', text, knoepfe: [{text: 'Weiter', wert: 1}]});
   ablauf();
 }
 function merkeNeu(ids) { const i = S.letzte ? S.letzte.spieler : S.amZug; S.neu[i] = (ids || []).slice(); }
@@ -191,25 +240,31 @@ function merkeNeu(ids) { const i = S.letzte ? S.letzte.spieler : S.amZug; S.neu[
 /* ---------- Zeichnen ---------- */
 function zeichnen() {
   if (!S || !BUEHNE) return;
+  document.body.classList.toggle('zr-netz', !!Netz.laeuft);
   const sp = S.spieler[S.amZug];
   BUEHNE.style.setProperty('--pc', sp ? sp.farbe : 'var(--akzent)');
-  kopf(); unten(); tisch();
+  const roll = $('#zr-tisch').scrollTop;   // vor dem Neuaufbau merken: Kopf/Brett leeren sich kurz, der Tisch springt sonst nach oben
+  kopf(); unten(); tisch(roll);
 }
 addEventListener('resize', () => zeichnen());
 
 function kopf() {
   const k = $('#zr-kopf'); k.innerHTML = '';
   const imSpiel = S.phase === 'zug';
+  // Hüllen ohne eigene Box (display:contents) – nur auf dem Telefon ordnen sie den Kopf in zwei Zeilen
+  const leute = Kern.el('div', 'zr-leute'), rechts = Kern.el('div', 'zr-rechts');
+  k.append(leute, rechts);
   S.spieler.forEach((s, i) => {
     const e = Kern.el('div', 'zr-person' + (i === S.amZug && imSpiel ? ' dran' : '')); e.style.setProperty('--pc', s.farbe);
-    e.innerHTML = `<span class="k-dot">${Kern.esc(s.name.charAt(0).toUpperCase())}</span><b>${Kern.esc(s.name)}</b><small class="k-zahl">${s.bank.length} Steine · ${s.summe > 0 ? '+' : s.summe < 0 ? '−' : ''}${Math.abs(s.summe)}</small>${s.raus ? '' : '<span class="k-chip leise">ohne Auslage</span>'}`;
-    k.appendChild(e);
+    if (Netz.laeuft && i === Netz.meinSitz) e.classList.add('ich');
+    e.innerHTML = `<span class="k-dot">${Kern.esc(s.name.charAt(0).toUpperCase())}</span><b>${Kern.esc(s.name)}${Netz.laeuft && i === Netz.meinSitz ? ' <span class="zr-du">du</span>' : ''}</b><small class="k-zahl">${s.bank.length} Steine · ${s.summe > 0 ? '+' : s.summe < 0 ? '−' : ''}${Math.abs(s.summe)}</small>${s.raus ? '' : '<span class="k-chip leise">ohne Auslage</span>'}`;
+    leute.appendChild(e);
   });
-  k.appendChild(Kern.el('div', 'zr-pool', `Pool <b class="k-zahl">${S.pool.length}</b>${S.schluss ? ' · letzte Runde' : ''}`));
-  if (S.opt.zeit && OFFEN) { const u = Kern.el('div', 'zr-uhr k-zahl'); u.id = 'zr-uhr'; u.textContent = '–'; k.appendChild(u); }
+  rechts.appendChild(Kern.el('div', 'zr-pool', `Pool <b class="k-zahl">${S.pool.length}</b>${S.schluss ? ' · letzte Runde' : ''}`));
+  if (S.opt.zeit && (OFFEN || (Netz.laeuft && UHR && imSpiel))) { const u = Kern.el('div', 'zr-uhr k-zahl'); u.id = 'zr-uhr'; u.textContent = '–'; rechts.appendChild(u); }
 }
 
-function tisch() {
+function tisch(roll = 0) {
   const t = $('#zr-tisch'); t.innerHTML = '';
   const L = OFFEN ? Z.lage(S) : null;
   const ungueltig = new Set(L ? L.ungueltig : []);
@@ -247,11 +302,20 @@ function tisch() {
     t.appendChild(Kern.el('div', '', '<span style="color:var(--ink3);font-size:17px">Noch liegt nichts auf dem Tisch.</span>'));
   }
   einpassen(t);
+  if (roll) { t.scrollTop = roll; if (t.onscroll) t.onscroll(); }
 }
 function einpassen(t) {
-  let tt = Math.round(Math.min(60, t.clientHeight / 4.4, t.clientWidth / 14));
+  // Telefon: größere Steine (schmale Fläche), höchstens bis 28 px verkleinern – danach rollt der Tisch
+  let tt = Math.round(handy() ? Math.min(44, t.clientHeight / 4.4, (t.clientWidth - 16) / 9.6) : Math.min(60, t.clientHeight / 4.4, t.clientWidth / 14));
+  const min = handy() ? 28 : 26;
+  if (handy()) {
+    // die längste Serie (samt „+“) muss in eine Zeile passen – sonst ragte sie rechts aus dem Tisch
+    const lang = Math.max(3, ...[...t.querySelectorAll('.zr-reihe')].map(r => r.querySelectorAll('.zr-stein').length + (r.querySelector('.zr-plus') ? .7 : 0)));
+    tt = Math.min(tt, Math.floor((t.clientWidth - 16 - 4) / (lang + (lang - 1) * .06 + .28)));
+  }
   t.style.setProperty('--tt', tt + 'px');
-  while (tt > 26 && t.scrollHeight > t.clientHeight + 1) { tt -= 2; t.style.setProperty('--tt', tt + 'px'); }
+  while (tt > min && t.scrollHeight > t.clientHeight + 1) { tt -= 2; t.style.setProperty('--tt', tt + 'px'); }
+  if (handy()) { const mehr = () => t.classList.toggle('mehr-unten', t.scrollTop + t.clientHeight < t.scrollHeight - 4); t.onscroll = mehr; mehr(); }
 }
 
 function unten() {
@@ -259,12 +323,20 @@ function unten() {
   const sp = S.spieler[S.amZug];
   const zeile = Kern.el('div', 'zr-zeile'); const st = Kern.el('div', 'zr-status'); st.id = 'zr-status'; zeile.appendChild(st);
   const bank = Kern.el('div', 'zr-bank'); bank.id = 'zr-bank';
-  const n = sp ? sp.bank.length : 14;
+  const meins = Netz.laeuft ? S.spieler[Netz.meinSitz] : sp;   // im Netzspiel immer das eigene Brett
+  const n = meins ? meins.bank.length : 14;
   const spalten = Math.max(10, Math.ceil(n / 2));
-  const bw = Math.max(34, Math.min(58, (innerWidth - 70) / spalten - 5));
+  let bw = Math.max(34, Math.min(58, (innerWidth - 70) / spalten - 5));
+  if (handy()) { const sp9 = Math.max(9, Math.ceil(n / 3)); bw = Math.max(26, Math.min(42, (innerWidth - 66 - (sp9 - 1) * 4) / sp9)); }
   BUEHNE.style.setProperty('--bw', bw + 'px'); BUEHNE.style.setProperty('--tw', bw + 'px');
+  if (!OFFEN && Netz.laeuft && meins) {   // Netzspiel: eigenes Brett offen, aber erst im eigenen Zug beweglich
+    st.innerHTML = letzteText() + (S.phase === 'zug' ? ` <b>${Kern.esc(sp.name)}</b> ist dran.` : '');
+    const neuM = new Set(S.neu[Netz.meinSitz] || []);
+    meins.bank.forEach(id => { const s = steinEl(id); if (neuM.has(id)) s.classList.add('neu'); bank.appendChild(s); });
+    u.append(zeile, bank); return;
+  }
   if (!OFFEN) {
-    st.innerHTML = letzteText() + (S.phase === 'zug' ? ` <b>${Kern.esc(sp.name)}</b> ist dran – gib das iPad weiter.` : '');
+    st.innerHTML = letzteText() + (S.phase === 'zug' ? ` <b>${Kern.esc(sp.name)}</b> ist dran – gib das ${Kern.geraet || 'iPad'} weiter.` : '');
     bank.classList.add('zu'); bank.textContent = 'Das Brett ist verdeckt.';
     u.append(zeile, bank); return;
   }
@@ -331,6 +403,9 @@ document.addEventListener('pointermove', ev => {
     Kern.ton('stein');
   }
   drag.geist.style.left = ev.clientX + 'px'; drag.geist.style.top = ev.clientY + 'px';
+  const tt = $('#zr-tisch');
+  if (tt && tt.scrollHeight > tt.clientHeight + 1) { const r = tt.getBoundingClientRect();
+    if (ev.clientX > r.left && ev.clientX < r.right) { if (ev.clientY < r.top + 36 && ev.clientY > r.top - 30) tt.scrollTop -= 12; else if (ev.clientY > r.bottom - 36 && ev.clientY < r.bottom + 10) tt.scrollTop += 12; } }
   document.querySelectorAll('.ziel').forEach(e => e.classList.remove('ziel'));
   const z = zielUnter(ev.clientX, ev.clientY); if (z && z.el) z.el.classList.add('ziel');
 });
@@ -366,33 +441,50 @@ function bewegen(ids, ziel) {
 /* ---------- Zug abschließen ---------- */
 async function fertig() {
   const p = Z.pruefeZug(S);
-  if (p.ok) {
-    const name = S.spieler[S.amZug].name;
-    uhrStopp(); const r = Z.zugBeenden(S); OFFEN = false; S.neu[S.letzte.spieler] = [];
-    Kern.ton(r.ende ? 'sieg' : 'legen'); speichern(); zeichnen();
-    if (r.ende) { Kern.hinweis(`${name} hat alle Steine gelegt!`, 2600); await Kern.warte(700); }
-    else await Kern.warte(400);
-    ablauf(); return;
-  }
+  if (p.ok) { Netz.tun('fertig', {tisch: S.tisch, bank: S.spieler[S.amZug].bank}); return; }   // der fertige Entwurf geht als ein Zug an den Gastgeber
   if (p.ziehen) { Kern.hinweis(p.grund); return; }
   Kern.ton('warn');
   const w = await Kern.frage({titel: 'So geht der Zug nicht', text: `${Kern.esc(p.grund)}<br><br>Du kannst weiterbauen. Gibst du auf, kommt alles an seinen alten Platz und du nimmst <b>3 Strafsteine</b>.`,
     knoepfe: [{text: 'Weiterbauen', wert: 'weiter', art: 'gut'}, {text: 'Aufgeben: 3 Strafsteine', wert: 'strafe', art: 'gefahr'}]});
   if (w !== 'strafe' || !OFFEN) return;
+  Netz.tun('strafe');
+}
+async function fertigAusfuehren() {
+  const name = S.spieler[S.amZug].name;
+  uhrStopp(); const r = Z.zugBeenden(S); OFFEN = false; S.neu[S.letzte.spieler] = [];
+  Kern.ton(r.ende ? 'sieg' : 'legen'); speichern(); zeichnen();
+  zugWeiter({ton: r.ende ? 'sieg' : 'legen', hinweis: r.ende ? `${name} hat alle Steine gelegt!` : undefined});
+  if (r.ende) { Kern.hinweis(`${name} hat alle Steine gelegt!`, 2600); await Kern.warte(700); }
+  else await Kern.warte(400);
+  ablauf();
+}
+async function strafeAusfuehren() {
   uhrStopp(); const r = Z.strafe(S, 'Tisch ungültig'); OFFEN = false; merkeNeu(r.gezogen); Kern.ton('fehler'); speichern(); zeichnen();
+  zugWeiter({ton: 'fehler'});
   await Kern.warte(400); ablauf();
 }
-async function ziehen() {
+function ziehen() {
+  const L = Z.lage(S);
+  if (L.tischGeaendert || L.gelegt.length) { Kern.hinweis('Setz erst den Zug zurück, dann kannst du ziehen.'); return; }
+  Netz.tun('ziehen');
+}
+async function ziehenAusfuehren() {
   uhrStopp();
   const r = Z.ziehen(S); if (!r.ok) { Kern.hinweis(r.grund); return; }
   OFFEN = false; merkeNeu(r.gezogen); Kern.ton(r.passt ? 'tipp' : 'ziehen'); speichern(); zeichnen();
-  if (S.schluss && S.pool.length === 0 && r.gezogen.length) Kern.hinweis('Das war der letzte Stein im Pool!', 2600);
+  const letzter = S.schluss && S.pool.length === 0 && r.gezogen.length;
+  zugWeiter({ton: r.passt ? 'tipp' : 'ziehen', hinweis: letzter ? 'Das war der letzte Stein im Pool!' : undefined});
+  if (letzter) Kern.hinweis('Das war der letzte Stein im Pool!', 2600);
   await Kern.warte(400); ablauf();
 }
 async function neuMischen() {
   const w = await Kern.frage({titel: 'Neu mischen?', text: 'Du hast drei gleiche Paare. Zeig sie den anderen – dann werden alle Steine neu gemischt und neu verteilt.', knoepfe: [{text: 'Abbrechen', wert: 0, art: 'leise'}, {text: 'Neu mischen', wert: 1}]});
   if (!w) return;
-  uhrStopp(); Z.neuMischen(S, rnd); S.neu = {}; OFFEN = false; speichern(); Kern.ton('wuerfel'); ablauf();
+  Netz.tun('mischen');
+}
+function mischenAusfuehren() {
+  uhrStopp(); Z.neuMischen(S, rnd); S.neu = {}; OFFEN = false; speichern(); Kern.ton('wuerfel');
+  zugWeiter({ton: 'wuerfel', hinweis: 'Neu gemischt und neu verteilt.'}); ablauf();
 }
 
 /* ---------- Wertung ---------- */
@@ -417,17 +509,31 @@ function wertung() {
   box.innerHTML = h;
   e.zeilen.forEach((z, i) => { const r = box.querySelector(`.rest[data-i="${i}"]`); z.steine.forEach(id => r.appendChild(steinEl(id))); if (!z.steine.length) r.textContent = 'leer'; });
   const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
-  const f = Kern.fenster(box, {breit: true, schliessbar: false});
+  const gast = Netz.laeuft && !Netz.istHost;   // Mitspieler sehen die Wertung, entscheiden aber nicht
+  if (WFE) { WFE.schliessen(); WFE = null; }
+  const f = Kern.fenster(box, {breit: true, schliessbar: gast});
+  if (gast) WFE = f;
   const knopf = (t, art, id, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { f.schliessen(); fn(); }; k.appendChild(b); };
+  if (gast) {
+    if (ende) { Kern.ton(S.sieger.includes(Netz.meinSitz) ? 'sieg' : 'runde'); if (S.sieger.includes(Netz.meinSitz)) Kern.feier(); } else Kern.ton('runde');
+    k.appendChild(Kern.el('p', '', `${Kern.esc(Netz.sitze[0].name)} entscheidet, wie es weitergeht.`));
+    return;
+  }
   if (ende) {
     Kern.feier(); Kern.ton('sieg'); Kern.speicher.loeschen();
-    knopf('Nochmal', '', 'zr-nochmal', () => { S = Z.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), zeit: S.opt.zeit, runden: S.opt.runden}, rnd); S.neu = {}; speichern(); ablauf(); });
-    knopf('Neues Spiel', 'leise', 'zr-neues', startseite);
+    knopf('Nochmal', '', 'zr-nochmal', () => Netz.tun('nochmal'));
+    knopf('Neues Spiel', 'leise', 'zr-neues', () => { if (Netz.aktiv) Netz.verlassen(); startseite(); });
   } else {
     Kern.ton('runde');
-    knopf('Nächste Runde', '', 'zr-weiter', () => { Z.naechsteRunde(S, rnd); S.neu = {}; speichern(); ablauf(); });
-    if (S.opt.runden === 0) knopf('Spiel beenden', 'leise', 'zr-beenden', () => { Z.spielBeenden(S); speichern(); wertung(); });
+    knopf('Nächste Runde', '', 'zr-weiter', () => Netz.tun('runde'));
+    if (S.opt.runden === 0) knopf('Spiel beenden', 'leise', 'zr-beenden', () => Netz.tun('beenden'));
   }
+}
+function rundeAusfuehren() { Z.naechsteRunde(S, rnd); S.neu = {}; speichern(); zugWeiter(); ablauf(); }
+function beendenAusfuehren() { Z.spielBeenden(S); speichern(); zugWeiter(); wertung(); }
+function nochmalAusfuehren() {
+  S = Z.neuesSpiel({namen: S.spieler.map(s => s.name), farben: S.spieler.map(s => s.farbe), zeit: S.opt.zeit, runden: S.opt.runden}, rnd);
+  S.neu = {}; speichern(); zugWeiter(); ablauf();
 }
 function punktestand() {
   if (!S) return;
@@ -436,6 +542,95 @@ function punktestand() {
   h += '<tr><td><b>Gesamt</b></td>' + S.spieler.map(s => `<td class="r"><b>${s.summe > 0 ? '+' : s.summe < 0 ? '−' : ''}${Math.abs(s.summe)}</b></td>`).join('') + '</tr></table></div>';
   Kern.fenster(h, {breit: true});
 }
+
+/* ---------- Netzspiel: jeder auf seinem Gerät ----------
+   Der Gastgeber hält den echten Zustand. Jedes Gerät sieht nur das eigene Brett; fremde Bretter und der Pool gehen nur
+   als Anzahl hinaus (Platzhalter −1). Wer dran ist, baut den Tisch auf seinem Gerät als Entwurf um – die anderen sehen
+   so lange den Tisch vom Zugbeginn. „Zug beenden“ schickt den ganzen Entwurf (Tisch + Brett) als eine Aktion; der
+   Gastgeber prüft, dass nur Steine von Brett und Tisch verwendet wurden, nichts vom Tisch aufs Brett zurückging und
+   der Tisch gültig ist. Die Zuguhr (Option) führt der Gastgeber; über die nächste Runde entscheidet er. */
+const HINW = {};   // Hinweis nur für ein Gerät (abgewiesener Zug): {nr, text}
+let HINW_NR = 0, HINW_GESEHEN = 0;
+function zugWeiter(ereignis) { S.zugNr = (S.zugNr || 0) + 1; Netz.melden(); if (ereignis && (ereignis.ton || ereignis.hinweis)) Netz.ereignis(ereignis); }
+function entwurfUebernehmen(sitz, d) {
+  const start = S.zug.start;
+  if (!d || !Array.isArray(d.tisch) || !Array.isArray(d.bank)) return false;
+  const tisch = d.tisch.map(r => ({id: Number(r.id), steine: (Array.isArray(r.steine) ? r.steine : []).map(Number)})).filter(r => r.steine.length);
+  const bank = d.bank.map(Number);
+  const ids = [...tisch.flatMap(r => r.steine), ...bank], soll = [...start.tisch.flatMap(r => r.steine), ...start.bank];
+  if (ids.length !== soll.length || new Set(ids).size !== ids.length) return false;
+  const sollSet = new Set(soll), startBank = new Set(start.bank);
+  if (!ids.every(i => sollSet.has(i)) || !bank.every(i => startBank.has(i))) return false;   // nichts vom Tisch zurück aufs Brett
+  if (new Set(tisch.map(r => r.id)).size !== tisch.length || tisch.some(r => !Number.isInteger(r.id))) return false;
+  const sortiert = a => a.slice().sort((x, y) => x - y).join();
+  if (!S.spieler[sitz].raus) for (const r of start.tisch) { const n = tisch.find(x => x.id === r.id); if (!n || sortiert(n.steine) !== sortiert(r.steine)) return false; }
+  S.tisch = tisch.map(r => ({id: r.id, steine: Z.ordnen(r.steine)}));
+  S.spieler[sitz].bank = bank;
+  S.naechsteReihe = Math.max(S.naechsteReihe, ...tisch.map(r => r.id + 1));
+  return true;
+}
+function netzStand(d) {
+  const ich = Netz.meinSitz;
+  if (d.hinweis && d.hinweis.nr > HINW_GESEHEN) { HINW_GESEHEN = d.hinweis.nr; Kern.hinweis(d.hinweis.text, 3000); Kern.ton('fehler'); }
+  const behalten = OFFEN && S && d.zugNr === S.zugNr && d.phase === 'zug' && d.amZug === ich && S.amZug === ich;
+  if (behalten) { d.tisch = S.tisch; d.spieler[ich].bank = S.spieler[ich].bank; d.naechsteReihe = S.naechsteReihe; }   // eigenen Entwurf behalten
+  else WAHL.clear();
+  S = d; S.neu = S.neu || {};
+  if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
+  if (!BUEHNE) spielStarten.bauen();
+  OFFEN = S.phase === 'zug' && S.amZug === ich;
+  uhrStopp();
+  if (S.phase === 'zug' && S.uhrRest != null) uhrStart(S.uhrRest / 1000, true);
+  if (S.phase === 'rundenende' || S.phase === 'spielende') { if (!WFE || WFE.runde !== S.runde + S.phase) { wertung(); if (WFE) WFE.runde = S.runde + S.phase; } else zeichnen(); }
+  else { if (WFE) { WFE.schliessen(); WFE = null; } zeichnen(); }
+}
+Netz.einrichten({
+  spiel: 'zahlenromme', min: 2, max: 4,
+  starten(spieler, optionen) {
+    S = Z.neuesSpiel({namen: spieler.map(p => p.name), farben: spieler.map(p => p.farbe), zeit: Number(optionen.zeit != null ? optionen.zeit : 60), runden: Number(optionen.runden != null ? optionen.runden : 3)}, rnd);
+    S.neu = {}; S.zugNr = 0; spielStarten();
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    const netz = sitz !== null, fremd = netz && sitz !== Netz.meinSitz;
+    const nein = text => { if (!netz) return; if (text && fremd) HINW[sitz] = {nr: ++HINW_NR, text}; Netz.melden(sitz); };
+    const amZug = !netz || (S.phase === 'zug' && sitz === S.amZug);
+    switch (name) {
+      case 'fertig': {
+        if (S.phase !== 'zug' || !amZug) return nein();
+        if (fremd && !entwurfUebernehmen(sitz, d)) { Z.zuruecksetzen(S); return nein('Dieser Zug passt nicht zum Tisch. Bau ihn noch einmal.'); }
+        const p = Z.pruefeZug(S);
+        if (!p.ok) { if (fremd) Z.zuruecksetzen(S); return nein(p.grund); }
+        return fertigAusfuehren();
+      }
+      case 'strafe': if (S.phase !== 'zug' || !amZug) return nein(); return strafeAusfuehren();
+      case 'ziehen': {
+        if (S.phase !== 'zug' || !amZug) return nein();
+        const L = Z.lage(S); if (L.tischGeaendert || L.gelegt.length) return nein('Setz erst den Zug zurück, dann kannst du ziehen.');
+        return ziehenAusfuehren();
+      }
+      case 'mischen': if (!amZug || !Z.darfNeuMischen(S)) return nein(); return mischenAusfuehren();
+      case 'runde': if (S.phase !== 'rundenende' || (netz && sitz !== 0)) return nein(); return rundeAusfuehren();
+      case 'beenden': if (S.phase !== 'rundenende' || (netz && sitz !== 0)) return nein(); return beendenAusfuehren();
+      case 'nochmal': if (S.phase !== 'spielende' || (netz && sitz !== 0)) return nein(); return nochmalAusfuehren();
+    }
+  },
+  zustand(sitz) {
+    if (!S) return {warte: true};
+    const k = JSON.parse(JSON.stringify(S)), verdeckt = a => a.map(() => -1);
+    if (S.zug) k.tisch = JSON.parse(JSON.stringify(S.zug.start.tisch));   // die anderen sehen den Tisch vom Zugbeginn, nicht den Entwurf
+    k.spieler.forEach((p, j) => { if (j !== sitz) p.bank = verdeckt(p.bank); });
+    k.pool = verdeckt(k.pool);
+    if (k.zug && sitz !== S.amZug) k.zug.start.bank = verdeckt(k.zug.start.bank);
+    if (k.neu) Object.keys(k.neu).forEach(j => { if (+j !== sitz) delete k.neu[j]; });
+    if (k.letzte && (k.letzte.art === 'gezogen' || k.letzte.art === 'strafe') && k.letzte.spieler !== sitz) k.letzte.steine = verdeckt(k.letzte.steine);
+    if (UHR && !UHR_ANZEIGE && S.phase === 'zug') k.uhrRest = Math.max(0, UHR_ENDE - performance.now());
+    if (HINW[sitz]) k.hinweis = HINW[sitz];
+    return k;
+  },
+  stand(d) { if (d && !d.warte) netzStand(d); },
+  beendet() { uhrStopp(); startseite(); },
+});
 
 /* ---------- Testzugang ---------- */
 window.__test = {get S() { return S; }, Z, setze(st) { S = st; speichern(); zeichnen(); }, get offen() { return OFFEN; }, uhr(ms) { UHR_ENDE = performance.now() + ms; }};
