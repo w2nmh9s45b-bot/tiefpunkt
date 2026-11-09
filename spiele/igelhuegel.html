@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Igelhügel · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+.ih-stage{padding:0}
+.ih-drei{position:absolute;inset:0;touch-action:none}
+.ih-drei canvas{display:block;width:100%;height:100%;outline:none;-webkit-tap-highlight-color:transparent}
+.ih-liste{position:absolute;z-index:5;top:max(12px,var(--sicher-o));left:50%;transform:translateX(-50%);display:flex;gap:8px;max-width:calc(100% - 300px);
+  justify-content:center;flex-wrap:wrap;pointer-events:none}
+.ih-pl{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 7px;border-radius:99px;background:var(--panel);border:2px solid var(--line);
+  font-weight:700;font-size:15px;white-space:nowrap;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:border-color .3s,box-shadow .3s}
+.ih-pl.am{border-color:var(--pc);background:rgba(9,32,42,.88);box-shadow:0 0 18px color-mix(in srgb,var(--pc) 40%,transparent)}
+.ih-pl.aus{opacity:.5}
+.ih-pl .nm{max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.ih-pips{display:flex;gap:3px}
+.ih-pip{width:11px;height:11px;border-radius:50%;background:var(--pc);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.25)}
+.ih-pip.pfad{background:transparent;box-shadow:inset 0 0 0 2.5px var(--pc)}
+.ih-pip.raus{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line-stark);position:relative}
+.ih-pip.raus::after{content:"";position:absolute;left:5px;top:-1px;width:1.5px;height:13px;background:var(--ink3);transform:rotate(45deg)}
+.ih-pip.ziel{background:#fff;box-shadow:0 0 0 2px var(--pc)}
+.ih-leiste{position:absolute;z-index:6;left:50%;transform:translateX(-50%);bottom:max(12px,var(--sicher-u));width:min(860px,calc(100% - 24px));
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:12px 14px;border-radius:22px;
+  background:rgba(7,24,32,.82);border:1px solid var(--line);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 16px 40px rgba(0,0,0,.35)}
+.ih-kplatz{display:flex;align-items:center;gap:10px}
+.ih-stapel{position:relative;width:58px;height:82px;flex:none}
+.ih-stapel svg,.ih-karte svg{display:block;width:100%;height:100%}
+.ih-stapel .zahl{position:absolute;right:-6px;bottom:-6px;min-width:26px;height:24px;padding:0 6px;border-radius:99px;background:var(--papier);color:var(--papier-ink);
+  font:800 13px/24px var(--f-ui);text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.ih-karte{width:66px;height:94px;flex:none;perspective:400px}
+.ih-karte .in{width:100%;height:100%;transform-style:preserve-3d}
+.ih-karte.dreht .in{animation:ih-flip .5s cubic-bezier(.3,.7,.3,1)}
+@keyframes ih-flip{0%{transform:translateX(-70px) rotateY(180deg) scale(.88)}100%{transform:none}}
+.ih-karte.leer{border-radius:10px;box-shadow:inset 0 0 0 2px var(--line);opacity:.6}
+.ih-mitte{min-width:0;display:flex;flex-direction:column;gap:8px}
+.ih-text{font-size:18px;line-height:1.3;color:var(--ink)}
+.ih-text b{color:var(--pc,var(--akzent))}
+.ih-text small{display:block;color:var(--ink2);font-size:14px;margin-top:2px}
+.ih-wahl{display:flex;gap:8px;flex-wrap:wrap}
+.ih-wahl:empty{display:none}
+.ih-opt{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 13px 0 9px;border-radius:12px;border:1px solid var(--line);
+  background:var(--panel-hell);font-weight:700;font-size:15px;white-space:nowrap}
+.ih-opt .k-dot{width:18px;height:18px}
+.ih-opt[aria-pressed="true"]{border-color:var(--pc);background:color-mix(in srgb,var(--pc) 22%,transparent);box-shadow:0 0 0 2px var(--pc)}
+.ih-opt.loch{border-style:dashed;border-color:var(--fehler)}
+.ih-opt.loch em{font-style:normal;color:var(--fehler);font-size:13px}
+.ih-akt .k-btn{min-width:190px}
+.ih-akt .k-btn.puls{animation:ih-puls 1.6s ease-in-out infinite}
+@keyframes ih-puls{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--akzent) 55%,transparent)}50%{box-shadow:0 0 0 9px transparent}}
+.ih-ohne{position:absolute;inset:0;display:grid;place-items:center;padding:120px 24px 220px;text-align:center;color:var(--ink2);pointer-events:none}
+.ih-ohne b{display:block;color:var(--ink);font-size:20px;margin-bottom:6px}
+.ih-ohne .loecher{margin-top:10px;color:var(--ink)}
+.ih-ende{position:absolute;left:50%;transform:translateX(-50%);bottom:max(12px,var(--sicher-u));display:flex;gap:10px;z-index:7}
+.ih-hilfe{position:absolute;z-index:5;right:max(14px,var(--sicher-r));bottom:calc(max(12px,var(--sicher-u)) + 130px);font-size:13px;color:var(--ink3);pointer-events:none;text-align:right}
+@media (max-aspect-ratio:1/1){.ih-liste{max-width:calc(100% - 260px)}}
+/* Telefon hoch: Spielerliste rechts neben den Kopfknöpfen, Leiste unten über die ganze Breite */
+@media (max-width:700px){
+  .ih-liste{left:calc(max(10px,var(--sicher-l)) + 108px);right:max(10px,var(--sicher-r));transform:none;max-width:none;display:grid;grid-template-columns:repeat(2,max-content);justify-content:end;gap:5px}
+  .ih-netz .ih-liste{right:calc(max(10px,var(--sicher-r)) + 92px);grid-template-columns:max-content}
+  .ih-pl{font-size:12.5px;padding:4px 8px 4px 4px;gap:5px}
+  .ih-pl .nm{max-width:52px}
+  .ih-pl .k-dot{width:18px;height:18px;font-size:10px}
+  .ih-pip{width:7px;height:7px}
+  .ih-pip.pfad{box-shadow:inset 0 0 0 2px var(--pc)}
+  .ih-pip.raus::after{left:3.5px;top:-1px;height:10px}
+  .ih-pips{gap:2px}
+  .ih-leiste{width:calc(100% - 16px);bottom:max(8px,var(--sicher-u));grid-template-columns:auto minmax(0,1fr);gap:10px 12px;padding:10px 12px;border-radius:18px}
+  .ih-stapel{width:40px;height:57px}
+  .ih-stapel .zahl{min-width:22px;height:20px;font-size:11px;line-height:20px;right:-5px;bottom:-5px}
+  .ih-karte{width:48px;height:68px}
+  .ih-text{font-size:16px}
+  .ih-text small{font-size:13px}
+  .ih-akt{grid-column:1/-1}
+  .ih-akt .k-btn{width:100%;min-width:0}
+  .ih-opt{min-height:42px;font-size:14px;padding:0 10px 0 7px}
+  .ih-hilfe{display:none}
+  .ih-ende{width:max-content;max-width:calc(100% - 20px)}
+}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
+<script src="igelhuegel.logik.js"></script>
+
+<script type="module">
+/* ===================== 3D-Ansicht (three.js) ===================== */
+import * as THREE from '../gemeinsam/three.module.min.js';
+const REDUZIERT = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const R_HUEGEL = 6.4, H_HUEGEL = 3.3, R_ENDE = 1.05, R_ANF = 5.65, WINDUNGEN = 2.25, TH0 = Math.PI * 0.62;
+const hoehe = r => r >= R_HUEGEL ? 0 : H_HUEGEL * 0.5 * (1 + Math.cos(Math.PI * r / R_HUEGEL));
+const spiral = t => { const r = R_ANF - (R_ANF - R_ENDE) * t, th = TH0 - t * WINDUNGEN * Math.PI * 2; return {r, th, x: r * Math.cos(th), z: r * Math.sin(th), y: hoehe(r)}; };
+
+// Feldpunkte 1..28 mit gleichen Abständen entlang der Spirale
+const FELD = [null];
+(() => {
+  const N = 3000, pts = [], len = [0];
+  for (let i = 0; i <= N; i++) { const p = spiral(i / N); pts.push(p); if (i) { const q = pts[i - 1]; len.push(len[i - 1] + Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z)); } }
+  const L = len[N], a0 = 0.35; // Feld 1 kurz nach dem Anfang
+  let j = 0;
+  for (let k = 1; k <= 28; k++) {
+    const ziel = a0 + (L - a0) * (k - 1) / 27;
+    while (j < N && len[j + 1] < ziel) j++;
+    const p = pts[j], q = pts[Math.min(N, j + 1)];
+    FELD.push({x: p.x, y: p.y, z: p.z, r: p.r, th: p.th, dir: Math.atan2(q.x - p.x, q.z - p.z)});
+  }
+})();
+const STARTPLATZ = (p, i) => { // Startwiese vor dem Aufgang
+  const f = FELD[1], aus = Math.atan2(f.z, f.x), seit = aus + (p - 1.5) * 0.25 + (i % 2 ? 0.065 : -0.065);
+  const r = 7.05 + Math.floor(i / 2) * 0.78 + Math.abs(p - 1.5) * 0.12;
+  return {x: r * Math.cos(seit), y: 0, z: r * Math.sin(seit)};
+};
+
+function sanft(k) { return k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; }
+function rausS(k) { const c = 1.6; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); }
+
+function erstellen(huelle, {farben = [], onTipp = () => {}, onHuepf = () => {}} = {}) {
+  let renderer;
+  try {
+    const probe = document.createElement('canvas');
+    if (!(probe.getContext('webgl2') || probe.getContext('webgl'))) return null;
+    renderer = new THREE.WebGLRenderer({antialias: true, alpha: true, powerPreference: 'high-performance'});
+  } catch (e) { return null; }
+  const klein = Math.min(innerWidth, innerHeight) < 700;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, klein ? 2 : 1.75));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.setClearColor(0x000000, 0);
+  huelle.appendChild(renderer.domElement);
+  const szene = new THREE.Scene();
+  szene.fog = new THREE.Fog(0x0c2430, 40, 90);
+  const kamera = new THREE.PerspectiveCamera(36, 1, 0.5, 120);
+
+  /* ---------- Licht ---------- */
+  szene.add(new THREE.HemisphereLight(0xe6f4ff, 0x2d4a36, 1.35));
+  const sonne = new THREE.DirectionalLight(0xfff1d6, 2.4);
+  sonne.position.set(-7, 14, 9); sonne.castShadow = true;
+  sonne.shadow.mapSize.set(klein ? 1024 : 2048, klein ? 1024 : 2048);
+  Object.assign(sonne.shadow.camera, {left: -11, right: 11, top: 11, bottom: -11, near: 2, far: 40});
+  sonne.shadow.bias = -0.0006; sonne.shadow.normalBias = 0.03; sonne.shadow.radius = 3;
+  szene.add(sonne);
+  const fuell = new THREE.DirectionalLight(0x9fd9ff, 0.45); fuell.position.set(8, 6, -6); szene.add(fuell);
+
+  const M = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: .85, metalness: 0}, o));
+  const mesh = (g, m, schatten = true, empf = true) => { const x = new THREE.Mesh(g, m); x.castShadow = schatten; x.receiveShadow = empf; return x; };
+
+  /* ---------- Sockel und Hügel ---------- */
+  const sockel = new THREE.Group(); szene.add(sockel);
+  const erde = mesh(new THREE.CylinderGeometry(9.5, 9.2, 0.7, 72), [M(0x6b4527), M(0x3e7a3c, {roughness: .95}), M(0x3a2414)], false, true);
+  erde.position.y = -0.35; sockel.add(erde);
+  const rand = mesh(new THREE.TorusGeometry(9.5, 0.09, 8, 96), M(0x8c6238), false, false); rand.rotation.x = Math.PI / 2; rand.position.y = 0.0; sockel.add(rand);
+  { // Hügel als Drehkörper, Farbe von unten (sattes Grün) nach oben (Lindgrün)
+    const prof = []; for (let i = 0; i <= 48; i++) { const r = R_HUEGEL * (1 - i / 48); prof.push(new THREE.Vector2(Math.max(r, 0.0001), hoehe(r))); }
+    const g = new THREE.LatheGeometry(prof, 96); const c = [], col = new THREE.Color(), a = new THREE.Color(0x3f8a3a), b = new THREE.Color(0x9ccf5f);
+    const pos = g.attributes.position;
+    for (let i = 0; i < pos.count; i++) { const k = Math.min(1, pos.getY(i) / H_HUEGEL); col.copy(a).lerp(b, Math.pow(k, 0.8)); const n = Math.sin(pos.getX(i) * 3.1) * Math.cos(pos.getZ(i) * 2.7) * 0.03; col.offsetHSL(0, 0, n); c.push(col.r, col.g, col.b); }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(c, 3));
+    const h = mesh(g, M(0xffffff, {vertexColors: true, roughness: .95}), false, true); sockel.add(h);
+  }
+  { // Weg als Band auf dem Hügel
+    const N = 600, b = 0.68, pos = [], idx = [], uvs = [];
+    for (let i = 0; i <= N; i++) {
+      const t = -0.03 + 1.03 * i / N, r0 = R_ANF - (R_ANF - R_ENDE) * t, th = TH0 - t * WINDUNGEN * Math.PI * 2;
+      for (const s of [-1, 1]) { const r = Math.max(0.2, r0 + s * b); pos.push(r * Math.cos(th), hoehe(r) + 0.035, r * Math.sin(th)); uvs.push(s, t); }
+      if (i) { const k = i * 2; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); g.setIndex(idx); g.computeVertexNormals();
+    const w = mesh(g, M(0xc7a77a, {roughness: 1, side: THREE.DoubleSide}), false, true); sockel.add(w);
+  }
+  // Treppe vom Startplatz zum ersten Feld
+  { const f = FELD[1], aus = Math.atan2(f.z, f.x);
+    for (let s = 0; s < 3; s++) {
+      const r = 6.25 + s * 0.42, st = mesh(new THREE.BoxGeometry(0.42, 0.12 + (2 - s) * 0.1, 1.5), M(0xb88550), true, true);
+      st.position.set(r * Math.cos(aus), (0.12 + (2 - s) * 0.1) / 2, r * Math.sin(aus)); st.rotation.y = -aus; sockel.add(st);
+    }
+    const pf = mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.1, 8), M(0x7a5230)); pf.position.set(6.9 * Math.cos(aus - 0.17), 0.55, 6.9 * Math.sin(aus - 0.17)); sockel.add(pf);
+    const schild = mesh(new THREE.BoxGeometry(0.75, 0.38, 0.06), M(0xe9d7b2)); schild.position.set(pf.position.x, 1.0, pf.position.z); schild.rotation.y = -aus + Math.PI / 2; sockel.add(schild);
+  }
+
+  /* ---------- Gras, Blumen, Büsche (Instanzen, fester Zufall) ---------- */
+  let seed = 7; const zz = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const frei = (x, z) => { // nicht auf dem Weg, nicht auf Feldern, nicht am Baum
+    const r = Math.hypot(x, z); if (r < 1.9 && r > 0.0) return false;
+    for (let k = 1; k <= 28; k++) if (Math.hypot(FELD[k].x - x, FELD[k].z - z) < 0.95) return false;
+    for (let t = 0; t <= 1; t += 0.004) { const p = spiral(t); if (Math.hypot(p.x - x, p.z - z) < 0.82) return false; }
+    return true;
+  };
+  const platz = (anz, rMin, rMax) => { const o = []; let v = 0; while (o.length < anz && v++ < anz * 40) { const r = rMin + (rMax - rMin) * Math.sqrt(zz()), a = zz() * Math.PI * 2, x = r * Math.cos(a), z = r * Math.sin(a); if (frei(x, z)) o.push([x, z, r]); } return o; };
+  const dummy = new THREE.Object3D();
+  { const gp = platz(150, 1.5, 9.0), g = new THREE.ConeGeometry(0.07, 0.34, 5), im = new THREE.InstancedMesh(g, M(0x4f9a3c, {flatShading: true}), gp.length);
+    gp.forEach(([x, z, r], i) => { dummy.position.set(x, hoehe(r) + 0.12, z); dummy.rotation.set((zz() - .5) * .5, zz() * 6, (zz() - .5) * .5); const s = 0.7 + zz() * 0.8; dummy.scale.set(s, s, s); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); });
+    im.receiveShadow = true; sockel.add(im); }
+  { const gp = platz(70, 1.6, 8.9), g = new THREE.IcosahedronGeometry(0.075, 0), im = new THREE.InstancedMesh(g, M(0xffffff, {roughness: .6}), gp.length), c = new THREE.Color();
+    const tone = [0xfff6e0, 0xffd34d, 0xf4a6c6, 0xffffff, 0xb9a0f4];
+    gp.forEach(([x, z, r], i) => { dummy.position.set(x, hoehe(r) + 0.1, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); im.setColorAt(i, c.set(tone[i % tone.length])); });
+    sockel.add(im); }
+  { const gp = platz(16, 2.6, 8.8), g = new THREE.IcosahedronGeometry(0.42, 1), im = new THREE.InstancedMesh(g, M(0x3f7f34, {flatShading: true}), gp.length * 2);
+    let k = 0; gp.forEach(([x, z, r]) => { for (let j = 0; j < 2; j++) { const s = 0.55 + zz() * 0.5; dummy.position.set(x + (j ? 0.32 : 0), hoehe(r) + s * 0.25, z + (j ? 0.12 : 0)); dummy.rotation.set(zz(), zz(), zz()); dummy.scale.set(s, s * 0.8, s); dummy.updateMatrix(); im.setMatrixAt(k++, dummy.matrix); } });
+    im.castShadow = true; im.receiveShadow = true; sockel.add(im); }
+  { const gp = platz(12, 2.2, 9.0), g = new THREE.DodecahedronGeometry(0.22, 0), im = new THREE.InstancedMesh(g, M(0xa7a39a, {flatShading: true}), gp.length);
+    gp.forEach(([x, z, r], i) => { const s = 0.6 + zz() * 0.9; dummy.position.set(x, hoehe(r) + 0.05, z); dummy.rotation.set(zz() * 3, zz() * 3, zz() * 3); dummy.scale.set(s, s * 0.6, s); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); });
+    im.castShadow = true; im.receiveShadow = true; sockel.add(im); }
+
+  /* ---------- Felder ---------- */
+  const HOHL = window.Igelhuegel.HOHL;
+  const zahlTex = (n, hell) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    x.fillStyle = hell; x.fillRect(0, 0, 128, 128); x.fillStyle = 'rgba(70,48,25,.55)'; x.font = '700 46px "Atkinson Hyperlegible", system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(n), 64, 68);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
+  function hangLage(r, th, dir, anteil) {
+    const dhdr = -H_HUEGEL * 0.5 * Math.PI / R_HUEGEL * Math.sin(Math.PI * Math.min(r, R_HUEGEL) / R_HUEGEL) * anteil;
+    const n = new THREE.Vector3(-dhdr * Math.cos(th), 1, -dhdr * Math.sin(th)).normalize(), up = new THREE.Vector3(0, 1, 0);
+    return new THREE.Quaternion().setFromUnitVectors(up, n).multiply(new THREE.Quaternion().setFromAxisAngle(up, dir));
+  }
+  const steinGeo = new THREE.CylinderGeometry(0.5, 0.56, 0.18, 28), lochGeo = new THREE.CircleGeometry(0.44, 28), rimGeo = new THREE.TorusGeometry(0.5, 0.075, 8, 28);
+  const deckelGeo = new THREE.CylinderGeometry(0.47, 0.47, 0.09, 28), planke = new THREE.BoxGeometry(0.05, 0.02, 0.86);
+  const steinSeite = M(0xd9c8a5), deckelSeite = M(0x7d532c), dunkel = new THREE.MeshBasicMaterial({color: 0x0a0706}), erdRand = M(0x4d321b, {roughness: 1}), plankenM = M(0x5c3b1e);
+  const felder = [null], deckel = {}, trefferFelder = [];
+  for (let k = 1; k <= 27; k++) {
+    const f = FELD[k], g = new THREE.Group(); g.position.set(f.x, f.y, f.z);
+    g.quaternion.copy(hangLage(f.r, f.th, f.dir, 0.8)); // an den Hang geneigt
+    if (HOHL.includes(k)) {
+      const loch = new THREE.Mesh(lochGeo, dunkel); loch.rotation.x = -Math.PI / 2; loch.position.y = 0.03; g.add(loch);
+      const rim = mesh(rimGeo, erdRand, false, true); rim.rotation.x = Math.PI / 2; rim.position.y = 0.04; g.add(rim);
+      const piv = new THREE.Group(); piv.position.set(0, 0.1, -0.47); g.add(piv);
+      const d = mesh(deckelGeo, [deckelSeite, M(0xffffff, {map: zahlTex(k, '#a8743f')}), deckelSeite]); d.position.set(0, 0, 0.47); piv.add(d);
+      for (const dx of [-0.17, 0.17]) { const pl = new THREE.Mesh(planke, plankenM); pl.position.set(dx, 0.055, 0.47); piv.add(pl); }
+      deckel[k] = {piv, offen: 0}; d.userData.tipp = {art: 'feld', f: k}; trefferFelder.push(d);
+    } else {
+      const hell = ['#efe3c8', '#ebdcc0', '#f1e6cf'][k % 3];
+      const s = mesh(steinGeo, [steinSeite, M(0xffffff, {map: zahlTex(k, hell)}), steinSeite]); s.position.y = 0.06; g.add(s);
+      s.userData.tipp = {art: 'feld', f: k}; trefferFelder.push(s);
+    }
+    sockel.add(g); felder.push(g);
+  }
+  // Ziel: Holzdeck am Apfelbaum
+  const zielF = FELD[28];
+  { const d = mesh(new THREE.CylinderGeometry(0.66, 0.72, 0.16, 32), [M(0x8a5a2e), M(0xc89a5c), M(0x8a5a2e)]); d.position.set(zielF.x, zielF.y + 0.04, zielF.z); sockel.add(d);
+    const ring = mesh(new THREE.TorusGeometry(0.66, 0.05, 8, 40), M(0xd8483c), false, false); ring.rotation.x = Math.PI / 2; ring.position.set(zielF.x, zielF.y + 0.13, zielF.z); sockel.add(ring);
+    d.userData.tipp = {art: 'feld', f: 28}; trefferFelder.push(d); }
+
+  /* ---------- Apfelbaum ---------- */
+  const gipfel = hoehe(0), baum = new THREE.Group(); baum.position.set(Math.cos(zielF.th) * 0.3, 0, Math.sin(zielF.th) * 0.3); sockel.add(baum);
+  { const st = mesh(new THREE.CylinderGeometry(0.16, 0.26, 1.5, 10), M(0x7a4f2b)); st.position.set(0, gipfel + 0.7, 0); baum.add(st);
+    for (const [a, l] of [[0.6, 0.55], [2.6, 0.5], [4.4, 0.45]]) { const ast = mesh(new THREE.CylinderGeometry(0.05, 0.08, l, 6), M(0x7a4f2b)); ast.position.set(Math.cos(a) * 0.2, gipfel + 1.25, Math.sin(a) * 0.2); ast.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9); baum.add(ast); }
+    const kronen = [[0, 2.15, 0, 0.9], [0.55, 1.95, 0.2, 0.62], [-0.5, 1.98, 0.3, 0.6], [0.1, 2.0, -0.55, 0.62], [-0.2, 2.6, -0.1, 0.55], [0.35, 2.45, 0.4, 0.5]];
+    const gruen = [0x4f9a3c, 0x5fae46, 0x468c36];
+    kronen.forEach(([x, y, z, r], i) => { const k = mesh(new THREE.IcosahedronGeometry(r, 1), M(gruen[i % 3], {flatShading: true})); k.position.set(x, gipfel + y, z); baum.add(k); });
+    const ap = new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 10, 8), M(0xd8352a, {roughness: .45}), 16); let i = 0;
+    for (let a = 0; a < 16; a++) { const k = kronen[a % kronen.length], th = a * 2.4, ph = 0.4 + (a % 4) * 0.3; dummy.position.set(k[0] + Math.cos(th) * Math.sin(ph) * k[3], gipfel + k[1] + Math.cos(ph) * k[3] * 0.6 - 0.15, k[2] + Math.sin(th) * Math.sin(ph) * k[3]); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); ap.setMatrixAt(i++, dummy.matrix); }
+    ap.castShadow = true; baum.add(ap);
+    // Fallobst am Ziel
+    for (const [dx, dz] of [[0.42, -0.2], [-0.36, 0.3]]) { const a = mesh(new THREE.SphereGeometry(0.1, 10, 8), M(0xd8352a, {roughness: .45})); a.position.set(zielF.x + dx, zielF.y + 0.2, zielF.z + dz); sockel.add(a); }
+  }
+
+  /* ---------- Windmühle mit Kurbel ---------- */
+  const muehle = new THREE.Group(); const mA = zielF.th + Math.PI * 1.05, mR = 1.2;
+  muehle.position.set(mR * Math.cos(mA), hoehe(mR) - 0.05, mR * Math.sin(mA)); muehle.rotation.y = Math.PI / 2 - mA; muehle.scale.setScalar(1.35); sockel.add(muehle);
+  const holz = M(0xb07a43), holzD = M(0x7d532c), dach = M(0x8d3b2f), segel = M(0xf0e3c6);
+  { const turm = mesh(new THREE.CylinderGeometry(0.26, 0.38, 1.25, 10), holz); turm.position.y = 0.62; muehle.add(turm);
+    const kappe = mesh(new THREE.ConeGeometry(0.34, 0.42, 10), dach); kappe.position.y = 1.45; muehle.add(kappe);
+    const tuer = mesh(new THREE.BoxGeometry(0.16, 0.26, 0.04), holzD); tuer.position.set(0, 0.16, 0.35); tuer.rotation.x = -0.1; muehle.add(tuer); }
+  const fluegel = new THREE.Group(); fluegel.position.set(0, 1.18, 0.36); muehle.add(fluegel);
+  { const nabe = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.14, 10), holzD); nabe.rotation.x = Math.PI / 2; fluegel.add(nabe);
+    for (let i = 0; i < 4; i++) { const arm = new THREE.Group(); arm.rotation.z = i * Math.PI / 2; fluegel.add(arm);
+      const stange = mesh(new THREE.BoxGeometry(0.04, 0.95, 0.04), holzD); stange.position.y = 0.5; arm.add(stange);
+      const tuch = mesh(new THREE.BoxGeometry(0.22, 0.62, 0.02), segel); tuch.position.set(0.12, 0.6, 0.01); arm.add(tuch); } }
+  const kurbel = new THREE.Group(); kurbel.position.set(0.38, 0.5, 0); muehle.add(kurbel);
+  { const ach = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.2, 8), holzD); ach.rotation.z = Math.PI / 2; ach.position.x = 0.08; kurbel.add(ach);
+    const hb = mesh(new THREE.BoxGeometry(0.04, 0.3, 0.05), holzD); hb.position.set(0.18, -0.12, 0); kurbel.add(hb);
+    const griff = mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.18, 8), M(0xd8483c)); griff.rotation.z = Math.PI / 2; griff.position.set(0.25, -0.26, 0); kurbel.add(griff); }
+  const muehlenTreffer = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 2.3, 10), new THREE.MeshBasicMaterial({visible: false}));
+  muehlenTreffer.position.y = 0.95; muehlenTreffer.userData.tipp = {art: 'muehle'}; muehle.add(muehlenTreffer);
+  const muehlenRing = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.05, 8, 40), new THREE.MeshBasicMaterial({color: 0xbef08a, transparent: true, opacity: .9}));
+  muehlenRing.rotation.x = Math.PI / 2; muehlenRing.position.y = 0.06; muehlenRing.visible = false; muehle.add(muehlenRing);
+
+  /* ---------- Igel ---------- */
+  function verbinden(geos) { // einfache Zusammenführung (nicht indiziert)
+    const teile = geos.map(g => g.index ? g.toNonIndexed() : g), pos = [], nor = [];
+    teile.forEach(g => { pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array); });
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); return g;
+  }
+  const stachelGeo = (() => {
+    const out = [], N = 150, ax = 0.37, ay = 0.29, az = 0.44, up = new THREE.Vector3(0, 1, 0);
+    for (let i = 0; i < N; i++) {
+      const y = 1 - 2 * (i + .5) / N, r = Math.sqrt(1 - y * y), a = i * 2.39996, n = new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r);
+      if (n.y < -0.12 || n.z > 0.45) continue; // nur Rücken und Seiten, Gesicht frei
+      const p = new THREE.Vector3(n.x * ax, n.y * ay, n.z * az), dir = new THREE.Vector3(n.x / ax, n.y / ay, n.z / az).normalize();
+      dir.z -= 0.35; dir.y += 0.1; dir.normalize(); // Stacheln liegen nach hinten an
+      const c = new THREE.ConeGeometry(0.05, 0.21, 5); c.translate(0, 0.09, 0);
+      c.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(up, dir)); c.translate(p.x, p.y, p.z); out.push(c);
+    }
+    return verbinden(out);
+  })();
+  const koerperGeo = new THREE.SphereGeometry(1, 20, 14); koerperGeo.scale(0.38, 0.3, 0.45);
+  const schnauzeGeo = new THREE.ConeGeometry(0.15, 0.32, 14); schnauzeGeo.rotateX(Math.PI / 2); schnauzeGeo.translate(0, -0.04, 0.5);
+  const schwarzGeo = verbinden([
+    new THREE.SphereGeometry(0.05, 10, 8).translate(0, -0.04, 0.67),
+    new THREE.SphereGeometry(0.035, 8, 6).translate(0.11, 0.06, 0.4), new THREE.SphereGeometry(0.035, 8, 6).translate(-0.11, 0.06, 0.4)]);
+  const ohrGeo = verbinden([new THREE.SphereGeometry(0.055, 8, 6).translate(0.17, 0.17, 0.27), new THREE.SphereGeometry(0.055, 8, 6).translate(-0.17, 0.17, 0.27)]);
+  const fussGeo = verbinden([[0.18, 0.22], [-0.18, 0.22], [0.18, -0.2], [-0.18, -0.2]].map(([x, z]) => new THREE.SphereGeometry(0.075, 8, 6).scale(1, 0.6, 1.3).translate(x, -0.27, z)));
+  const bauchM = M(0xe6c9a2, {roughness: .9}), schwarzM = M(0x14100d, {roughness: .3}), fussM = M(0xb98d63);
+  const ringGeo = new THREE.TorusGeometry(0.5, 0.045, 8, 36);
+  const igel = []; // igel[p][i] = {g, koerper, ring, treffer}
+  const trefferIgel = [];
+  function neueIgel(farbenListe, n) {
+    igel.forEach(r => r.forEach(x => sockel.remove(x.g))); igel.length = 0; trefferIgel.length = 0;
+    for (let p = 0; p < n; p++) {
+      const c = new THREE.Color(farbenListe[p] || '#cccccc'), dunk = c.clone().multiplyScalar(0.62);
+      const stM = M(dunk, {roughness: .7}), koM = M(c.clone().lerp(new THREE.Color(0xf0dcc0), 0.35), {roughness: .9});
+      const reihe = [];
+      for (let i = 0; i < 4; i++) {
+        const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner); inner.position.y = 0.33;
+        const k = mesh(koerperGeo, koM); inner.add(k);
+        inner.add(mesh(stachelGeo, stM)); inner.add(mesh(schnauzeGeo, bauchM)); inner.add(mesh(schwarzGeo, schwarzM, false, false));
+        inner.add(mesh(ohrGeo, bauchM, false, false)); inner.add(mesh(fussGeo, fussM, false, false));
+        const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: .95})); ring.rotation.x = Math.PI / 2; ring.position.y = 0.06; ring.visible = false; g.add(ring);
+        const tr = new THREE.Mesh(new THREE.SphereGeometry(0.62, 10, 8), new THREE.MeshBasicMaterial({visible: false})); tr.position.y = 0.35; g.add(tr);
+        tr.userData.tipp = {art: 'igel', p, i}; trefferIgel.push(tr);
+        sockel.add(g); reihe.push({g, inner, ring, tr, pos: null, farbe: c});
+      }
+      igel.push(reihe);
+    }
+  }
+  const zielRing = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.06, 8, 40), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true}));
+  zielRing.rotation.x = Math.PI / 2; zielRing.visible = false; sockel.add(zielRing);
+  const zielPfeil = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.34, 4), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true}));
+  zielPfeil.rotation.x = Math.PI; zielPfeil.visible = false; sockel.add(zielPfeil);
+
+  const punktVon = (pos, p, i) => {
+    if (pos === 0) { const s = STARTPLATZ(p, i); return {x: s.x, y: 0, z: s.z, dir: Math.atan2(FELD[1].x - s.x, FELD[1].z - s.z)}; }
+    if (pos >= 1 && pos <= 28) { const f = FELD[pos]; const o = pos === 28 ? 0.12 : 0.14; return {x: f.x, y: f.y + o, z: f.z, dir: f.dir}; }
+    return null;
+  };
+  function igelSetzen(p, i, pos) {
+    const x = igel[p] && igel[p][i]; if (!x) return;
+    x.pos = pos; const q = punktVon(pos, p, i);
+    if (!q) { x.g.visible = false; return; }
+    x.g.visible = true; x.g.position.set(q.x, q.y, q.z); x.g.rotation.set(0, q.dir, 0); x.inner.scale.set(1, 1, 1); x.inner.position.y = 0.33; x.inner.rotation.set(0, 0, 0);
+  }
+  function deckelSetzen(k, offen) { const d = deckel[k]; if (!d) return; d.offen = offen ? 1 : 0; d.piv.rotation.x = offen ? -1.95 : 0; }
+
+  /* ---------- Bewegung (kleine Tween-Maschine) ---------- */
+  const tweens = new Set();
+  const tween = (dauer, fn, ease = sanft) => new Promise(ok => {
+    if (REDUZIERT) dauer = Math.min(dauer, 80);
+    tweens.add({t0: performance.now(), dauer, fn, ease, ok}); los();
+  });
+  const pause = ms => tween(ms, () => {});
+
+  /* ---------- Kamera ---------- */
+  const HOCH = innerWidth < innerHeight, AZ_OFF = HOCH ? 0.2 : 1.15;
+  const blick = {az: Math.atan2(FELD[1].z, FELD[1].x) + AZ_OFF, el: HOCH ? 1.02 : 0.78, dist: 22, ziel: new THREE.Vector3(0, 1.25, 0), vAz: 0, vEl: 0, user: 0, autoAz: null, fit: 22};
+  let rahmen = {oben: 0, unten: 0}, B = 1, Hh = 1;
+  function kameraSetzen() {
+    blick.el = Math.max(0.3, Math.min(1.25, blick.el));
+    blick.dist = Math.max(blick.fit * 0.45, Math.min(blick.fit * 1.6, blick.dist));
+    const c = Math.cos(blick.el);
+    kamera.position.set(blick.ziel.x + blick.dist * c * Math.cos(blick.az), blick.ziel.y + blick.dist * Math.sin(blick.el), blick.ziel.z + blick.dist * c * Math.sin(blick.az));
+    kamera.lookAt(blick.ziel);
+    szene.fog.near = blick.dist + 4; szene.fog.far = blick.dist + 26;
+  }
+  function groesse() {
+    B = Math.max(1, huelle.clientWidth); Hh = Math.max(1, huelle.clientHeight);
+    renderer.setSize(B, Hh, false);
+    const frei = Math.max(120, Hh - rahmen.oben - rahmen.unten), mitte = rahmen.oben + frei / 2;
+    kamera.aspect = B / Hh;
+    // freier Bereich zwischen Spielerleiste und Bedienleiste: Bild dorthin verschieben und Abstand passend wählen
+    kamera.setViewOffset(B, Hh, 0, Hh / 2 - mitte, B, Hh);
+    const vf = THREE.MathUtils.degToRad(kamera.fov), rad = 8.7;
+    const dH = rad / Math.tan(vf / 2) * (Hh / frei) * 0.8, dB = 9.3 / Math.tan(Math.atan(Math.tan(vf / 2) * B / Hh)) * (B < Hh ? 0.82 : 0.98);
+    const altFit = blick.fit; blick.fit = Math.max(dH, dB, 12);
+    blick.dist = altFit ? blick.dist * blick.fit / altFit : blick.fit;
+    kamera.updateProjectionMatrix(); kameraSetzen(); malen();
+  }
+
+  /* ---------- Markierungen ---------- */
+  let mark = {igel: [], wahl: null, ziel: null, loch: false, muehle: false};
+  function markieren(m) {
+    mark = Object.assign({igel: [], wahl: null, ziel: null, loch: false, muehle: false}, m);
+    igel.forEach(r => r.forEach(x => { x.ring.visible = false; }));
+    mark.igel.forEach(([p, i]) => { const x = igel[p] && igel[p][i]; if (x) x.ring.visible = true; });
+    if (mark.ziel != null) {
+      const q = FELD[mark.ziel]; zielRing.position.set(q.x, q.y + 0.2, q.z); zielPfeil.position.set(q.x, q.y + 1.15, q.z);
+      zielRing.material.color.set(mark.loch ? 0xff6b5b : 0xffffff); zielPfeil.material.color.set(mark.loch ? 0xff6b5b : 0xffffff);
+      zielRing.visible = zielPfeil.visible = true;
+    } else zielRing.visible = zielPfeil.visible = false;
+    muehlenRing.visible = mark.muehle;
+    if (mark.muehle && performance.now() - blick.user > 3500) blick.autoAz = mA + 0.25;
+    los();
+  }
+
+  /* ---------- Zeichnen ---------- */
+  let laeuft = false, letzt = 0, sichtbar = true;
+  function malen() { renderer.render(szene, kamera); }
+  function bild(t) {
+    laeuft = false;
+    let weiter = false;
+    for (const tw of [...tweens]) {
+      const k = Math.min(1, (t - tw.t0) / tw.dauer); tw.fn(tw.ease(k), k);
+      if (k >= 1) { tweens.delete(tw); tw.ok(); } else weiter = true;
+    }
+    // Trägheit der Kamera
+    if (Math.abs(blick.vAz) > 1e-4 || Math.abs(blick.vEl) > 1e-4) { blick.az += blick.vAz; blick.el += blick.vEl; blick.vAz *= 0.9; blick.vEl *= 0.9; weiter = true; }
+    if (blick.autoAz != null) {
+      let d = blick.autoAz - blick.az; d = Math.atan2(Math.sin(d), Math.cos(d));
+      if (Math.abs(d) < 0.004) blick.autoAz = null; else { blick.az += d * 0.06; weiter = true; }
+    }
+    kameraSetzen();
+    // pulsierende Markierungen
+    const puls = 0.5 + 0.5 * Math.sin(t / 260), pulsAn = mark.igel.length || mark.ziel != null || mark.muehle;
+    igel.forEach(r => r.forEach(x => { if (x.ring.visible) { const w = mark.wahl && igel[mark.wahl[0]][mark.wahl[1]] === x; x.ring.scale.setScalar(w ? 1.12 : 0.92 + puls * 0.12); x.ring.material.opacity = w ? 1 : 0.55 + puls * 0.45; x.inner.position.y = 0.33 + (w ? 0.12 + puls * 0.05 : 0); } }));
+    if (zielRing.visible) { zielRing.scale.setScalar(0.9 + puls * 0.15); zielPfeil.position.y = zielRing.position.y + 0.95 + puls * 0.18; zielPfeil.rotation.y = t / 600; }
+    if (muehlenRing.visible) { muehlenRing.scale.setScalar(0.95 + puls * 0.2); muehlenRing.material.opacity = 0.45 + puls * 0.55; }
+    malen();
+    if ((weiter || pulsAn) && sichtbar) { laeuft = true; requestAnimationFrame(bild); }
+  }
+  function los() { if (!laeuft && sichtbar) { laeuft = true; requestAnimationFrame(bild); } }
+  let weg = false; const sicht = () => { sichtbar = !document.hidden && !weg; if (sichtbar) los(); };
+  document.addEventListener('visibilitychange', sicht);
+
+  /* ---------- Finger: drehen, zoomen, antippen ---------- */
+  const cv = renderer.domElement, finger = new Map(); let geste = null;
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  cv.addEventListener('pointerdown', e => {
+    cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+    finger.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if (finger.size === 1) geste = {x0: e.clientX, y0: e.clientY, t0: performance.now(), weg: 0, mehr: false};
+    else if (geste) { geste.mehr = true; const [a, b] = [...finger.values()]; geste.d0 = Math.hypot(a.x - b.x, a.y - b.y); geste.dist0 = blick.dist; }
+    blick.vAz = blick.vEl = 0; blick.autoAz = null; blick.user = performance.now();
+  });
+  cv.addEventListener('pointermove', e => {
+    const f = finger.get(e.pointerId); if (!f || !geste) return;
+    const dx = e.clientX - f.x, dy = e.clientY - f.y; f.x = e.clientX; f.y = e.clientY;
+    if (finger.size === 1 && !geste.mehr) {
+      geste.weg += Math.hypot(dx, dy);
+      if (geste.weg > 8) { const s = 5.2 / Math.max(320, Math.min(B, Hh)); blick.az += dx * s; blick.el += dy * s * 0.7; blick.vAz = dx * s * 0.5; blick.vEl = dy * s * 0.35; blick.user = performance.now(); los(); }
+    } else if (finger.size >= 2) {
+      const [a, b] = [...finger.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (geste.d0) { blick.dist = geste.dist0 * geste.d0 / Math.max(20, d); blick.user = performance.now(); los(); }
+    }
+  });
+  const ende = e => {
+    finger.delete(e.pointerId);
+    if (!geste) return;
+    if (finger.size === 0) {
+      const tipp = !geste.mehr && geste.weg < 10 && performance.now() - geste.t0 < 700;
+      geste = null;
+      if (tipp && e.type === 'pointerup') treffer(e.clientX, e.clientY);
+    }
+  };
+  cv.addEventListener('pointerup', ende); cv.addEventListener('pointercancel', ende);
+  cv.addEventListener('wheel', e => { e.preventDefault(); blick.dist *= Math.exp(e.deltaY * 0.0012); blick.user = performance.now(); los(); }, {passive: false});
+  function treffer(cx, cy) {
+    const r = cv.getBoundingClientRect(); ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, kamera);
+    const ziele = [...trefferIgel.filter(t => t.parent.visible), muehlenTreffer, ...trefferFelder];
+    const hits = ray.intersectObjects(ziele, false);
+    if (hits.length) onTipp(Object.assign({}, hits[0].object.userData.tipp));
+    else onTipp({art: 'leer'});
+  }
+
+  /* ---------- Abläufe ---------- */
+  let anzeige = null; // zuletzt dargestellter Stand
+  function setze(S) {
+    anzeige = S;
+    if (igel.length !== S.n) neueIgel(farben, S.n);
+    for (let p = 0; p < S.n; p++) for (let i = 0; i < 4; i++) igelSetzen(p, i, S.igel[p][i]);
+    window.Igelhuegel.HOHL.forEach(k => deckelSetzen(k, S.offen.includes(k)));
+    fluegel.rotation.z = -(S.kurbel.dreh || 0) * Math.PI / 2; kurbel.rotation.x = -(S.kurbel.dreh || 0) * Math.PI * 2;
+    los();
+  }
+  function blickAuf(pos) {
+    const f = pos >= 1 && pos <= 28 ? FELD[pos] : FELD[1];
+    if (performance.now() - blick.user < 3500) return; // wer gerade selbst dreht, wird nicht gestört
+    blick.autoAz = Math.atan2(f.z, f.x) + 0.12; los();
+  }
+  async function huepfen(x, p, i, pfad) {
+    let von = x.g.position.clone();
+    for (let s = 0; s < pfad.length; s++) {
+      const q = punktVon(pfad[s], p, i), nach = new THREE.Vector3(q.x, q.y, q.z), dist = von.distanceTo(nach);
+      const dir = Math.atan2(nach.x - von.x, nach.z - von.z), dir0 = x.g.rotation.y;
+      let dd = dir - dir0; dd = Math.atan2(Math.sin(dd), Math.cos(dd));
+      const hoch = 0.55 + dist * 0.22, a = von.clone();
+      await tween(250 + dist * 70, k => {
+        x.g.position.lerpVectors(a, nach, k); x.g.position.y += Math.sin(Math.PI * k) * hoch;
+        x.g.rotation.y = dir0 + dd * Math.min(1, k * 2.5);
+        const sq = k < .15 ? 1 - k * 1.3 : k > .88 ? 1 - (1 - k) * 1.4 : 1.06; x.inner.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
+      }, k => k);
+      x.inner.scale.set(1, 1, 1); onHuepf(s, pfad.length);
+      von = nach;
+    }
+    if (pfad.length) x.g.rotation.y = punktVon(pfad[pfad.length - 1], p, i).dir;
+  }
+  async function plumps(x) {
+    const a = x.g.position.clone();
+    await tween(160, k => { x.inner.rotation.z = Math.sin(k * Math.PI * 4) * 0.18; });
+    await tween(620, k => { x.g.position.y = a.y - k * k * 1.3; x.inner.rotation.x = k * 1.2; x.inner.scale.setScalar(1 - k * 0.55); }, k => k);
+    x.g.visible = false; x.inner.rotation.set(0, 0, 0); x.inner.scale.set(1, 1, 1);
+  }
+  async function deckelAuf(k, auf) {
+    const d = deckel[k]; if (!d) return; const a = d.piv.rotation.x, b = auf ? -1.95 : 0;
+    await tween(auf ? 520 : 380, t => { d.piv.rotation.x = a + (b - a) * t; }, auf ? rausS : sanft);
+  }
+  async function animieren(alt, S) {
+    const l = S.letzt;
+    if (!alt || !l) { setze(S); return; }
+    if (igel.length !== S.n) neueIgel(farben, S.n);
+    if (l.art === 'zug') {
+      const x = igel[l.spieler][l.igel];
+      igelSetzen(l.spieler, l.igel, l.von); blickAuf(l.pfad[l.pfad.length - 1]);
+      markieren({});
+      await huepfen(x, l.spieler, l.igel, l.pfad);
+      if (l.fiel) await plumps(x);
+      if (l.ziel) await tween(700, k => { x.inner.position.y = 0.33 + Math.abs(Math.sin(k * Math.PI * 3)) * 0.4 * (1 - k); x.g.rotation.y += 0.05; });
+    } else if (l.art === 'drehen') {
+      markieren({});
+      const f0 = fluegel.rotation.z, k0 = kurbel.rotation.x;
+      if (l.offen[0]) blickAuf(l.offen[0]);
+      await tween(1000, k => { fluegel.rotation.z = f0 - k * Math.PI / 2; kurbel.rotation.x = k0 - k * Math.PI * 2; });
+      await Promise.all([...l.zu.map(k => deckelAuf(k, false)), ...l.offen.map(k => deckelAuf(k, true))]);
+      for (const g of l.gefallen) await plumps(igel[g.spieler][g.igel]);
+      if (!l.offen.length && !l.zu.length) await pause(200);
+    }
+    setze(S);
+  }
+  function bildschirm(was) { // Bildschirmpunkt für Proben: {art:'igel',p,i} | {art:'muehle'} | {art:'feld',f}
+    let v;
+    if (was.art === 'igel') { const x = igel[was.p][was.i]; v = x.g.position.clone(); v.y += 0.35; }
+    else if (was.art === 'muehle') { v = muehle.position.clone(); v.y += 0.8; }
+    else { const f = FELD[was.f]; v = new THREE.Vector3(f.x, f.y + 0.1, f.z); }
+    kamera.updateMatrixWorld(); v.project(kamera);
+    const r = cv.getBoundingClientRect(); return {x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height};
+  }
+
+  const ro = new ResizeObserver(() => groesse()); ro.observe(huelle);
+  groesse();
+  return {
+    setze, animieren, markieren, blickAuf, bildschirm, malen: los, groesse,
+    rahmen(oben, unten) { if (oben !== rahmen.oben || unten !== rahmen.unten) { rahmen = {oben, unten}; groesse(); } },
+    blickAufSitz(p) { const s = STARTPLATZ(p, 0); blick.az = Math.atan2(s.z, s.x) + AZ_OFF; kameraSetzen(); los(); },
+    farben(f) { farben = f; },
+    zerstoeren() { ro.disconnect(); tweens.clear(); weg = true; sichtbar = false; document.removeEventListener('visibilitychange', sicht); renderer.dispose(); renderer.forceContextLoss(); cv.remove(); },
+    get kamera() { return {az: blick.az, el: blick.el, dist: blick.dist}; },
+    ruhig: () => blick.autoAz == null && Math.abs(blick.vAz) < 1e-3 && Math.abs(blick.vEl) < 1e-3 && tweens.size === 0,
+  };
+}
+window.IHDrei = {erstellen};
+dispatchEvent(new Event('ih-drei'));
+</script>
+
+<script>
+"use strict";
+/* ===================== Spielsteuerung ===================== */
+const L = window.Igelhuegel;
+const REGELN = `
+<h3>Ziel</h3><p>Lass als Erste oder Erster einen deiner Igel oben am Apfelbaum ankommen.</p>
+<h3>Igel</h3><p>Ihr spielt zu zweit bis zu viert. Jede Person hat vier Igel einer Farbe. Alle Igel warten zu Beginn auf der Wiese vor der Treppe.</p>
+<h3>Karten</h3><p>Wer dran ist, deckt die oberste Karte auf. Es gibt 48 Karten: 24 mit einem Feld, 9 mit zwei Feldern, 3 mit drei Feldern und 12 mit der Windmühle. Ist der Stapel leer, wird die Ablage neu gemischt.</p>
+<h3>Laufen</h3><p>Bei einer Laufkarte hüpft einer deiner Igel so viele Felder bergauf. Du entscheidest, ob du einen neuen Igel einsetzt oder einen weiterziehst, der schon unterwegs ist. Auf jedem Feld steht nur ein Igel. Besetzte Felder werden übersprungen und nicht mitgezählt. Erdlöcher zählen mit – ein Igel fällt aber nur hinein, wenn sein Zug genau dort endet.</p>
+<h3>Windmühle</h3><p>Bei der Windmühlen-Karte drehst du die Windmühle oben am Baum eine Raste weiter. Dabei schließen sich die offenen Erdlöcher, und andere öffnen sich. Löcher gibt es nur auf den Holzdeckeln. Steht ein Igel auf einem Deckel, der aufklappt, plumpst er hinein und ist aus dem Spiel.</p>
+<h3>Aussetzen</h3><p>Wer alle vier Igel verloren hat, setzt bis zum Ende der Partie aus.</p>
+<h3>Ende</h3><p>Wer zuerst am Apfelbaum ankommt, gewinnt. Überzählige Felder verfallen.</p>
+<h3>Bedienung</h3><p>Tippe auf „Karte ziehen“. Bei einer Laufkarte leuchten deine Igel: Tippe einen an (oder wähle ihn unten), der Ring zeigt, wo er landet – dann „Hüpfen“ oder den Igel noch einmal antippen. Bei der Windmühle tippst du auf die Mühle oder auf „Windmühle drehen“. Mit einem Finger drehst du den Hügel, mit zwei Fingern zoomst du.</p>`;
+const AKZENT = '#9bd36a';
+let S = null, namen = [], farben = [], opt = {}, wahl = null, busy = false, stage = null, setupZiel = null, drei = null, ohne3D = false;
+let gezeigt = null, ansicht = Promise.resolve(), animiert = 0;
+const $ = id => document.getElementById(id);
+const ich = () => (Netz.laeuft ? Netz.meinSitz : null);
+const stapelZahl = s => (typeof s.stapel === 'number' ? s.stapel : s.stapel.length);
+const dreiBereit = new Promise(ok => {
+  if (window.IHDrei) return ok(true);
+  addEventListener('ih-drei', () => ok(true), {once: true});
+  setTimeout(() => ok(!!window.IHDrei), 6000);
+});
+
+/* ---------- Karten als Bild ---------- */
+const PFOTE = (x, y, s, r) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(${s})"><ellipse cx="0" cy="3" rx="5" ry="6.2"/><circle cx="-5" cy="-5" r="1.9"/><circle cx="-1.8" cy="-7.4" r="1.9"/><circle cx="1.8" cy="-7.4" r="1.9"/><circle cx="5" cy="-5" r="1.9"/></g>`;
+const MUEHLE_SVG = (f = '#7d532c') => `<g><path d="M44 96 L50 60 L58 60 L64 96 Z" fill="#b07a43"/><path d="M47 62 L54 50 L61 62 Z" fill="#8d3b2f"/>${[0, 90, 180, 270].map(a => `<g transform="rotate(${a + 20} 54 58)"><rect x="52.6" y="22" width="2.8" height="36" fill="${f}"/><rect x="55.4" y="26" width="9" height="24" rx="1.5" fill="#f0e3c6" stroke="${f}" stroke-width="1"/></g>`).join('')}<circle cx="54" cy="58" r="3.4" fill="${f}"/></g>`;
+function karteSvg(k) {
+  const rahmen = '<rect x="2" y="2" width="104" height="148" rx="11" fill="#fbf6ea" stroke="rgba(0,0,0,.12)" stroke-width="2"/>';
+  if (k === 'D') return `<svg viewBox="0 0 108 152">${rahmen}<rect x="9" y="9" width="90" height="134" rx="7" fill="none" stroke="#9bd36a" stroke-width="3"/>${MUEHLE_SVG()}<text x="54" y="128" text-anchor="middle" font-family="Bricolage Grotesque, system-ui" font-weight="800" font-size="17" fill="#2f5a22">Drehen</text></svg>`;
+  const pf = {1: [[54, 74, 1.5, 0]], 2: [[42, 88, 1.25, -12], [66, 60, 1.25, 12]], 3: [[34, 98, 1.05, -12], [56, 74, 1.05, 10], [74, 48, 1.05, -8]]}[k] || [];
+  return `<svg viewBox="0 0 108 152">${rahmen}<text x="14" y="34" font-family="Bricolage Grotesque, system-ui" font-weight="800" font-size="28" fill="#2f5a22">${k}</text><text x="94" y="136" text-anchor="end" font-family="Bricolage Grotesque, system-ui" font-weight="800" font-size="28" fill="#2f5a22" transform="rotate(180 87 128)">${k}</text><g fill="#6b4a2b">${pf.map(p => PFOTE(...p)).join('')}</g><text x="54" y="132" text-anchor="middle" font-family="Atkinson Hyperlegible, system-ui" font-weight="700" font-size="13" fill="#6b4a2b">${k === 1 ? '1 Feld' : k + ' Felder'}</text></svg>`;
+}
+const RUECKEN = `<svg viewBox="0 0 108 152"><rect x="2" y="2" width="104" height="148" rx="11" fill="#2f6b2a"/><rect x="8" y="8" width="92" height="136" rx="7" fill="none" stroke="#bfe39a" stroke-width="2.5"/><path d="M54 44c-14 0-24 12-24 30 0 22 12 40 24 40s24-18 24-40c0-18-10-30-24-30z" fill="#d8352a"/><path d="M54 44c2-8 6-13 12-15" stroke="#6b4a2b" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M57 40c7-8 16-6 18-3-6 6-12 6-18 3z" fill="#9bd36a"/><path d="M42 62c-4 6-5 12-4 18" stroke="rgba(255,255,255,.5)" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+function bild() {
+  return `<svg width="200" height="140" viewBox="0 0 200 140"><ellipse cx="100" cy="128" rx="92" ry="9" fill="rgba(0,0,0,.25)"/><path d="M8 124 C40 120 62 40 100 34 C138 40 160 120 192 124 Z" fill="#5fae46"/><path d="M30 118 C60 112 70 96 104 96 C130 96 140 84 150 76 C132 70 120 66 100 66 C86 66 78 58 92 52" fill="none" stroke="#e8d3a8" stroke-width="7" stroke-linecap="round"/><rect x="96" y="14" width="7" height="24" rx="2" fill="#7a4f2b"/><circle cx="100" cy="14" r="16" fill="#4f9a3c"/><circle cx="88" cy="20" r="10" fill="#5fae46"/><circle cx="112" cy="20" r="10" fill="#468c36"/><circle cx="94" cy="12" r="2.6" fill="#d8352a"/><circle cx="108" cy="18" r="2.6" fill="#d8352a"/><circle cx="101" cy="24" r="2.6" fill="#d8352a"/><g transform="translate(126 32)"><path d="M-5 26 L-3 4 L3 4 L5 26 Z" fill="#b07a43"/><path d="M-4.5 5 L0 -2 L4.5 5 Z" fill="#8d3b2f"/><g stroke="#7d532c" stroke-width="1.6"><line x1="0" y1="4" x2="-12" y2="-6"/><line x1="0" y1="4" x2="12" y2="-6"/><line x1="0" y1="4" x2="-12" y2="14"/><line x1="0" y1="4" x2="12" y2="14"/></g><g fill="#f0e3c6"><rect x="-10" y="-7" width="5" height="5" transform="rotate(45 -7.5 -4.5)"/><rect x="5" y="-7" width="5" height="5" transform="rotate(-45 7.5 -4.5)"/><rect x="-10" y="10" width="5" height="5" transform="rotate(-45 -7.5 12.5)"/><rect x="5" y="10" width="5" height="5" transform="rotate(45 7.5 12.5)"/></g><circle cx="0" cy="4" r="1.8" fill="#7d532c"/></g><g transform="translate(46 104)"><ellipse cx="0" cy="0" rx="16" ry="11" fill="#e8b24a"/><path d="M-14 -2 l-4 -7 6 3 1 -8 5 6 3 -8 4 7 4 -7 2 8 5 -5 0 8" fill="#b0791f"/><path d="M14 0 l9 3 -9 4z" fill="#e6c9a2"/><circle cx="23" cy="3" r="2" fill="#14100d"/></g><g transform="translate(136 82) scale(.8)"><ellipse cx="0" cy="0" rx="16" ry="11" fill="#ef7d6d"/><path d="M-14 -2 l-4 -7 6 3 1 -8 5 6 3 -8 4 7 4 -7 2 8 5 -5 0 8" fill="#a84a3d"/><path d="M14 0 l9 3 -9 4z" fill="#e6c9a2"/><circle cx="23" cy="3" r="2" fill="#14100d"/></g></svg>`;
+}
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  if (stage) { if (drei) { drei.zerstoeren(); drei = null; } stage.remove(); stage = null; }
+  document.querySelectorAll('.k-scroll').forEach(e => e.remove());
+  S = null; gezeigt = null; wahl = null;
+  const g = Kern.speicher.laden(), ok = g && g.S && g.S.igel;
+  const s = Kern.setup({
+    titel: 'Igelhügel', unter: 'Igel hüpfen den Hügel hinauf zum Apfelbaum. Aber Vorsicht: Die Windmühle öffnet Erdlöcher auf dem Pfad.',
+    bild: bild(), fakten: ['2–4 Personen', 'je 4 Igel', 'ca. 15 Minuten', 'in 3D'],
+    spieler: {min: 2, max: 4, standard: 3},
+    optionen: [{id: 'start', label: 'Wer beginnt? (Regel: die oder der Jüngste)', standard: '1', werte: [{wert: '1', text: 'Spieler 1'}, {wert: 'zufall', text: 'Zufall'}]}],
+    fortsetzen: ok ? `Zug ${g.S.zuege + 1} · ${g.namen.join(', ')}` : null,
+    onFortsetzen: () => beginnen(g),
+    onStart: ({anzahl, namen: n, farben: f, optionen}) => {
+      const start = optionen.start === 'zufall' ? Kern.zufall(anzahl) : 0;
+      beginnen({S: L.neu({anzahl, start}), namen: n, farben: f, opt: optionen});
+    }
+  });
+  setupZiel = s.ziel;
+}
+async function beginnen(d) {
+  S = d.S; namen = d.namen; farben = d.farben; opt = d.opt || {}; busy = false; wahl = null; gezeigt = null;
+  if (setupZiel) { setupZiel.remove(); setupZiel = null; }
+  speichern();
+  await aufbauen();
+  zeigen(S); zeichne(); Netz.melden();
+}
+const speichern = () => { if (S && S.phase !== 'ende') Kern.speicher.speichern({S, namen, farben, opt}); };
+
+/* ---------- Bühne ---------- */
+async function aufbauen() {
+  if (stage) { if (drei) { drei.zerstoeren(); drei = null; } stage.remove(); }
+  stage = Kern.el('div', 'k-buehne ih-stage' + (Netz.laeuft ? ' ih-netz' : ''));
+  stage.style.setProperty('--akzent', AKZENT);
+  stage.innerHTML = `<div class="ih-drei" id="ih-drei"></div><div class="ih-ohne" id="ih-ohne" hidden></div><div class="ih-liste" id="ih-liste"></div>
+    <div class="ih-hilfe" id="ih-hilfe">Ein Finger: Hügel drehen · Zwei Finger: zoomen</div>
+    <div class="ih-leiste" id="ih-leiste"><div class="ih-kplatz"><div class="ih-stapel" id="ih-stapel">${RUECKEN}<span class="zahl k-zahl" id="ih-zahl"></span></div><div class="ih-karte leer" id="ih-karte"><div class="in"></div></div></div>
+      <div class="ih-mitte"><div class="ih-text" id="ih-text"></div><div class="ih-wahl" id="ih-wahl"></div></div>
+      <div class="ih-akt"><button class="k-btn gross" id="ih-knopf">Karte ziehen</button></div></div>`;
+  document.body.appendChild(stage);
+  Kern.tap($('ih-knopf'), knopf);
+  Kern.tap($('ih-stapel'), () => { if (S && S.phase === 'ziehen') knopf(); });
+  const meinS = S;
+  const da = await dreiBereit;
+  if (!stage || S !== meinS && !S) return;
+  drei = da ? window.IHDrei.erstellen($('ih-drei'), {farben, onTipp: tippe3D, onHuepf: () => Kern.ton('tipp')}) : null;
+  ohne3D = !drei;
+  if (drei) { if (Netz.laeuft) drei.blickAufSitz(Netz.meinSitz); }
+  rahmenMessen();
+}
+function rahmenMessen() {
+  if (!drei || !stage) return;
+  const l = $('ih-liste').getBoundingClientRect(), u = $('ih-leiste').getBoundingClientRect();
+  drei.rahmen(Math.max(0, l.bottom + 4), Math.max(0, innerHeight - u.top + 6));
+}
+// Darstellung des 3D-Stands in Reihenfolge (Animationen nacheinander)
+function zeigen(neuS) {
+  const schnapp = neuS;
+  animiert++;
+  ansicht = ansicht.then(async () => {
+    try {
+      if (!stage) return;
+      if (drei) {
+        drei.farben(farben);
+        if (gezeigt && schnapp.nr === gezeigt.nr + 1 && schnapp.n === gezeigt.n && schnapp.letzt) {
+          if (schnapp.letzt.art === 'karte') await karteZeigen(schnapp, true);
+          else await drei.animieren(gezeigt, schnapp);
+        } else drei.setze(schnapp);
+      } else if (gezeigt && schnapp.nr === gezeigt.nr + 1 && schnapp.letzt && schnapp.letzt.art === 'karte') await karteZeigen(schnapp, true);
+      gezeigt = schnapp;
+    } catch (e) { console.error(e); }
+    finally { animiert--; if (stage) zeichne(); }
+  });
+  return ansicht;
+}
+async function karteZeigen(s, anim) {
+  const k = $('ih-karte'); if (!k) return;
+  k.classList.remove('leer'); k.querySelector('.in').innerHTML = karteSvg(s.karte);
+  if (anim) { Kern.ton('karte'); k.classList.remove('dreht'); void k.offsetWidth; k.classList.add('dreht'); await Kern.warte(520); }
+}
+
+/* ---------- Anzeige ---------- */
+function zeichne() {
+  if (!stage || !S) return;
+  const am = S.am, f = farben[am], dran = Netz.binDran(am), frei = !busy && animiert === 0;
+  stage.style.setProperty('--pc', f);
+  // Spielerliste
+  $('ih-liste').innerHTML = namen.map((nm, p) => {
+    const pips = S.igel[p].map(x => `<i class="ih-pip ${x === L.START ? '' : x === L.RAUS ? 'raus' : x === L.ZIEL ? 'ziel' : 'pfad'}"></i>`).join('');
+    const du = Netz.laeuft && p === ich() ? ' (du)' : '';
+    return `<div class="ih-pl${p === am && S.phase !== 'ende' ? ' am' : ''}${L.imSpiel(S, p) ? '' : ' aus'}" style="--pc:${farben[p]}"><span class="k-dot">${Kern.esc(nm.charAt(0).toUpperCase())}</span><span class="nm">${Kern.esc(nm)}${du}</span><span class="ih-pips">${pips}</span></div>`;
+  }).join('');
+  $('ih-zahl').textContent = stapelZahl(S);
+  const kEl = $('ih-karte');
+  if (S.karte != null) { if (!kEl.classList.contains('dreht') || kEl.dataset.k !== String(S.karte)) { kEl.classList.remove('leer'); kEl.querySelector('.in').innerHTML = karteSvg(S.karte); } kEl.dataset.k = String(S.karte); }
+  else if (S.ablage.length) { kEl.classList.remove('leer', 'dreht'); kEl.querySelector('.in').innerHTML = karteSvg(S.ablage[S.ablage.length - 1]); kEl.style.opacity = '.55'; kEl.dataset.k = ''; }
+  else { kEl.classList.add('leer'); kEl.querySelector('.in').innerHTML = ''; }
+  if (S.karte != null) kEl.style.opacity = '';
+  // Text, Auswahl, Knopf
+  const wer = Netz.laeuft ? (am === ich() ? 'Du bist' : `<b>${Kern.esc(namen[am])}</b> ist`) : `<b>${Kern.esc(namen[am])}</b> ist`;
+  const name = Netz.laeuft && am === ich() ? 'Du' : `<b>${Kern.esc(namen[am])}</b>`;
+  const kn = $('ih-knopf'), wl = $('ih-wahl');
+  let text = '', knopfText = 'Karte ziehen', knopfAn = false, puls = false, opts = '';
+  const offen = S.offen.length ? `Offene Löcher: Feld ${S.offen.join(', ')}` : 'Alle Erdlöcher sind zu.';
+  if (S.phase === 'ziehen') {
+    text = `${wer} dran: Karte ziehen.<small>${offen}</small>`; knopfAn = dran && frei; puls = knopfAn;
+  } else if (S.phase === 'zug') {
+    const z = L.zuege(S).filter(m => !m.gleich);
+    if (wahl != null && !z.some(m => m.igel === wahl)) wahl = null;
+    if (wahl == null && z.length === 1 && dran) wahl = z[0].igel;
+    const w = z.find(m => m.igel === wahl);
+    text = `${name}: ${S.karte === 1 ? '1 Feld' : S.karte + ' Felder'} bergauf.<small>${dran ? (w ? (w.fiel ? `Achtung: Feld ${w.nach} ist ein offenes Loch!` : w.nach === L.ZIEL ? 'Dieser Igel erreicht den Apfelbaum!' : `Landet auf Feld ${w.nach}.`) : 'Tippe einen leuchtenden Igel an.') : 'wählt einen Igel …'}</small>`;
+    knopfText = 'Hüpfen'; knopfAn = dran && frei && w != null; puls = knopfAn;
+    if (dran) opts = z.map(m => `<button class="ih-opt${m.fiel ? ' loch' : ''}" data-i="${m.igel}" aria-pressed="${m.igel === wahl}" style="--pc:${f}"><span class="k-dot"></span>${m.neu ? 'Neuer Igel' : 'Feld ' + m.von} → ${m.nach === L.ZIEL ? 'Baum' : m.nach}${m.fiel ? ' <em>Loch!</em>' : ''}</button>`).join('');
+  } else if (S.phase === 'drehen') {
+    text = `${name} ${Netz.laeuft && am === ich() ? 'drehst' : 'dreht'} die Windmühle.<small>${dran ? 'Tippe auf die Windmühle oder den Knopf.' : 'Gleich öffnen sich Erdlöcher …'}</small>`;
+    knopfText = 'Windmühle drehen'; knopfAn = dran && frei; puls = knopfAn;
+  } else if (S.phase === 'ende') {
+    text = S.sieger === 'niemand' ? 'Alle Igel sind in Erdlöchern verschwunden. Niemand gewinnt.' : `<b style="color:${farben[S.sieger]}">${Kern.esc(namen[S.sieger])}</b> erreicht den Apfelbaum und gewinnt!`;
+    knopfText = 'Karte ziehen'; knopfAn = false;
+  }
+  $('ih-text').innerHTML = text;
+  if (wl.dataset.h !== opts) { wl.innerHTML = opts; wl.dataset.h = opts; wl.querySelectorAll('.ih-opt').forEach(b => Kern.tap(b, () => optTipp(Number(b.dataset.i)))); }
+  else wl.querySelectorAll('.ih-opt').forEach(b => b.setAttribute('aria-pressed', Number(b.dataset.i) === wahl));
+  kn.textContent = knopfText; kn.disabled = !knopfAn; kn.classList.toggle('puls', puls); kn.hidden = S.phase === 'ende';
+  if (ohne3D) { const o = $('ih-ohne'); o.hidden = false; o.innerHTML = `<div><b>Die 3D-Ansicht steht auf diesem Gerät nicht zur Verfügung.</b>Gespielt wird über die Leiste unten.<div class="loecher">${S.n ? S.igel.map((r, p) => `${Kern.esc(namen[p])}: ${r.map(x => x === 0 ? 'Wiese' : x === -1 ? 'Loch' : x === 28 ? 'Baum' : 'Feld ' + x).join(' · ')}`).join('<br>') : ''}</div></div>`; }
+  // 3D-Markierungen
+  if (drei) {
+    if (S.phase === 'zug' && dran && frei) {
+      const z = L.zuege(S), w = z.find(m => m.igel === wahl);
+      drei.markieren({igel: z.map(m => [am, m.igel]), wahl: w ? [am, w.igel] : null, ziel: w ? w.nach : null, loch: !!(w && w.fiel)});
+    } else drei.markieren({muehle: S.phase === 'drehen' && dran && frei});
+  }
+  requestAnimationFrame(rahmenMessen);
+}
+
+/* ---------- Bedienung ---------- */
+function nichtDran() { Kern.ton('fehler'); Kern.hinweis(`${namen[S.am]} ist dran.`); }
+function knopf() {
+  if (!S || busy || animiert) return;
+  if (!Netz.binDran(S.am)) return nichtDran();
+  if (S.phase === 'ziehen') return Netz.tun('ziehen');
+  if (S.phase === 'drehen') return Netz.tun('drehen');
+  if (S.phase === 'zug' && wahl != null) { const i = wahl; wahl = null; return Netz.tun('zug', {igel: i}); }
+}
+function optTipp(i) {
+  if (!S || busy || animiert || S.phase !== 'zug') return;
+  if (!Netz.binDran(S.am)) return nichtDran();
+  if (wahl === i) { wahl = null; return Netz.tun('zug', {igel: i}); }
+  wahl = i; Kern.ton('tipp'); zeichne();
+}
+function tippe3D(t) {
+  if (!S || S.phase === 'ende') return;
+  if (busy || animiert) return;
+  if (t.art === 'leer') return;
+  const dran = Netz.binDran(S.am);
+  if (t.art === 'muehle') {
+    if (S.phase === 'drehen') return dran ? Netz.tun('drehen') : nichtDran();
+    return Kern.hinweis(S.phase === 'ziehen' ? 'Die Windmühle dreht nur, wer die Windmühlen-Karte zieht.' : 'Erst hüpfen – die Karte zeigt Felder, keine Windmühle.');
+  }
+  if (S.phase !== 'zug') { if (S.phase === 'ziehen' && t.art === 'igel') Kern.hinweis(dran ? 'Zieh zuerst eine Karte.' : `${namen[S.am]} ist dran.`); return; }
+  if (!dran) return nichtDran();
+  const z = L.zuege(S);
+  if (t.art === 'igel') {
+    if (t.p !== S.am) return Kern.hinweis('Das ist nicht dein Igel.');
+    let m = z.find(x => x.igel === t.i);
+    if (!m) return Kern.hinweis('Dieser Igel kann nicht mehr ziehen.');
+    if (m.gleich) m = z.find(x => x.neu && !x.gleich); // wartende Igel sind gleichwertig
+    return optTipp(m.igel);
+  }
+  if (t.art === 'feld') {
+    const w = z.find(m => m.igel === wahl);
+    if (w && w.nach === t.f) { wahl = null; return Netz.tun('zug', {igel: w.igel}); }
+    const m = z.find(x => x.nach === t.f && !x.gleich);
+    if (m) return optTipp(m.igel);
+  }
+}
+
+/* ---------- Züge (am Gerät bzw. beim Gastgeber) ---------- */
+async function ausfuehren(fn) {
+  if (busy) return Netz.melden();
+  busy = true;
+  const alt = S;
+  try {
+    S = fn(S);
+  } catch (e) { busy = false; Kern.ton('fehler'); Kern.hinweis(e.message); zeichne(); return Netz.melden(); }
+  wahl = null;
+  if (S.phase === 'ende') Kern.speicher.loeschen(); else speichern();
+  Netz.melden();
+  zeichne();
+  try { await zeigen(S); } finally { busy = false; }
+  geraeusche(alt, S);
+  zeichne();
+  if (S.phase === 'ende') await ende();
+}
+function geraeusche(alt, s) {
+  const l = s.letzt; if (!l) return;
+  if (l.art === 'zug' && l.fiel) { Kern.ton('fehler'); Kern.hinweis(`Plumps! ${namen[l.spieler]}s Igel ist ins Erdloch gefallen.`); }
+  if (l.art === 'drehen') {
+    if (l.gefallen.length) { Kern.ton('fehler'); Kern.hinweis(l.gefallen.map(g => `${namen[g.spieler]}s Igel`).join(', ') + (l.gefallen.length > 1 ? ' sind' : ' ist') + ' ins Erdloch gefallen.'); }
+    else Kern.ton('legen');
+  }
+  if (l.art === 'karte' && l.gemischt) Kern.hinweis('Der Stapel war leer – die Karten wurden neu gemischt.');
+  const raus = alt && s.phase !== 'ende' && alt.am !== s.am && (s.am - alt.am + s.n) % s.n > 1;
+  if (raus) Kern.hinweis('Wer keine Igel mehr hat, setzt aus.');
+}
+async function ende() {
+  zeichne();
+  let t, u;
+  if (S.sieger === 'niemand') { t = 'Niemand gewinnt'; u = 'Alle Igel sind in Erdlöchern verschwunden.'; }
+  else { t = `${namen[S.sieger]} gewinnt!`; u = `Ein Igel von ${Kern.esc(namen[S.sieger])} hat den Apfelbaum erreicht.`; Kern.ton('sieg'); Kern.feier(); }
+  if (Netz.laeuft) Netz.ereignis({daten: {ende: t}});
+  const w = await dialog(t, u, [{text: 'Nochmal', wert: 'nochmal', art: 'gut'}, {text: 'Hügel ansehen', wert: 'sehen', art: 'leise'}, {text: 'Neues Spiel', wert: 'neu', art: 'leise'}]);
+  if (w === 'nochmal') return nochmal();
+  if (w === 'neu') return neuesSpiel();
+  const l = Kern.el('div', 'ih-ende'), a = Kern.el('button', 'k-btn gut', 'Nochmal'), b = Kern.el('button', 'k-btn leise', 'Neues Spiel');
+  a.onclick = nochmal; b.onclick = neuesSpiel; l.append(a, b); stage.appendChild(l);
+}
+function nochmal() {
+  const start = ((S.start || 0) + 1) % S.n;
+  document.querySelectorAll('.ih-ende').forEach(e => e.remove());
+  S = L.neu({anzahl: S.n, start}); wahl = null; gezeigt = null; speichern();
+  zeigen(S); zeichne(); Netz.melden();
+}
+function neuesSpiel() { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); }
+// Eigene Rückfrage: die gewählte Antwort darf beim Schließen nicht verloren gehen.
+function dialog(titel, text, knoepfe) {
+  return new Promise(res => {
+    const box = Kern.el('div', '', `<h2>${Kern.esc(titel)}</h2><p>${text}</p>`), zeile = Kern.el('div', 'k-knoepfe'); box.appendChild(zeile);
+    const fe = Kern.fenster(box, {schliessbar: false});
+    knoepfe.forEach(b => { const k = Kern.el('button', 'k-btn' + (b.art ? ' ' + b.art : ''), Kern.esc(b.text)); k.onclick = () => { fe.schliessen(); res(b.wert); }; zeile.appendChild(k); });
+  });
+}
+
+Kern.init({id: 'igelhuegel', name: 'Igelhügel', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+
+/* Netzspiel: Gastgeber = Sitz 0. Er zieht Karten, mischt und kennt die Scheibe unter dem Hügel; die Mitspieler sehen
+   den Stapel nur als Anzahl und die Scheibe gar nicht. Animationen entstehen beim Mitspieler aus dem Stand-Unterschied. */
+Netz.einrichten({
+  spiel: 'igelhuegel', min: 2, max: 4,
+  starten(spieler, optionen) {
+    const start = optionen.start === 'zufall' ? Kern.zufall(spieler.length) : 0;
+    beginnen({S: L.neu({anzahl: spieler.length, start}), namen: spieler.map(p => p.name), farben: spieler.map(p => p.farbe), opt: optionen});
+  },
+  aktion(name, d, sitz) {
+    if (!S || S.phase === 'ende') return Netz.melden();
+    if (sitz !== null && sitz !== S.am) return Netz.melden(); // nicht dran
+    if (name === 'ziehen' && S.phase === 'ziehen') return ausfuehren(s => L.ziehen(s));
+    if (name === 'drehen' && S.phase === 'drehen') return ausfuehren(s => L.drehen(s));
+    if (name === 'zug' && S.phase === 'zug') { const i = Number(d.igel); if (!Number.isInteger(i)) return Netz.melden(); return ausfuehren(s => L.ziehe(s, i)); }
+    return Netz.melden();
+  },
+  zustand: () => ({S: L.oeffentlich(S), namen, farben}),
+  async stand(d) {
+    const alt = S, neu = d.S;
+    const neuePartie = !alt || neu.n !== alt.n || neu.nr < alt.nr || (neu.zuege === 0 && neu.nr === 0 && alt.nr > 0);
+    S = neu; namen = d.namen; farben = d.farben;
+    if (setupZiel) { setupZiel.remove(); setupZiel = null; }
+    document.querySelectorAll('.k-scroll').forEach(e => e.remove());
+    if (neuePartie) { document.querySelectorAll('.ih-ende').forEach(e => e.remove()); gezeigt = null; wahl = null; }
+    if (!stage) await aufbauen();
+    if (alt && neu.am !== alt.am) wahl = null;
+    zeichne();
+    const vorher = gezeigt;
+    await zeigen(neu);
+    if (vorher && neu.nr === vorher.nr + 1) geraeusche(vorher, neu);
+  },
+  ereignis(d) {
+    if (!d.ende) return;
+    if (S && S.sieger !== 'niemand') { const ichs = S.sieger === ich(); Kern.ton(ichs ? 'sieg' : 'runde'); if (ichs) Kern.feier(); }
+    Kern.hinweis(`${d.ende} – ${namen[0]} entscheidet, wie es weitergeht.`, 4000);
+  },
+  beendet: () => startseite(),
+});
+startseite();
+addEventListener('resize', () => { if (S && stage) { zeichne(); } });
+window.__test = {
+  zustand: () => S, wahl: () => wahl, frei: () => !busy && animiert === 0, drei: () => drei, ohne3D: () => ohne3D,
+  laden: s => { S = s; wahl = null; gezeigt = null; zeigen(S); zeichne(); },
+  karteOben: k => { S.stapel.push(k); },              // nächste Karte festlegen (nur Gastgeber / am Gerät)
+  scheibe: folge => { S.kurbel.folge = folge; S.kurbel.pos = -1; },
+  punkt: was => drei && drei.bildschirm(was),
+  ruhig: () => !drei || drei.ruhig(),
+};
+</script>
+</body>
+</html>

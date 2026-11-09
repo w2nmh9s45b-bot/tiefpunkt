@@ -15,6 +15,7 @@
  *                                     // Informationen weglassen/ersetzen.
  *     stand(daten) {},                // nur Mitspieler: neuer Stand → übernehmen und aus Sicht von Netz.meinSitz zeichnen.
  *     beendet() {},                   // optional: Netzspiel ist vorbei (Gastgeber hat beendet) → z. B. startseite()
+ *     stilleAktionen: ['strich'],     // optional: häufige Aktionen ohne automatisches Nachschicken des Stands
  *   });
  * Im Spiel:  Netz.tun('ziehe', {feld: 12})  statt die Zugfunktion direkt aufzurufen (Gastgeber führt sofort aus,
  *            Mitspieler schicken). Netz.aktiv, Netz.istHost, Netz.meinSitz, Netz.binDran(sitz), Netz.ereignis(obj).
@@ -190,17 +191,37 @@
 
   /* ---------- Gastgeber ---------- */
   // Züge nacheinander ausführen: Gibt adapter.aktion ein Promise zurück (z. B. während einer Animation), wartet der
-  // nächste Zug darauf – höchstens 15 Sekunden, damit ein offener Dialog das Spiel nicht festhält.
+  // nächste Zug darauf – höchstens 2,5 Sekunden, damit eine lange Animation oder ein offener Dialog nichts aufhält.
+  // Was ein Zug sofort ändert, geht gleich hinaus (auch wenn das Spiel selbst erst nach der Animation meldet);
+  // wer den Zug geschickt hat, bekommt immer eine Antwort – auch wenn das Spiel ihn verworfen hat.
   let kette = Promise.resolve();
   function ausfuehren(name, daten, sitz, vonId) {
     kette = kette.then(() => {
       let erg;
       try { erg = N.adapter.aktion(name, daten, sitz); } catch (e) { console.error(e); if (vonId != null) senden(vonId); return; }
+      // Dauer-Aktionen (z. B. Zeichenstriche, Ziehbewegungen) melden sich selbst – sonst ginge alle paar
+      // Millisekunden der ganze Stand hinaus.
+      if (N.adapter.stilleAktionen && N.adapter.stilleAktionen.includes(name)) return;
+      sendenWennNeu(vonId);
       if (erg && typeof erg.then === 'function') {
-        return Promise.race([erg.catch(e => console.error(e)), new Promise(ok => setTimeout(ok, 15000))]);
+        return Promise.race([erg.catch(e => console.error(e)).then(() => sendenWennNeu(null)), new Promise(ok => setTimeout(ok, 2500))]);
       }
     });
     return kette;
+  }
+  // Zuletzt verschickter Stand je Gerät: automatische Meldungen nur, wenn sich für dieses Gerät etwas geändert hat.
+  const zuletzt = new Map();
+  function sendenWennNeu(immerAn) {
+    if (N.rolle !== 'host' || !N.laeuft || !N.adapter) return;
+    for (const s of N.sitze) {
+      if (s.id === N.id) continue;
+      const sitz = N.sitze.indexOf(s);
+      let st; try { st = N.adapter.zustand(sitz); } catch (e) { console.error(e); continue; }
+      const text = JSON.stringify(st);
+      if (s.id !== immerAn && zuletzt.get(s.id) === text) continue;
+      zuletzt.set(s.id, text);
+      schicke(s.id, {t: 'stand', s: st, sitze: sitzeFuer()});
+    }
   }
   function sitzeFuer() { return N.sitze; }
   function senden(nurId) {
@@ -209,6 +230,7 @@
     for (const id of ziele) {
       const sitz = N.sitze.findIndex(s => s.id === id); if (sitz < 0) continue;
       let s; try { s = N.adapter.zustand(sitz); } catch (e) { console.error(e); continue; }
+      zuletzt.set(id, JSON.stringify(s));
       schicke(id, {t: 'stand', s, sitze: sitzeFuer()});
     }
   }
@@ -218,6 +240,7 @@
     const dabei = N.spieler.filter(s => s.verbunden !== false);
     const anz = dabei.length;
     if (anz < (a.min || 2) || anz > (a.max || 12) || (a.erlaubt && !a.erlaubt.includes(anz))) return;
+    zuletzt.clear();
     N.sitze = dabei.map(s => ({id: s.id, name: s.name}));
     N.meinSitz = 0; N.laeuft = true;
     roh({t: 'sperren'});

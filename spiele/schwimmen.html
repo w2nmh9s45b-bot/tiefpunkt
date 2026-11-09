@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Schwimmen · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Schwimmen: französische Karten des Kerns, Akzent Wasserblau. Leben als Hölzchen, wer schwimmt, bekommt eine Welle. */
+.sw-buehne{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px}
+.sw-oben{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding-left:118px;padding-right:118px;min-height:56px;align-content:flex-start}
+.sw-platz{display:flex;align-items:center;gap:9px;min-width:0;padding:6px 12px 6px 7px;border-radius:14px;background:var(--panel);border:1px solid var(--line);
+  transition:box-shadow .3s, background-color .3s, opacity .3s;position:relative}
+.sw-platz.dran{background:rgba(9,32,42,.92);box-shadow:inset 0 0 0 2px var(--pc), 0 0 22px color-mix(in srgb,var(--pc) 35%,transparent)}
+.sw-platz.raus{opacity:.4}
+.sw-platz .k-dot{width:30px;height:30px;font-size:14px}
+.sw-platz b{display:block;font-size:15px;max-width:8em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw-platz small{display:flex;align-items:center;gap:4px;color:var(--ink2);font-size:12px;white-space:nowrap;min-height:18px}
+.sw-holz{display:inline-block;width:4px;height:16px;border-radius:2px;background:#e9cf9a;position:relative;margin-right:2px}
+.sw-holz::before{content:"";position:absolute;left:-1.5px;top:-2px;width:7px;height:6px;border-radius:50% 50% 45% 45%;background:#d8483c}
+.sw-holz.weg{background:rgba(233,207,154,.18)}.sw-holz.weg::before{background:rgba(216,72,60,.2)}
+.sw-welle{display:inline-flex;align-items:center;gap:4px;color:var(--akzent);font-weight:700}
+.sw-welle svg{width:22px;height:12px}
+.sw-marke{position:absolute;right:-6px;top:-8px;font:800 11px var(--f-ui);border-radius:99px;padding:1px 7px;letter-spacing:.04em;background:var(--warn);color:#2a1f05}
+.sw-geber{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);font:700 10px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;
+  background:var(--sea);border:1px solid var(--line);color:var(--ink2);border-radius:99px;padding:0 6px;white-space:nowrap}
+.sw-luecke{display:none}
+
+.sw-mitte{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--mw)*.12 + 6px);min-height:0}
+.sw-satz{font-size:clamp(17px,2vw,21px);text-align:center;line-height:1.3;max-width:min(760px,96vw);text-wrap:balance;min-height:1.3em}
+.sw-satz b{color:var(--pc,var(--akzent));font-family:var(--f-disp);font-weight:800}
+.sw-tisch{display:flex;align-items:center;gap:calc(var(--mw)*.4)}
+.sw-stapel{position:relative;width:calc(var(--mw)*.66);height:calc(var(--mw)*.66*1.4);--kw:calc(var(--mw)*.66)}
+.sw-stapel .k-karte{position:absolute;left:0;top:0}
+.sw-stapel .k-karte:nth-child(1){transform:translate(4px,4px)}.sw-stapel .k-karte:nth-child(2){transform:translate(2px,2px)}
+.sw-cnt{position:absolute;right:-9px;top:-9px;z-index:3;min-width:28px;height:28px;padding:0 6px;border-radius:99px;background:#e8f1ee;color:#132f4a;font:700 13px var(--f-ui);display:grid;place-items:center}
+.sw-cap{position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);white-space:nowrap;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.sw-reihe{position:relative;display:flex;gap:calc(var(--mw)*.14);padding:calc(var(--mw)*.12);border-radius:calc(var(--mw)*.2);
+  background:radial-gradient(ellipse at 50% 50%,rgba(95,208,216,.13),rgba(95,208,216,.03) 70%);box-shadow:inset 0 0 0 1px rgba(95,208,216,.22);--kw:var(--mw)}
+.sw-reihe .sw-cap{top:calc(100% + 8px)}
+.sw-karte{position:relative;border-radius:calc(var(--kw)*.11);transition:transform .2s cubic-bezier(.3,.7,.3,1), box-shadow .2s}
+.sw-karte.ja{cursor:pointer}
+.sw-karte.ja:hover{transform:translateY(-6px)}
+.sw-karte.wahl{transform:translateY(-12px)}
+.sw-karte.wahl .k-karte{box-shadow:0 0 0 4px var(--akzent),0 12px 24px rgba(0,0,0,.45)}
+.sw-karte.ja::after{content:"";position:absolute;inset:-5px;border-radius:calc(var(--kw)*.16);box-shadow:0 0 0 2px color-mix(in srgb,var(--akzent) 70%,transparent);pointer-events:none;opacity:.45}
+.sw-karte.wahl::after{opacity:0}
+.sw-karte.neu .k-karte{animation:sw-ein .45s cubic-bezier(.2,.8,.3,1)}
+.sw-karte.frisch .k-karte{box-shadow:0 0 0 3px var(--akzent),0 6px 14px rgba(0,0,0,.35)}
+@keyframes sw-ein{from{transform:translateY(-30%) scale(.9) rotate(-5deg);opacity:0}}
+.sw-infos{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:calc(var(--mw)*.08 + 8px)}
+.sw-infos .k-chip{font-size:14px;padding:.3em .8em}
+.sw-log{font-size:15px;color:var(--ink2);text-align:center;min-height:1.2em;max-width:min(760px,96vw)}
+
+.sw-unten{display:flex;flex-direction:column;gap:10px;align-items:center}
+.sw-leiste{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;min-height:52px;align-items:center}
+.sw-hand{display:flex;gap:calc(var(--hw)*.14);align-items:flex-end;padding-top:14px;--kw:var(--hw);min-height:calc(var(--hw)*1.4 + 14px)}
+.sw-wert{display:flex;align-items:baseline;gap:10px;background:#fbf8f1;color:#1e2a30;border-radius:14px;padding:6px 14px;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+.sw-wert big{font:800 28px/1 var(--f-disp)}
+.sw-wert small{font-size:14px;color:#46565c}
+.sw-wert.rot small b{color:#c0392b}
+.sw-wahl p{margin:0}
+
+/* Wertung */
+.sw-tab{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:16px}
+.sw-tab td,.sw-tab th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.sw-tab th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.sw-tab .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sw-tab tr.verl td{color:#ffc9bf}
+.sw-tab tr.verl td b{color:var(--fehler)}
+.sw-mini{display:flex;gap:3px;--kw:30px}
+.sw-tab small{color:var(--ink2);font-size:13px;display:block}
+.sw-meldung{position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:300;pointer-events:none;background:#f4efe4;color:#14262b;font-weight:700;
+  padding:11px 20px;border-radius:99px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100% - 40px);text-align:center;animation:k-hoch .25s cubic-bezier(.2,.8,.3,1)}
+.sw-meldung.gross{white-space:nowrap;font:800 32px var(--f-disp);padding:14px 30px;background:var(--akzent);color:#08262b}
+.sw-start{display:flex;align-items:flex-end;--kw:76px}
+@media (prefers-reduced-motion:reduce){.sw-karte,.sw-karte .k-karte{animation:none!important;transition:none!important}}
+/* Telefon hoch */
+@media (max-width:700px){
+  .sw-buehne{gap:6px}
+  .sw-oben{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 6px;padding:0;min-height:46px;align-content:start}
+  .sw-luecke{display:block;min-height:44px}
+  .sw-platz{gap:6px;padding:4px 6px 4px 4px;border-radius:12px;min-height:44px}
+  .sw-platz .k-dot{width:24px;height:24px;font-size:12px}
+  .sw-platz > span:nth-child(2){min-width:0}
+  .sw-platz b{font-size:14px;max-width:none}
+  .sw-holz{height:13px;width:3.5px}
+  .sw-geber{font-size:10px;bottom:-10px}
+  .sw-satz{font-size:16px}
+  .sw-tisch{flex-direction:column;gap:calc(var(--mw)*.2 + 18px)}
+  .sw-stapel{display:none}
+  .sw-infos .k-chip{font-size:13px;padding:.25em .65em}
+  .sw-log{font-size:13px;line-height:1.3}
+  .sw-cap{font-size:12px}
+  .sw-unten{gap:8px}
+  .sw-leiste{gap:8px;min-height:46px;width:100%}
+  .sw-leiste > .k-btn{flex:1 1 0;min-height:46px;padding:4px 8px;font-size:15px;white-space:normal;line-height:1.15;border-radius:12px}
+  .sw-wert{padding:5px 12px}.sw-wert big{font-size:24px}.sw-wert small{font-size:13px}
+  .sw-tab{font-size:15px}.sw-tab td,.sw-tab th{padding:7px 3px}
+  .sw-mini{--kw:24px;gap:2px}
+}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
+<script src="schwimmen.logik.js"></script>
+<script>
+"use strict";
+(() => {
+const W = window.Schwimmen;
+const AKZENT = '#5fd0d8';
+const FARBEN9 = [...Kern.farben, '#e3d26f'];
+const esc = Kern.esc;
+const TEST = {rnd: null};
+const R = n => TEST.rnd ? TEST.rnd(n) : Kern.zufall(n);
+const HANDY = matchMedia('(max-width:700px)');
+let S = null, OFFEN = null, WEITERGEBEN = false, START = null, B = null, WAHL = {h: null, m: null}, ZULETZT_MITTE = '', FRISCH = new Set();
+const WELLE = '<svg viewBox="0 0 22 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M1 7c2.5-3 5-3 7 0s4.5 3 7 0 4.5-3 6 0"/></svg>';
+
+const REGELN = `
+<p>Sammle mit drei Handkarten möglichst viele Punkte in einer Farbe. Wer am Ende einer Runde die wenigsten hat, verliert ein Leben. Wer zuletzt noch im Spiel ist, gewinnt.</p>
+<h3>Werte</h3>
+<p>Ass 11, König, Dame, Bube und 10 je 10, 9, 8 und 7 nach Augen. Es zählt die Summe der Karten <b>einer</b> Farbe – die beste Farbe deiner Hand. Drei gleiche Karten (z. B. drei Damen) zählen <b>30½</b>. Am meisten sind <b>31</b>: Ass und zwei Zehner-Karten in einer Farbe.</p>
+<h3>Austeilen</h3>
+<p>Alle bekommen drei Karten. Wer gibt, bekommt zwei Dreiersätze, sieht sich den ersten an und entscheidet: <b>behalten</b> – dann kommt der zweite offen in die Mitte – oder <b>die anderen drei nehmen</b> (ungesehen) – dann kommt der erste offen in die Mitte.</p>
+<h3>Dein Zug</h3>
+<ul>
+<li><b>Eine Karte tauschen:</b> Tippe eine eigene Karte und eine Karte der Mitte an.</li>
+<li><b>Alle drei tauschen:</b> Deine Hand gegen die ganze Mitte. Zwei Karten tauschen geht nicht.</li>
+<li><b>Schieben:</b> Du tauschst nichts. Schieben alle nacheinander, kommen drei neue Karten in die Mitte.</li>
+<li><b>Klopfen:</b> Du tauschst nicht und beendest die Runde: Alle anderen haben noch genau einen Zug, dann wird aufgedeckt.</li>
+</ul>
+<h3>31 und Feuer</h3>
+<p>Wer 31 Punkte hat, deckt sofort auf – die Runde ist vorbei, auch schon direkt nach dem Austeilen. <b>Feuer</b> (drei Asse) beendet die Runde ebenfalls sofort, dann verlieren <b>alle anderen</b> ein Leben. Ohne die Feuer-Option zählen drei Asse 30½.</p>
+<h3>Leben und Schwimmen</h3>
+<p>Alle haben drei Hölzchen. Wer die wenigsten Punkte hat, gibt eines ab – bei Gleichstand alle mit den wenigsten. Wer das letzte abgegeben hat, <b>schwimmt</b>: weiterspielen auf Bewährung. Verliert man schwimmend noch einmal, ist man raus. Würden alle Übrigen zugleich ausscheiden, scheidet niemand aus.</p>`;
+
+Kern.init({id: 'schwimmen', name: 'Schwimmen', akzent: AKZENT, regeln: REGELN,
+  onNeu: () => { Kern.speicher.loeschen(); startseite(); }, menue: [{text: 'Leben im Überblick', aktion: () => lebenFenster()}]});
+
+/* ---------- Karten ---------- */
+function karteHtml(k, cls = '', attr = '') {
+  const e = Kern.karte({rang: k.r, farbe: k.f}); e.setAttribute('aria-label', W.name(k));
+  return `<div class="sw-karte ${cls}" ${attr}>${e.outerHTML}</div>`;
+}
+const rueckHtml = (cls = '', attr = '') => `<div class="sw-karte ${cls}" ${attr}><div class="k-karte zu"></div></div>`;
+function hinweis(text, ms = 2600, gross = false) {
+  document.querySelectorAll('.sw-meldung').forEach(e => e.remove());
+  const m = Kern.el('div', 'sw-meldung' + (gross ? ' gross' : ''), esc(text)); document.body.appendChild(m);
+  const h = B && B.querySelector('.sw-leiste'); if (h) m.style.top = Math.max(70, h.getBoundingClientRect().top - (gross ? 84 : 64)) + 'px';
+  setTimeout(() => m.remove(), ms);
+}
+function holzHtml(i) {
+  const l = S.leben[i], max = Number(S.opt.leben) || 3;
+  if (l < 0) return '<span>ausgeschieden</span>';
+  if (l === 0) return `<span class="sw-welle">${WELLE}schwimmt</span>`;
+  return Array.from({length: max}, (_, j) => `<i class="sw-holz${j < l ? '' : ' weg'}"></i>`).join('');
+}
+
+/* ---------- Netzspiel: Hilfen ---------- */
+const NETZ = () => Netz.laeuft;
+const meins = sitz => sitz == null || !Netz.laeuft || sitz === Netz.meinSitz;
+function sag(sitz, text, ms) { if (meins(sitz)) hinweis(text, ms); else Netz.ereignis({daten: {an: sitz, hinweis: text, ms}}); }
+const ichDran = () => (NETZ() ? S.dran === Netz.meinSitz : OFFEN === S.dran);
+const amEnde = () => S.phase === 'rundenende' || S.phase === 'spielende';
+let WERT_FE = null, WERT_MARKE = '';
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  document.querySelectorAll('.sw-buehne').forEach(e => e.remove());
+  if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; }
+  WERT_MARKE = ''; WEITERGEBEN = false; WAHL = {h: null, m: null};
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null; OFFEN = null;
+  const alt = Kern.speicher.laden(), lauf = alt && alt.s && alt.s.phase !== 'spielende' ? alt.s : null;
+  const bsp = [{f: 'karo', r: 'A'}, {f: 'karo', r: 'K'}, {f: 'karo', r: '10'}];
+  Kern.setup({
+    ziel: START, titel: 'Schwimmen', unter: 'Drei Karten, eine Farbe, einunddreißig Punkte – und wer zu wenig hat, geht baden.',
+    bild: `<div class="sw-start">${bsp.map((k, i) => `<div style="transform:translateY(${i === 1 ? 0 : 8}px) rotate(${(i - 1) * 10}deg);margin-left:${i ? -20 : 0}px">${Kern.karte({rang: k.r, farbe: k.f}).outerHTML}</div>`).join('')}</div>`,
+    fakten: ['2–9 Personen', '32 Karten', 'ca. 20 Minuten'],
+    spieler: {min: 2, max: 9, standard: 4, farben: FARBEN9},
+    optionen: [
+      {id: 'feuer', label: 'Drei Asse', werte: [{wert: 'an', text: 'Feuer – Runde sofort vorbei'}, {wert: 'aus', text: 'Zählen 30½'}], standard: 'an'},
+      {id: 'klopfen', label: 'Klopfen', werte: [{wert: 'immer', text: 'Jederzeit'}, {wert: 'zweite', text: 'Erst ab der zweiten Runde'}], standard: 'immer'},
+    ],
+    fortsetzen: lauf ? `Runde ${lauf.runde} · ${lauf.namen.join(', ')}` : null,
+    onFortsetzen: () => { S = lauf; spielen(); },
+    onStart: ({namen, farben, optionen}) => { neuesSpiel(namen, farben, optionen); }
+  });
+}
+function neuesSpiel(namen, farben, opt) {
+  S = W.neu({namen, opt}, R); S.farben = farben; speichern(); WAHL = {h: null, m: null}; ZULETZT_MITTE = '';
+  if (NETZ()) { buehneBauen(); Netz.melden(); return; }
+  spielen();
+}
+const speichern = () => Kern.speicher.speichern({s: S});
+
+/* ---------- Spielfläche ---------- */
+function spielen() { buehneBauen(); weiterAn(); }
+function buehneBauen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.sw-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne sw-buehne');
+  B.innerHTML = `<div class="sw-oben"></div><div class="sw-mitte"></div><div class="sw-unten"><div class="sw-leiste"></div><div class="sw-hand"></div></div>`;
+  document.body.appendChild(B);
+  OFFEN = null; masse(); zeichnen();
+}
+function masse() {
+  if (!B) return;
+  const Wd = innerWidth, H = innerHeight, hoch = H > Wd * 1.05, viele = S && S.namen.length > 6;
+  let mw = Math.round(Math.max(56, Math.min(hoch ? 170 : 128, Wd / (hoch ? 5 : 9.5), H * (hoch ? 0.13 : 0.16))));
+  let hw = Math.round(Math.max(60, Math.min(hoch ? 190 : 140, Wd / (hoch ? 4.6 : 8.4), H * (hoch ? 0.14 : 0.18))));
+  if (HANDY.matches && hoch) { mw = Math.round(Math.min(Wd / 4.6, H * (viele ? .095 : .11))); hw = Math.round(Math.min(Wd / 4, H * (viele ? .11 : .125))); }
+  B.style.setProperty('--mw', mw + 'px'); B.style.setProperty('--hw', hw + 'px');
+}
+addEventListener('resize', () => { if (B && S) zeichnen(); });
+
+const nm = i => esc(S.namen[i]);
+const farbe = i => S.farben[i] || FARBEN9[i % FARBEN9.length];
+function zeichnen() {
+  if (!B || !S) return;
+  masse();
+  const netz = NETZ(), ich = netz ? Netz.meinSitz : null;
+  const offen = netz ? S.dran === ich && !amEnde() : OFFEN !== null && (OFFEN === S.dran || WEITERGEBEN) && !amEnde();
+  const sicht = netz ? ich : OFFEN; // wessen Hand dieses Gerät zeigt
+  const handeln = offen && !WEITERGEBEN;
+  // Plätze
+  const hervor = WEITERGEBEN ? OFFEN : S.dran;
+  B.querySelector('.sw-oben').innerHTML = '<div class="sw-luecke"></div>' + S.namen.map((n, i) => `<div class="sw-platz${i === hervor && !amEnde() ? ' dran' : ''}${S.leben[i] < 0 ? ' raus' : ''}" style="--pc:${farbe(i)}" id="sw-platz-${i}">
+    <span class="k-dot">${esc(n.charAt(0).toUpperCase())}</span><span><b>${esc(n)}${netz && i === ich ? ' (du)' : ''}</b><small>${holzHtml(i)}</small></span>
+    ${S.geklopft === i && !amEnde() ? '<span class="sw-marke">klopft</span>' : ''}${i === S.geber && S.leben[i] >= 0 ? '<span class="sw-geber">gibt</span>' : ''}</div>${netz && i === 0 ? '<div class="sw-luecke"></div>' : ''}`).join('');
+  // Mitte
+  const m = B.querySelector('.sw-mitte');
+  const wahlMitte = handeln && S.phase === 'zug';
+  let reihe;
+  if (S.phase === 'geberWahl') reihe = [0, 1, 2].map(j => rueckHtml('', `data-m="${j}"`)).join('');
+  else {
+    const ids = S.mitte.map(k => k.id).join(',');
+    const neuIds = ZULETZT_MITTE && ZULETZT_MITTE !== ids ? new Set(ZULETZT_MITTE.split(',').map(Number)) : null;
+    reihe = S.mitte.map((k, j) => karteHtml(k, (wahlMitte ? 'ja' : '') + (WAHL.m === j ? ' wahl' : '') + (neuIds && !neuIds.has(k.id) ? ' neu' : ''), `data-m="${j}" id="sw-m-${j}"`)).join('');
+    ZULETZT_MITTE = ids;
+  }
+  m.innerHTML = `<div class="sw-satz">${satz(offen)}</div>
+    <div class="sw-tisch">
+      <div class="sw-stapel" aria-label="Stapel"><div class="k-karte zu"></div><div class="k-karte zu"></div><div class="k-karte zu"></div><span class="sw-cnt k-zahl">${S.stapel.length}</span><span class="sw-cap">Stapel</span></div>
+      <div class="sw-reihe" id="sw-mitte">${reihe}<span class="sw-cap">${S.phase === 'geberWahl' ? 'Zweiter Satz' : 'Mitte'}</span></div>
+    </div>
+    <div class="sw-infos"><span class="k-chip leise">Runde ${S.runde}</span>${S.schieben && !amEnde() && S.geklopft === null ? `<span class="k-chip leise">${S.schieben}× geschoben</span>` : ''}${S.geklopft !== null && !amEnde() ? `<span class="k-chip warn">${nm(S.geklopft)} hat geklopft – letzte Runde</span>` : ''}</div>
+    <div class="sw-log">${esc(S.log.slice(-2).join(' '))}</div>`;
+  m.querySelectorAll('[data-m]').forEach(e => Kern.tap(e, () => tippeMitte(+e.dataset.m)));
+  // Leiste
+  const lst = B.querySelector('.sw-leiste'); lst.innerHTML = '';
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + (art || ''), t); b.id = id; b.onclick = fn; lst.appendChild(b); return b; };
+  if (offen && WEITERGEBEN) knopf('Fertig – weitergeben', 'sw-fertig', '', () => { WEITERGEBEN = false; nachZug(); });
+  else if (handeln && S.phase === 'geberWahl') {
+    knopf('Behalten', 'sw-behalten', '', () => Netz.tun('geber', {behalten: true}));
+    knopf('Die anderen drei nehmen', 'sw-nehmen', 'leise', () => Netz.tun('geber', {behalten: false}));
+  } else if (handeln && S.phase === 'zug') {
+    knopf('Alle drei tauschen', 'sw-alle', 'leise', () => { WAHL = {h: null, m: null}; Netz.tun('alle'); });
+    knopf('Schieben', 'sw-schieben', 'leise', () => { WAHL = {h: null, m: null}; Netz.tun('schieben'); });
+    if (W.darfKlopfen(S)) knopf('Klopfen', 'sw-klopfen', 'leise', () => klopfen());
+  }
+  // Hand
+  const hEl = B.querySelector('.sw-hand');
+  const h = sicht !== null && sicht !== undefined && S.haende[sicht] && Array.isArray(S.haende[sicht]) && S.haende[sicht][0] && S.haende[sicht][0].r ? S.haende[sicht] : null;
+  const zeigen = netz ? !!h && S.leben[ich] >= 0 : offen && !!h;
+  if (zeigen) {
+    const wh = W.handWert(h, S.opt.feuer !== 'aus');
+    hEl.innerHTML = h.map((k, j) => karteHtml(k, (wahlMitte ? 'ja' : '') + (WAHL.h === j ? ' wahl' : '') + (FRISCH.has(k.id) ? ' frisch' : ''), `data-h="${j}" id="sw-h-${j}"`)).join('');
+    lst.insertAdjacentHTML('afterbegin', `<div class="sw-wert${wh.farbe === 'herz' || wh.farbe === 'karo' ? ' rot' : ''}" id="sw-wert"><big class="k-zahl">${W.zahlText(wh.wert)}</big><small>${wertKlein(wh, h)}</small></div>`);
+    hEl.querySelectorAll('[data-h]').forEach(e => Kern.tap(e, () => tippeHand(+e.dataset.h)));
+  } else {
+    const leer = netz ? S.leben[ich] < 0 : false;
+    hEl.innerHTML = leer ? '<div class="sw-log">Du bist ausgeschieden und schaust zu.</div>' : [0, 1, 2].map(() => rueckHtml()).join('');
+  }
+  if (!WEITERGEBEN) FRISCH.clear();
+  einpassen();
+}
+function einpassen() {
+  const m = B.querySelector('.sw-mitte'); let mw = parseFloat(B.style.getPropertyValue('--mw'));
+  for (let i = 0; i < 10 && m.scrollHeight > m.clientHeight + 1 && mw > 44; i++) { mw = Math.round(mw * .9); B.style.setProperty('--mw', mw + 'px'); }
+}
+function satz(offen) {
+  if (amEnde()) return 'Die Runde ist vorbei – aufgedeckt!';
+  const netz = NETZ(), d = WEITERGEBEN && OFFEN !== null ? OFFEN : S.dran, wer = `<b style="--pc:${farbe(d)}">${nm(d)}</b>`;
+  const du = netz ? 'Du bist dran: ' : `${wer}, `;
+  if (!offen) {
+    if (netz) return S.phase === 'geberWahl' ? `${wer} gibt und entscheidet über die eigenen Karten.` : `${wer} ist dran.`;
+    return `Gleich ist ${wer} dran.`;
+  }
+  if (WEITERGEBEN) return `${wer}, so sieht dein Blatt jetzt aus. Gib das ${Kern.geraet} weiter.`;
+  if (S.phase === 'geberWahl') return `${du}${netz ? 'du gibst. ' : 'du gibst. '}Behältst du deine Karten oder nimmst du die anderen drei?`;
+  if (S.geklopft !== null) return `${du}letzter Zug – tauschen oder schieben.`;
+  if (WAHL.h !== null) return `${du}jetzt eine Karte aus der Mitte antippen.`;
+  if (WAHL.m !== null) return `${du}jetzt die eigene Karte antippen, die du abgibst.`;
+  return `${du}tausche eine Karte, alle drei, schiebe oder klopfe.`;
+}
+
+/* Kleine Zeile neben dem Handwert: Farbe und Summanden, bei drei gleichen bzw. Feuer der Name. */
+function wertKlein(wh, h) {
+  if (wh.art === 'feuer') return 'Feuer – drei Asse';
+  if (wh.art === 'drei') return 'drei gleiche';
+  const ks = h.filter(k => k.f === wh.farbe);
+  return `<b>${W.SYM[wh.farbe]}</b> ${ks.length > 1 ? ks.map(k => W.wert(k)).join(' + ') : 'eine Karte'}`;
+}
+
+/* ---------- Bedienung ---------- */
+function nichtDran() { if (NETZ() && S && !amEnde()) { Kern.ton('fehler'); hinweis(`${S.namen[S.dran]} ist dran.`); } }
+function tippeHand(j) {
+  if (!S || WEITERGEBEN || amEnde()) return;
+  if (!ichDran()) return nichtDran();
+  if (S.phase !== 'zug') return;
+  if (WAHL.m !== null) { const m = WAHL.m; WAHL = {h: null, m: null}; Netz.tun('tausch', {h: j, m}); return; }
+  WAHL.h = WAHL.h === j ? null : j; Kern.ton('tipp'); zeichnen();
+}
+function tippeMitte(j) {
+  if (!S || WEITERGEBEN || amEnde()) return;
+  if (!ichDran()) return nichtDran();
+  if (S.phase !== 'zug') return;
+  if (WAHL.h !== null) { const h = WAHL.h; WAHL = {h: null, m: null}; Netz.tun('tausch', {h, m: j}); return; }
+  WAHL.m = WAHL.m === j ? null : j; Kern.ton('tipp'); zeichnen();
+}
+async function klopfen() {
+  const ja = await new Promise(res => {
+    const box = Kern.el('div'); box.innerHTML = '<h2>Klopfen?</h2><p>Du tauschst nicht mehr. Alle anderen haben noch genau einen Zug, dann wird aufgedeckt.</p><div class="k-knoepfe"></div>';
+    let w = false; const fe = Kern.fenster(box, {schliessbar: false, beimSchliessen: () => res(w)});
+    const a = Kern.el('button', 'k-btn leise', 'Doch nicht'); a.onclick = () => fe.schliessen();
+    const b = Kern.el('button', 'k-btn', 'Klopfen'); b.id = 'sw-klopfen-ja'; b.onclick = () => { w = true; fe.schliessen(); };
+    box.querySelector('.k-knoepfe').append(a, b);
+  });
+  if (ja) { WAHL = {h: null, m: null}; Netz.tun('klopfen'); }
+}
+
+/* ---------- Ausführung (Gastgeber bzw. am selben Gerät) ---------- */
+function ausfuehren(name, d, sitz) {
+  let r, zeigen = false;
+  const vorher = S.haende[S.dran] ? S.haende[S.dran].map(k => k.id) : [];
+  if (name === 'geber') { if (S.phase !== 'geberWahl') return Netz.melden(); r = W.geberWahl(S, !!d.behalten); zeigen = !d.behalten; Kern.ton(d.behalten ? 'tipp' : 'karte'); }
+  else if (S.phase !== 'zug') return Netz.melden();
+  else if (name === 'tausch') { r = W.tauschen(S, Number(d.h), Number(d.m)); zeigen = true; Kern.ton('karte'); }
+  else if (name === 'alle') { r = W.tauschenAlle(S); zeigen = true; Kern.ton('ziehen'); }
+  else if (name === 'schieben') { const vm = S.neueMitte || 0; r = W.schieben(S, R); Kern.ton((S.neueMitte || 0) > vm ? 'ziehen' : 'tipp'); }
+  else if (name === 'klopfen') { r = W.klopfen(S); if (r.ok) { Kern.ton('warn'); hinweis('Klopf, klopf!', 1400, true); Netz.ereignis({daten: {klopf: true}}); } }
+  else return Netz.melden();
+  if (!r || !r.ok) { sag(sitz, (r && r.grund) || 'Geht nicht.'); Netz.melden(); return; }
+  const sp = r.sp != null ? r.sp : S.geber;
+  if (zeigen && S.haende[sp] && meins(sitz)) S.haende[sp].forEach(k => { if (!vorher.includes(k.id)) FRISCH.add(k.id); });
+  return nachZug(zeigen, sitz);
+}
+async function nachZug(zeigen = false, sitz = null) {
+  speichern();
+  if (NETZ()) {
+    zeichnen(); Netz.melden();
+    if (amEnde()) { aufdeckenTon(); await Kern.warte(900); if (S && amEnde() && NETZ()) wertung(); }
+    return;
+  }
+  if (amEnde()) { OFFEN = null; WEITERGEBEN = false; zeichnen(); aufdeckenTon(); await Kern.warte(900); wertung(); return; }
+  if (zeigen && !WEITERGEBEN) { WEITERGEBEN = true; zeichnen(); return; }
+  OFFEN = null; WEITERGEBEN = false; FRISCH.clear(); zeichnen();
+  await Kern.warte(600);
+  weiterAn();
+}
+function aufdeckenTon() {
+  const g = S.ergebnis && S.ergebnis.grund;
+  if (g === 'feuer') hinweis('Feuer!', 1600, true); else if (g === '31') hinweis('Einunddreißig!', 1600, true);
+}
+async function weiterAn() {
+  if (amEnde()) { wertung(); return; }
+  OFFEN = null; WEITERGEBEN = false; WAHL = {h: null, m: null}; zeichnen();
+  const sp = S.dran, was = S.log.slice(-2).join(' ');
+  await Kern.sichtschutz({name: S.namen[sp], farbe: farbe(sp), text: (was ? esc(was) + '<br>' : '') + (S.phase === 'geberWahl' ? 'Du gibst – nur du schaust jetzt auf deine Karten.' : 'Nur du schaust jetzt auf deine Karten.')});
+  OFFEN = sp; zeichnen();
+}
+
+/* ---------- Wertung ---------- */
+function wertung() {
+  document.querySelectorAll('.sw-meldung').forEach(m => m.remove());
+  if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; }
+  const gast = Netz.istGast, netz = NETZ();
+  const e = S.ergebnis, ende = S.phase === 'spielende', box = Kern.el('div');
+  const grund = e.grund === 'feuer' ? `Feuer! ${nm(e.wer)} hat drei Asse – alle anderen verlieren ein Leben.`
+    : e.grund === '31' ? `${nm(e.wer)} hat 31 und deckt sofort auf.` : `${nm(e.wer)} hat geklopft.`;
+  const verl = e.grund === 'feuer' ? '' : ` Die wenigsten Punkte: ${e.verlierer.map(i => nm(i)).join(', ')}.`;
+  const zeilen = S.namen.map((n, i) => ({i, n})).filter(({i}) => e.werte[i]).sort((a, b) => e.werte[b.i].wert - e.werte[a.i].wert);
+  const folge = i => {
+    if (!e.verlierer.includes(i)) return '';
+    if (S.leben[i] < 0) return '<b>scheidet aus</b>';
+    if (e.schwimmt.includes(i)) return '<b>schwimmt jetzt</b>';
+    if (e.gerettet && S.leben[i] === 0 && e.vorher[i] === 0) return '<b>bleibt im Wasser</b>';
+    return '<b>−1 Leben</b>';
+  };
+  box.innerHTML = `<h2>${ende ? `${nm(S.sieger)} gewinnt!` : `Runde ${S.runde} aufgedeckt`}</h2>
+    <p>${grund}${verl}${e.gerettet ? ' Alle Übrigen wären ausgeschieden – darum scheidet niemand aus.' : ''}</p>
+    <table class="sw-tab"><tr><th>Name</th><th>Karten</th><th class="r">Punkte</th><th class="r">Folge</th></tr>
+    ${zeilen.map(({i, n}) => `<tr class="${e.verlierer.includes(i) ? 'verl' : ''}"><td><span class="k-dot" style="--pc:${farbe(i)};display:inline-grid;margin-right:8px;vertical-align:-5px">${esc(n.charAt(0))}</span>${esc(n)}</td>
+      <td><div class="sw-mini">${S.haende[i].map(k => Kern.karte({rang: k.r, farbe: k.f}).outerHTML).join('')}</div></td>
+      <td class="r"><b class="k-zahl">${W.zahlText(e.werte[i].wert)}</b><small>${esc(e.werte[i].text)}</small></td><td class="r">${folge(i) || '<span style="color:var(--ink2)">–</span>'}</td></tr>`).join('')}</table>
+    <p style="margin-top:12px"><small style="color:var(--ink2)">Leben: ${S.namen.map((n, i) => `${esc(n)} ${S.leben[i] < 0 ? 'raus' : S.leben[i] === 0 ? 'schwimmt' : S.leben[i]}`).join(' · ')}</small></p>
+    <div class="k-knoepfe"></div>`;
+  const fe = Kern.fenster(box, {breit: true, schliessbar: gast, beimSchliessen: () => { if (WERT_FE === fe) WERT_FE = null; }}), kn = box.querySelector('.k-knoepfe');
+  WERT_FE = fe;
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { fe.schliessen(); fn(); }; kn.appendChild(b); };
+  if (gast) kn.innerHTML = `<p class="sw-wartet" style="margin:0;color:var(--ink2)">${nm(0)} entscheidet, wie es weitergeht.</p>`;
+  if (ende) {
+    Kern.speicher.loeschen(); Kern.ton('sieg'); Kern.feier();
+    if (!gast) {
+      knopf(netz ? 'Spiel beenden' : 'Neues Spiel', 'sw-neu', 'leise', () => { if (NETZ()) Netz.verlassen(); startseite(); });
+      knopf('Nochmal', 'sw-nochmal', '', () => neuesSpiel(S.namen, S.farben, S.opt));
+    }
+  } else {
+    Kern.ton(e.verlierer.length ? 'runde' : 'punkt');
+    if (!gast) knopf('Nächste Runde', 'sw-weiter', '', () => {
+      W.naechsteRunde(S, R); speichern(); ZULETZT_MITTE = ''; WAHL = {h: null, m: null};
+      if (NETZ()) { zeichnen(); Netz.melden(); } else weiterAn();
+    });
+  }
+}
+function lebenFenster() {
+  if (!S) return;
+  Kern.fenster(`<h2>Leben</h2><p>Runde ${S.runde}. Wer alle Hölzchen abgegeben hat, schwimmt – beim nächsten Verlust ist man raus.</p>
+    <table class="sw-tab">${S.namen.map((n, i) => `<tr><td><span class="k-dot" style="--pc:${farbe(i)};display:inline-grid;margin-right:8px;vertical-align:-5px">${esc(n.charAt(0))}</span>${esc(n)}</td><td class="r">${holzHtml(i)}</td></tr>`).join('')}</table>`);
+}
+
+/* ---------- Test-Zugang ---------- */
+window.__test = {
+  S: () => S, offen: () => OFFEN, logik: W,
+  oeffne() { document.querySelectorAll('.k-sichtschutz,.k-ebene').forEach(e => e.remove()); WERT_FE = null; WEITERGEBEN = false; OFFEN = S.dran; zeichnen(); },
+  zufall(seed) { let s = seed >>> 0; TEST.rnd = n => { s = (s * 1664525 + 1013904223) >>> 0; return s % n; }; },
+  setze(fn) { fn(S); if (OFFEN !== null && !Netz.laeuft) OFFEN = S.dran; speichern(); zeichnen(); Netz.melden(); }
+};
+
+/* ---------- Netzspiel ----------
+   Sitz 0 = Gastgeber. Züge laufen über Netz.tun; der Gastgeber prüft, ob der Sitz dran ist. Die Wahl des Gebers trifft
+   nur das Gerät des Gebers. Fremde Hände gehen erst beim Aufdecken mit; Stapel und zweiter Satz nur als Anzahl. */
+Netz.einrichten({
+  spiel: 'schwimmen', min: 2, max: 9,
+  starten(spieler, optionen) {
+    neuesSpiel(spieler.map(p => p.name), spieler.map((p, i) => FARBEN9[i] || p.farbe), optionen || {});
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    if (amEnde() || (sitz !== null && sitz !== S.dran)) return Netz.melden();
+    return ausfuehren(name, d || {}, sitz);
+  },
+  zustand(sitz) {
+    const ende = amEnde();
+    return {s: Object.assign({}, S, {
+      haende: S.haende.map((h, i) => !h ? null : (i === sitz || ende) ? h : h.length),
+      extra: S.extra ? S.extra.length : null,
+      stapel: S.stapel.length, beiseite: S.beiseite.length,
+      letzter: S.letzter ? {sp: S.letzter.sp, art: S.letzter.art} : null,
+    })};
+  },
+  stand(d) {
+    const alt = S, warDran = alt && alt.dran;
+    const s = Object.assign({}, d.s);
+    s.haende = s.haende.map(h => Array.isArray(h) || h == null ? h : Array.from({length: h}, (_, j) => ({id: -1 - j, f: 'pik', r: null})));
+    s.stapel = Array.from({length: s.stapel}, () => null);
+    s.beiseite = Array.from({length: s.beiseite}, () => null);
+    S = s;
+    if (!B || !document.body.contains(B)) buehneBauen(); else zeichnen();
+    if (alt && warDran !== S.dran && S.dran === Netz.meinSitz && !amEnde()) Kern.ton('tipp');
+    if (amEnde()) {
+      const m = S.runde + S.phase;
+      if (WERT_MARKE !== m) { WERT_MARKE = m; aufdeckenTon(); setTimeout(() => { if (S && amEnde() && WERT_MARKE === m && Netz.laeuft) wertung(); }, 900); }
+    } else { WERT_MARKE = ''; if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; } }
+  },
+  ereignis(d) {
+    if (d.an != null && d.an !== Netz.meinSitz) return;
+    if (d.klopf) { Kern.ton('warn'); hinweis('Klopf, klopf!', 1400, true); }
+    if (d.hinweis) hinweis(d.hinweis, d.ms);
+  },
+  beendet: () => startseite(),
+});
+
+startseite();
+})();
+</script>
+</body>
+</html>

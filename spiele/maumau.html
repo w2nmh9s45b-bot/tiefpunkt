@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Mau-Mau · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Mau-Mau: französische Karten des Kerns, Akzent Pflaume. Wunsch und Ziehpflicht stehen als große Marken an der Ablage. */
+.mm-buehne{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px}
+.mm-oben{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding-left:118px;padding-right:118px;min-height:56px;align-content:flex-start}
+.mm-platz{display:flex;align-items:center;gap:9px;min-width:0;padding:6px 12px 6px 7px;border-radius:14px;background:var(--panel);border:1px solid var(--line);
+  transition:box-shadow .3s, background-color .3s;position:relative}
+.mm-platz.dran{background:rgba(9,32,42,.92);box-shadow:inset 0 0 0 2px var(--pc), 0 0 22px color-mix(in srgb,var(--pc) 35%,transparent)}
+.mm-platz .k-dot{width:30px;height:30px;font-size:14px}
+.mm-platz b{display:block;font-size:15px;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-platz small{display:flex;gap:10px;color:var(--ink2);font-size:13px;white-space:nowrap}
+.mm-platz small i{font-style:normal;color:var(--ink);font-weight:700}
+.mm-mini{display:inline-block;width:10px;height:14px;border-radius:2px;background:#e8f1ee;opacity:.8;vertical-align:-2px;margin-right:3px;box-shadow:3px -2px 0 -1px rgba(232,241,238,.45)}
+.mm-platz .mm-eins{position:absolute;right:-6px;top:-7px;background:var(--akzent);color:#2a1030;font:800 12px var(--f-ui);border-radius:99px;padding:1px 7px}
+.mm-platz .mm-naechst{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);font:700 10px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;
+  background:var(--sea);border:1px solid var(--line);color:var(--ink2);border-radius:99px;padding:0 6px;white-space:nowrap}
+.mm-luecke{display:none}
+
+.mm-mitte{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--pw)*.15 + 6px);min-height:0}
+.mm-tisch{display:flex;align-items:center;gap:calc(var(--pw)*.5)}
+.mm-stapel,.mm-ablage{position:relative;width:var(--pw);height:calc(var(--pw)*1.4);--kw:var(--pw)}
+.mm-stapel{cursor:pointer;border-radius:calc(var(--pw)*.11)}
+.mm-stapel .k-karte,.mm-ablage .k-karte{position:absolute;left:0;top:0}
+.mm-stapel .k-karte:nth-child(1){transform:translate(6px,6px)}.mm-stapel .k-karte:nth-child(2){transform:translate(3px,3px)}
+.mm-stapel.ziel::after,.mm-ablage.ziel::after{content:"";position:absolute;inset:-7px;border-radius:calc(var(--pw)*.16);box-shadow:0 0 0 3px var(--akzent);
+  animation:mm-puls 1.5s ease-in-out infinite;pointer-events:none}
+.mm-ablage.ueber::after{content:"";position:absolute;inset:-9px;border-radius:calc(var(--pw)*.17);box-shadow:0 0 0 5px var(--akzent);pointer-events:none}
+@keyframes mm-puls{0%,100%{opacity:1}50%{opacity:.35}}
+.mm-ablage .k-karte.alt1{transform:rotate(-10deg) translate(-7%,2%)}
+.mm-ablage .k-karte.alt2{transform:rotate(8deg) translate(6%,1%)}
+.mm-ablage .k-karte.neu{animation:mm-ein .38s cubic-bezier(.2,.8,.3,1)}
+@keyframes mm-ein{from{transform:translateY(40%) scale(.85) rotate(-6deg);opacity:0}}
+.mm-cap{position:absolute;left:50%;top:calc(100% + 12px);transform:translateX(-50%);white-space:nowrap;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.mm-cnt{position:absolute;right:-10px;top:-10px;z-index:3;min-width:30px;height:30px;padding:0 7px;border-radius:99px;background:#e8f1ee;color:#132f4a;
+  font:700 14px var(--f-ui);display:grid;place-items:center}
+/* Marke an der Ablage: gewünschte Farbe bzw. offene Ziehpflicht */
+.mm-marke{position:absolute;left:calc(100% + 14px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:#fbf8f1;color:#1e2a30;border-radius:16px;padding:8px 12px;box-shadow:0 6px 18px rgba(0,0,0,.35);font:800 13px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;
+  animation:k-hoch .3s cubic-bezier(.2,.8,.3,1);white-space:nowrap}
+.mm-marke big{font:800 calc(var(--pw)*.42)/1 var(--f-disp);letter-spacing:0;text-transform:none}
+.mm-marke.rot big{color:#c0392b}
+.mm-marke.zieh{background:var(--akzent);color:#2a1030}
+.mm-infos{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:calc(var(--pw)*.06 + 10px)}
+.mm-infos .k-chip{font-size:14px;padding:.3em .8em}
+.mm-satz{font-size:clamp(17px,2vw,21px);text-align:center;line-height:1.3;max-width:min(760px,96vw);text-wrap:balance;min-height:1.3em}
+.mm-satz b{color:var(--pc,var(--akzent));font-family:var(--f-disp);font-weight:800}
+.mm-log{font-size:15px;color:var(--ink2);text-align:center;min-height:1.2em;max-width:min(760px,96vw)}
+.mm-wahl{display:flex;flex-direction:column;align-items:center;gap:10px;background:rgba(6,21,28,.92);border:1px solid var(--line);border-radius:20px;padding:12px 18px;max-width:620px}
+.mm-wahl p{margin:0;text-align:center;color:#d2e2e0}
+
+.mm-unten{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.mm-leiste{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;min-height:52px}
+#mm-ruf.an{background:var(--akzent);color:#2a1030}
+.mm-hand{position:relative;height:calc(var(--hw)*1.4 + 22px);--kw:var(--hw)}
+.mm-hand .k-karte{position:absolute;top:18px;transition:transform .18s, opacity .25s, filter .25s, left .3s cubic-bezier(.3,.7,.3,1);touch-action:none}
+.mm-hand .k-karte.ja{cursor:pointer}
+.mm-hand .k-karte.ja:hover{transform:translateY(-8px)}
+.mm-hand .k-karte.nein{filter:brightness(.55) saturate(.8)}
+.mm-hand .k-karte.frisch{transform:translateY(-14px);outline:3px solid var(--akzent);outline-offset:2px}
+.mm-hand .k-karte.weg{opacity:.25}
+.mm-hand .k-karte.neuhand{animation:mm-hand .4s cubic-bezier(.2,.8,.3,1) both}
+@keyframes mm-hand{from{transform:translateY(-60%);opacity:0}}
+.mm-geist{position:fixed;left:0;top:0;z-index:120;pointer-events:none;--kw:var(--hw)}
+
+/* Fenster */
+.mm-farben{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.mm-farben button{min-height:84px;border-radius:18px;border:0;background:#fbf8f1;color:#1e2a30;font:800 22px var(--f-disp);display:flex;align-items:center;justify-content:center;gap:10px;
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.4),0 4px 12px rgba(0,0,0,.3)}
+.mm-farben button span{font-size:38px;line-height:1}
+.mm-farben button.rot{color:#c0392b}
+.mm-wahl .mm-farben{grid-template-columns:repeat(4,1fr);width:min(520px,82vw);margin:0}
+.mm-wahl .mm-farben button{min-height:60px;font-size:18px}
+.mm-wahl .mm-farben button span{font-size:28px}
+.mm-tab{width:100%;border-collapse:collapse;margin:10px 0 4px;font-size:16px}
+.mm-tab td,.mm-tab th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.mm-tab th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.mm-tab .r{text-align:right;font-variant-numeric:tabular-nums}
+.mm-tab .sieg td{color:var(--akzent);font-weight:700}
+.mm-reste{display:flex;gap:3px;flex-wrap:wrap;--kw:30px}
+.mm-meldung{position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:300;pointer-events:none;background:#f4efe4;color:#14262b;font-weight:700;
+  padding:11px 20px;border-radius:99px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100% - 40px);text-align:center;animation:k-hoch .25s cubic-bezier(.2,.8,.3,1)}
+.mm-meldung.gross{white-space:nowrap;font:800 34px var(--f-disp);padding:14px 30px;background:var(--akzent);color:#2a1030}
+.mm-start{display:flex;--kw:76px}
+@media (prefers-reduced-motion:reduce){.mm-hand .k-karte,.mm-ablage .k-karte{animation:none!important;transition:none!important}}
+/* Telefon hoch: Plätze als Raster (erste Zelle frei für die Kopfknöpfe) */
+@media (max-width:700px){
+  .mm-buehne{gap:6px}
+  .mm-oben{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 6px;padding:0;min-height:46px;align-content:start}
+  .mm-luecke{display:block;min-height:46px}
+  .mm-platz{gap:6px;padding:4px 6px 4px 4px;border-radius:12px;min-height:46px}
+  .mm-platz .k-dot{width:24px;height:24px;font-size:12px}
+  .mm-platz > span:nth-child(2){min-width:0}
+  .mm-platz b{font-size:14px;max-width:none}
+  .mm-platz small{font-size:13px;gap:7px}
+  .mm-platz .mm-naechst{font-size:11px;bottom:-10px}
+  .mm-mitte{gap:calc(var(--pw)*.12 + 4px)}
+  .mm-tisch{gap:calc(var(--pw)*.3)}
+  .mm-marke{left:calc(100% + 8px);padding:6px 9px;font-size:11px;border-radius:13px}
+  .mm-marke big{font-size:calc(var(--pw)*.34)}
+  .mm-satz{font-size:16px}
+  .mm-infos{gap:6px;margin-top:calc(var(--pw)*.06 + 14px)}
+  .mm-infos .k-chip{font-size:13px;padding:.25em .65em}
+  .mm-log{font-size:13px;line-height:1.3}
+  .mm-cap{font-size:12px;top:calc(100% + 8px)}
+  .mm-unten{gap:8px}
+  .mm-leiste{gap:8px;min-height:46px}
+  .mm-leiste > .k-btn{flex:1 1 0;min-height:46px;padding:4px 10px;font-size:15px;white-space:normal;line-height:1.15;border-radius:12px}
+  .mm-leiste > .mm-wahl{flex:1 1 100%;padding:10px 12px}
+  .mm-wahl .mm-farben{width:100%;gap:8px}
+  .mm-tab{font-size:15px}
+  .mm-tab td,.mm-tab th{padding:7px 4px}
+  .mm-tab td:first-child{white-space:nowrap}
+  .mm-reste{--kw:24px}
+  .mm-farben button{min-height:70px}
+}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
+<script src="maumau.logik.js"></script>
+<script>
+"use strict";
+(() => {
+const M = window.MauMau;
+const AKZENT = '#d49be6';
+const esc = Kern.esc;
+const TEST = {rnd: null};
+const R = n => TEST.rnd ? TEST.rnd(n) : Kern.zufall(n);
+const HANDY = matchMedia('(max-width:700px)');
+let S = null, OFFEN = null, BUSY = false, WEITERGEBEN = false, FRISCH = new Set(), START = null, B = null, ZULETZT_OBEN = null;
+
+const REGELN = `
+<p>Werde als Erste oder Erster alle Handkarten los. Gespielt wird mit 32 französischen Karten (7 bis Ass in Kreuz ♣, Pik ♠, Herz ♥ und Karo ♦).</p>
+<h3>Ablauf</h3>
+<p>Alle bekommen 5 Karten, eine Karte liegt offen in der Mitte. Reihum legst du eine Karte, die in <b>Farbe oder Rang</b> zur obersten passt. Kannst oder willst du nicht legen, ziehst du eine Karte. Passt sie, darfst du genau diese sofort legen – oder behalten. Passt sie nicht, ist die nächste Person dran.</p>
+<h3>Sonderkarten</h3>
+<ul>
+<li><b>7:</b> Die nächste Person zieht 2 Karten, damit ist ihr Zug vorbei. Mit der Option „Sieben weitergeben“ darf sie stattdessen selbst eine 7 legen – dann zieht die übernächste 4, und so weiter.</li>
+<li><b>8:</b> Die nächste Person setzt aus. Zu zweit bist du gleich noch einmal dran.</li>
+<li><b>Bube:</b> passt auf jede Karte, nur nicht auf einen Buben. Du wünschst dir eine Farbe; die nächste Person muss diese Farbe legen oder ziehen.</li>
+<li><b>Ass:</b> Mit der Option „Ass: noch einmal“ legst du nach einem Ass gleich noch eine Karte (oder ziehst).</li>
+</ul>
+<h3>Mau und Mau-Mau</h3>
+<p>Bevor du deine vorletzte Karte legst, tippst du <b>„Mau!“</b>, bevor du die letzte legst, <b>„Mau-Mau!“</b>. Vergessen kostet eine Strafkarte – wer beim Ausmachen „Mau-Mau“ vergisst, ist dann nicht draußen. Das Spiel passt selbst auf.</p>
+<h3>Erste Karte</h3>
+<p>7: Die Person nach dem Geber zieht 2. 8: Sie setzt aus. Bube: Sie wünscht sich die Farbe und spielt dann.</p>
+<h3>Wertung</h3>
+<p>Wer alle Karten los ist, gewinnt die Runde. War die letzte Karte eine 7, zieht die nächste Person die Karten noch. Alle anderen schreiben die Punkte ihrer Restkarten auf: 7 bis 10 nach Augen, Dame 3, König 4, Ass 11, Bube 20. Sobald jemand 100 Punkte hat, ist das Spiel vorbei – es gewinnt, wer die <b>wenigsten</b> Punkte hat. Oder ihr spielt nur bis zum ersten Sieger. Ist der Stapel leer, wird die Ablage bis auf die oberste Karte gemischt. Der Geber wechselt jede Runde.</p>`;
+
+Kern.init({id: 'maumau', name: 'Mau-Mau', akzent: AKZENT, regeln: REGELN,
+  onNeu: () => { Kern.speicher.loeschen(); startseite(); }, menue: [{text: 'Punktestand', aktion: () => punkteFenster()}]});
+
+/* ---------- Karten ---------- */
+function karteHtml(k, cls = '') {
+  if (!k) return '';
+  const e = Kern.karte({rang: k.r, farbe: k.f});
+  if (cls) e.className += ' ' + cls.trim();
+  e.dataset.id = k.id; e.setAttribute('aria-label', M.name(k));
+  return e.outerHTML;
+}
+const rueckHtml = (cls = '') => `<div class="k-karte zu ${cls}"></div>`;
+const rot = f => f === 'herz' || f === 'karo';
+function frage({titel = '', text = '', knoepfe = []}) {
+  return new Promise(res => {
+    const box = Kern.el('div'); box.innerHTML = `<h2>${esc(titel)}</h2><p>${text}</p><div class="k-knoepfe"></div>`;
+    let wert = null; const fe = Kern.fenster(box, {schliessbar: false, beimSchliessen: () => res(wert)});
+    knoepfe.forEach(b => { const k = Kern.el('button', 'k-btn ' + (b.art || ''), esc(b.text)); k.onclick = () => { wert = b.wert; fe.schliessen(); }; box.querySelector('.k-knoepfe').appendChild(k); });
+  });
+}
+/* Kurzer Hinweis über der Hand (der Kern-Hinweis läge unten auf den Karten). */
+function hinweis(text, ms = 2600, gross = false) {
+  document.querySelectorAll('.mm-meldung').forEach(e => e.remove());
+  const m = Kern.el('div', 'mm-meldung' + (gross ? ' gross' : ''), esc(text)); document.body.appendChild(m);
+  const h = B && B.querySelector('.mm-leiste'); if (h) m.style.top = Math.max(70, h.getBoundingClientRect().top - (gross ? 84 : 64)) + 'px';
+  setTimeout(() => m.remove(), ms);
+}
+
+/* ---------- Netzspiel: Hilfen ---------- */
+const NETZ = () => Netz.laeuft;
+const meins = sitz => sitz == null || !Netz.laeuft || sitz === Netz.meinSitz;
+function sag(sitz, text, ms) { if (meins(sitz)) hinweis(text, ms); else Netz.ereignis({daten: {an: sitz, hinweis: text, ms}}); }
+const ichDran = () => (NETZ() ? S.dran === Netz.meinSitz : OFFEN === S.dran);
+const amEnde = () => S.phase === 'rundenende' || S.phase === 'spielende';
+let WERT_FE = null, WERT_MARKE = '', LETZTE_HAND = null;
+
+/* ---------- Startseite ---------- */
+function startseite() {
+  document.querySelectorAll('.mm-buehne').forEach(e => e.remove());
+  if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; }
+  WERT_MARKE = ''; LETZTE_HAND = null; WEITERGEBEN = false;
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null; OFFEN = null;
+  const alt = Kern.speicher.laden(), lauf = alt && alt.s && alt.s.phase !== 'spielende' ? alt.s : null;
+  const bsp = [{f: 'herz', r: '7'}, {f: 'pik', r: 'B'}, {f: 'karo', r: 'A'}, {f: 'kreuz', r: '8'}];
+  Kern.setup({
+    ziel: START, titel: 'Mau-Mau', unter: 'Farbe auf Farbe, Bild auf Bild – und wer fast fertig ist, sagt Mau.',
+    bild: `<div class="mm-start">${bsp.map((k, i) => `<div style="transform:translateY(${Math.abs(i - 1.5) * 10}px) rotate(${(i - 1.5) * 9}deg);margin-left:${i ? -24 : 0}px">${karteHtml({id: -1 - i, ...k})}</div>`).join('')}</div>`,
+    fakten: ['2–6 Personen', '32 Karten', 'ca. 20 Minuten'],
+    spieler: {min: 2, max: 6, standard: 3},
+    optionen: [
+      {id: 'wertung', label: 'Spieldauer', werte: [{wert: 'punkte', text: 'Bis 100 Punkte'}, {wert: 'eine', text: 'Bis zum ersten Sieger'}], standard: 'punkte'},
+      {id: 'sieben', label: 'Sieben', werte: [{wert: 'nein', text: 'Zwei ziehen'}, {wert: 'stapeln', text: 'Sieben weitergeben'}], standard: 'nein'},
+      {id: 'ass', label: 'Ass', werte: [{wert: 'nein', text: 'Ohne Wirkung'}, {wert: 'nochmal', text: 'Noch einmal legen'}], standard: 'nein'},
+      {id: 'mau', label: 'Mau sagen', werte: [{wert: 'strafe', text: 'Vergessen = Strafkarte'}, {wert: 'aus', text: 'Ohne Mau'}], standard: 'strafe'},
+      {id: 'hand', label: 'Handkarten', werte: [{wert: 5, text: '5 Karten'}, {wert: 6, text: '6 Karten (bis 5 Personen)'}], standard: 5},
+    ],
+    fortsetzen: lauf ? `Runde ${lauf.runde} · ${lauf.namen.join(', ')}` : null,
+    onFortsetzen: () => { S = lauf; spielen(); },
+    onStart: ({namen, farben, optionen}) => { neuesSpiel(namen, farben, optionen); }
+  });
+}
+function neuesSpiel(namen, farben, opt) {
+  S = M.neu({namen, opt}, R); S.farben = farben; speichern();
+  if (NETZ()) { LETZTE_HAND = null; buehneBauen(); Netz.melden(); return; }
+  spielen();
+}
+const speichern = () => Kern.speicher.speichern({s: S});
+
+/* ---------- Spielfläche ---------- */
+function spielen() { buehneBauen(); weiterAn(); }
+function buehneBauen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.mm-buehne').forEach(e => e.remove());
+  B = Kern.el('div', 'k-buehne mm-buehne');
+  B.innerHTML = `<div class="mm-oben"></div><div class="mm-mitte"></div><div class="mm-unten"><div class="mm-leiste"></div><div class="mm-hand"></div></div>`;
+  document.body.appendChild(B);
+  OFFEN = null; ZULETZT_OBEN = M.oben(S).id;
+  masse(); zeichnen();
+}
+function masse() {
+  if (!B) return;
+  const W = innerWidth, H = innerHeight, hoch = H > W * 1.05;
+  let hw = Math.round(Math.max(56, Math.min(hoch ? 150 : 126, W / (hoch ? 5.6 : 9.4), H * (hoch ? 0.13 : 0.17))));
+  let pw = Math.round(Math.max(60, Math.min(hoch ? 200 : 156, H * (hoch ? 0.17 : 0.19), W / (hoch ? 4.2 : 7.5))));
+  if (HANDY.matches && hoch) { hw = Math.round(Math.min(W / 5.4, H * .115)); pw = Math.round(Math.min(W / 4, H * .15)); }
+  B.style.setProperty('--hw', hw + 'px'); B.style.setProperty('--pw', pw + 'px');
+}
+addEventListener('resize', () => { if (B && S) zeichnen(); });
+
+const nm = i => esc(S.namen[i]);
+const farbe = i => S.farben[i];
+function zeichnen() {
+  if (!B || !S) return;
+  masse();
+  const netz = NETZ(), ich = netz ? Netz.meinSitz : null;
+  const offen = netz ? S.dran === ich && !amEnde() : OFFEN !== null && (OFFEN === S.dran || WEITERGEBEN) && !amEnde();
+  if (netz) { const ids = S.haende[ich].map(k => k.id); if (LETZTE_HAND) ids.forEach(id => { if (!LETZTE_HAND.has(id)) FRISCH.add(id); }); LETZTE_HAND = new Set(ids); }
+  // Plätze
+  const naechst = M.weiter(S, S.dran), hervor = WEITERGEBEN ? OFFEN : S.dran;
+  B.querySelector('.mm-oben').innerHTML = '<div class="mm-luecke"></div>' + S.namen.map((n, i) => `<div class="mm-platz${i === hervor && !amEnde() ? ' dran' : ''}" style="--pc:${farbe(i)}" id="mm-platz-${i}">
+    <span class="k-dot">${esc(n.charAt(0).toUpperCase())}</span><span><b>${esc(n)}${netz && i === ich ? ' (du)' : ''}</b><small><span><span class="mm-mini"></span><i class="k-zahl">${S.haende[i].length}</i></span>${S.opt.wertung === 'punkte' ? `<span><i class="k-zahl">${S.punkte[i]}</i> P</span>` : ''}</small></span>
+    ${S.haende[i].length === 1 && !amEnde() ? '<span class="mm-eins">1</span>' : ''}${i === naechst && i !== S.dran && !amEnde() && !WEITERGEBEN ? '<span class="mm-naechst">danach</span>' : ''}</div>${netz && i === 0 ? '<div class="mm-luecke"></div>' : ''}`).join('');
+  // Mitte
+  const top = M.oben(S), alt = S.ablage.slice(-3, -1);
+  const darfZiehen = offen && S.phase === 'zug' && !WEITERGEBEN;
+  let marke = '';
+  if (S.zieh > 0 && !amEnde()) marke = `<div class="mm-marke zieh" id="mm-zieh"><big>+${S.zieh}</big>ziehen</div>`;
+  else if (S.wunsch && !amEnde()) marke = `<div class="mm-marke${rot(S.wunsch) ? ' rot' : ''}" id="mm-wunsch"><big>${M.SYM[S.wunsch]}</big>Wunsch</div>`;
+  const m = B.querySelector('.mm-mitte');
+  m.innerHTML = `<div class="mm-satz">${satz(offen)}</div>
+    <div class="mm-tisch">
+      <div class="mm-stapel${darfZiehen ? ' ziel' : ''}" id="mm-stapel" role="button" aria-label="Karte ziehen">${rueckHtml()}${rueckHtml()}${rueckHtml()}<span class="mm-cnt k-zahl">${S.stapel.length}</span><span class="mm-cap">Stapel</span></div>
+      <div class="mm-ablage" id="mm-ablage">${alt.map((k, i) => karteHtml(k, 'alt' + (alt.length - i))).join('')}${karteHtml(top, top.id !== ZULETZT_OBEN ? 'neu' : '')}<span class="mm-cap">Ablage</span>${marke}</div>
+    </div>
+    <div class="mm-infos"><span class="k-chip leise">Runde ${S.runde}${S.opt.wertung === 'punkte' ? ' · bis 100' : ''}</span></div>
+    <div class="mm-log">${esc(S.log.slice(-2).join(' '))}</div>`;
+  ZULETZT_OBEN = top.id;
+  if (offen && !WEITERGEBEN && M.legbare(S).length) m.querySelector('#mm-ablage').classList.add('ziel');
+  Kern.tap(m.querySelector('#mm-stapel'), () => ziehen());
+  // Leiste
+  const lst = B.querySelector('.mm-leiste'); lst.innerHTML = '';
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + (art || ''), t); b.id = id; b.onclick = fn; lst.appendChild(b); return b; };
+  if (offen && !WEITERGEBEN && S.phase === 'wunschStart') lst.appendChild(wunschStartPanel());
+  else if (offen) {
+    if (WEITERGEBEN) knopf('Fertig – weitergeben', 'mm-fertig', '', () => { WEITERGEBEN = false; nachZug(); });
+    else if (S.phase === 'zug' || S.phase === 'gezogen') {
+      if (S.phase === 'zug') knopf(S.zieh > 0 ? `${S.zieh} Karten ziehen` : 'Karte ziehen', 'mm-ziehen', M.legbare(S).length ? 'leise' : '', () => ziehen());
+      if (S.phase === 'gezogen') knopf('Behalten – Zug beenden', 'mm-behalten', 'leise', () => behalten());
+      const rt = S.opt.mau === 'strafe' && (S.zieh === 0 || M.legbare(S).length) ? M.rufText(S) : null;
+      if (rt) { const r = knopf(rt + '!', 'mm-ruf', 'leise', () => rufen()); if (S.ruf) r.classList.add('an'); }
+    }
+  }
+  handZeichnen(offen, netz ? ich : undefined, netz ? true : offen);
+  einpassen();
+}
+function einpassen() {
+  const m = B.querySelector('.mm-mitte'); let pw = parseFloat(B.style.getPropertyValue('--pw'));
+  for (let i = 0; i < 8 && m.scrollHeight > m.clientHeight + 1 && pw > 54; i++) { pw = Math.round(pw * .88); B.style.setProperty('--pw', pw + 'px'); }
+}
+function satz(offen) {
+  if (amEnde()) return 'Die Runde ist vorbei.';
+  const netz = NETZ(), d = WEITERGEBEN && OFFEN !== null ? OFFEN : S.dran, wer = `<b style="--pc:${farbe(d)}">${nm(d)}</b>`;
+  const du = netz ? 'Du bist dran: ' : `${wer}, `;
+  if (!offen) {
+    if (netz) return S.phase === 'wunschStart' ? `${wer} wünscht sich die Startfarbe.` : S.zieh > 0 ? `${wer} muss ${S.zieh} Karten ziehen.` : `${wer} ist dran.`;
+    return `Gleich ist ${wer} dran.`;
+  }
+  if (WEITERGEBEN) return `${wer}, dein Zug ist vorbei. Gib das ${Kern.geraet} weiter.`;
+  if (S.phase === 'wunschStart') return `${du}wünsch dir die Farbe, mit der es losgeht.`;
+  if (S.phase === 'gezogen') return `${du}die gezogene Karte passt. Lege sie – oder behalte sie.`;
+  if (S.zieh > 0) return M.legbare(S).length ? `${du}lege eine 7 oder ziehe ${S.zieh} Karten.` : `${du}ziehe ${S.zieh} Karten.`;
+  if (S.wunsch) return M.legbare(S).length ? `${du}gewünscht ist ${M.FARBNAME[S.wunsch]} ${M.SYM[S.wunsch]}.` : `${du}du hast kein ${M.FARBNAME[S.wunsch]} – ziehe eine Karte.`;
+  return M.legbare(S).length ? `${du}lege eine passende Karte oder ziehe eine.` : `${du}keine Karte passt. Ziehe eine.`;
+}
+function sortiert(h) {
+  const fo = {kreuz: 0, pik: 1, herz: 2, karo: 3};
+  return h.slice().sort((a, b) => fo[a.f] - fo[b.f] || M.RAENGE.indexOf(a.r) - M.RAENGE.indexOf(b.r));
+}
+function handZeichnen(offen, sp = OFFEN !== null ? OFFEN : S.dran, zeigen = offen) {
+  const el = B.querySelector('.mm-hand');
+  const hw = parseFloat(getComputedStyle(B).getPropertyValue('--hw')) || 90;
+  if (!zeigen) { el.innerHTML = Array.from({length: Math.min(S.haende[S.dran].length, 12)}, () => rueckHtml()).join(''); legeAus(el, hw); return; }
+  const aktiv = offen && !WEITERGEBEN && (S.phase === 'zug' || S.phase === 'gezogen');
+  el.innerHTML = sortiert(S.haende[sp]).map(k => {
+    const ja = aktiv && M.kannLegen(S, k.id);
+    const cls = (ja ? 'ja' : aktiv ? 'nein' : '') + (k.id === S.gezogen || (WEITERGEBEN && FRISCH.has(k.id)) ? ' frisch' : '') + (FRISCH.has(k.id) ? ' neuhand' : '');
+    return karteHtml(k, cls);
+  }).join('');
+  if (!WEITERGEBEN) FRISCH.clear();
+  legeAus(el, hw);
+  el.querySelectorAll('.k-karte').forEach(c => ziehbar(c, +c.dataset.id));
+}
+function legeAus(el, hw) {
+  const ks = [...el.querySelectorAll('.k-karte')], n = ks.length, A = el.clientWidth;
+  if (HANDY.matches && n > 1 && (A - hw) / (n - 1) < hw * .42) {
+    const vorn = Math.ceil(n / 2), dy = hw * 1.4 * .5;
+    el.style.height = `calc(${hw * 1.4 + dy}px + 22px)`;
+    [ks.slice(0, n - vorn), ks.slice(n - vorn)].forEach((reihe, r) => {
+      const m = reihe.length, step = m > 1 ? Math.min(hw * 1.06, (A - hw) / (m - 1)) : 0, x0 = (A - hw - step * (m - 1)) / 2;
+      reihe.forEach((c, i) => { c.style.left = (x0 + i * step) + 'px'; c.style.top = (18 + r * dy) + 'px'; c.style.zIndex = r * 100 + i + 1; });
+    });
+    return;
+  }
+  el.style.height = '';
+  const step = n > 1 ? Math.min(hw * 1.06, (A - hw) / (n - 1)) : 0, x0 = (A - hw - step * (n - 1)) / 2;
+  ks.forEach((c, i) => { c.style.left = (x0 + i * step) + 'px'; c.style.top = ''; c.style.zIndex = i + 1; });
+}
+/* Ziehen-und-Ablegen zusätzlich zum Antippen */
+function ziehbar(c, id) {
+  let st = null, geist = null;
+  c.addEventListener('pointerdown', e => { if (st || BUSY) return; st = {p: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), zieht: false}; try { c.setPointerCapture(e.pointerId); } catch (_) {} });
+  c.addEventListener('pointermove', e => {
+    if (!st || e.pointerId !== st.p) return;
+    if (!st.zieht && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 16 && ichDran() && !WEITERGEBEN && M.kannLegen(S, id)) {
+      st.zieht = true; geist = c.cloneNode(true); geist.classList.add('mm-geist'); geist.style.left = '0px'; geist.style.top = '0px';
+      B.appendChild(geist); c.classList.add('weg');
+    }
+    if (st.zieht) {
+      geist.style.transform = `translate(${e.clientX - geist.offsetWidth / 2}px,${e.clientY - geist.offsetHeight * .6}px) rotate(-4deg)`;
+      const ab = B.querySelector('#mm-ablage'), r = ab.getBoundingClientRect();
+      ab.classList.toggle('ueber', e.clientX > r.left - 30 && e.clientX < r.right + 30 && e.clientY > r.top - 30 && e.clientY < r.bottom + 30);
+    }
+  });
+  const ende = (e, abbruch) => {
+    if (!st || e.pointerId !== st.p) return;
+    const s = st; st = null;
+    if (s.zieht) {
+      const ab = B.querySelector('#mm-ablage'), treffer = !abbruch && ab.classList.contains('ueber');
+      geist && geist.remove(); geist = null; c.classList.remove('weg'); ab.classList.remove('ueber');
+      if (treffer) spieleKarte(id);
+      return;
+    }
+    if (!abbruch && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 28 && performance.now() - s.t < 900) spieleKarte(id);
+  };
+  c.addEventListener('pointerup', e => ende(e, false));
+  c.addEventListener('pointercancel', e => ende(e, true));
+}
+
+/* ---------- Züge (Bedienung) ---------- */
+async function spieleKarte(id) {
+  if (BUSY || WEITERGEBEN || !S || amEnde()) return;
+  if (!ichDran()) { if (NETZ()) { Kern.ton('fehler'); hinweis(`${S.namen[S.dran]} ist dran.`); } return; }
+  const k = S.haende[S.dran].find(c => c.id === id); if (!k) return;
+  if (!M.kannLegen(S, id)) {
+    Kern.ton('fehler');
+    const t = M.oben(S);
+    if (S.phase === 'gezogen') hinweis('Nach dem Ziehen darfst du nur die gezogene Karte legen.');
+    else if (S.phase === 'wunschStart') hinweis('Wünsch dir zuerst die Startfarbe.');
+    else if (S.zieh > 0) hinweis(S.opt.sieben === 'stapeln' ? `Lege eine 7 oder ziehe ${S.zieh} Karten.` : `Erst ${S.zieh} Karten ziehen.`);
+    else if (k.r === 'B') hinweis('Bube auf Bube geht nicht.');
+    else if (S.wunsch) hinweis(`Gewünscht ist ${M.FARBNAME[S.wunsch]} ${M.SYM[S.wunsch]}.`);
+    else hinweis(`Passt nicht. Lege ${M.FARBNAME[t.f]} oder ${t.r === 'B' || t.r === 'D' || t.r === 'K' || t.r === 'A' ? 'einen ' + M.RNAME[t.r] : 'eine ' + t.r} – oder einen Buben.`);
+    return;
+  }
+  let w = null;
+  if (k.r === 'B') { w = await farbeWaehlen(); if (!w) return; }
+  Netz.tun('lege', {id, wunsch: w});
+}
+function farbeWaehlen() {
+  return new Promise(res => {
+    const box = Kern.el('div'); let gewaehlt = null;
+    box.innerHTML = '<h2>Bube – wünsch dir was</h2><p>Welche Farbe muss die nächste Person legen?</p><div class="mm-farben"></div>';
+    const fe = Kern.fenster(box, {beimSchliessen: () => res(gewaehlt)});
+    M.FARBEN.forEach(f => {
+      const b = Kern.el('button', rot(f) ? 'rot' : '', `<span>${M.SYM[f]}</span>${M.FARBNAME[f]}`); b.id = 'mm-farbe-' + f;
+      b.onclick = () => { gewaehlt = f; Kern.ton('tipp'); fe.schliessen(); };
+      box.querySelector('.mm-farben').appendChild(b);
+    });
+  });
+}
+function wunschStartPanel() {
+  const p = Kern.el('div', 'mm-wahl');
+  p.innerHTML = '<p>Oben liegt ein Bube. Du wünschst dir die Startfarbe und spielst dann ganz normal.</p><div class="mm-farben"></div>';
+  M.FARBEN.forEach(f => {
+    const b = Kern.el('button', rot(f) ? 'rot' : '', `<span>${M.SYM[f]}</span>${M.FARBNAME[f]}`); b.id = 'mm-start-' + f;
+    b.onclick = () => Netz.tun('startwunsch', {f});
+    p.querySelector('.mm-farben').appendChild(b);
+  });
+  return p;
+}
+function ziehen() {
+  if (BUSY || WEITERGEBEN || !S || amEnde()) return;
+  if (!ichDran()) { if (NETZ()) { Kern.ton('fehler'); hinweis(`${S.namen[S.dran]} ist dran.`); } return; }
+  if (S.phase !== 'zug') { if (S.phase === 'gezogen') hinweis('Du hast schon gezogen. Lege die Karte oder behalte sie.'); return; }
+  Netz.tun('ziehe');
+}
+function behalten() { if (S.phase === 'gezogen') Netz.tun('behalte'); }
+function rufen() { Netz.tun('ruf'); }
+
+/* ---------- Züge (Ausführung beim Gastgeber bzw. am selben Gerät) ---------- */
+function legeAus_(id, w, sitz) {
+  const r = M.legen(S, id, w, R);
+  if (!r.ok) { sag(sitz, r.grund || 'Geht nicht.'); Netz.melden(); return; }
+  Kern.ton('legen');
+  if (r.strafe) { setTimeout(() => Kern.ton('fehler'), 200); sag(sitz, `„${S.haende[r.sp].length === 1 ? 'Mau-Mau' : 'Mau'}“ vergessen – eine Strafkarte.`, 3000); }
+  if (r.strafe) { const neu = S.haende[r.sp][S.haende[r.sp].length - 1]; if (meins(sitz) && neu) FRISCH.add(neu.id); }
+  else if (r.karte.r === '7' || r.karte.r === '8') setTimeout(() => Kern.ton('warn'), 260);
+  return nachZug(r, sitz, !!r.strafe);
+}
+function ziehAus(sitz) {
+  if (S.phase !== 'zug') return Netz.melden();
+  const r = M.ziehen(S, R); if (!r.ok) return Netz.melden();
+  Kern.ton('ziehen');
+  if (meins(sitz)) r.karten.forEach(c => FRISCH.add(c.id));
+  if (!r.karten.length) { sag(sitz, 'Der Stapel ist leer – du passt.'); return nachZug(r, sitz, false); }
+  if (r.passt) { speichern(); zeichnen(); Netz.melden(); return; }
+  if (!r.strafzug) sag(sitz, 'Die Karte passt nicht – dein Zug ist vorbei.');
+  return nachZug(r, sitz, true);
+}
+function behaltAus(sitz) { if (S.phase !== 'gezogen') return Netz.melden(); M.behalten(S); Kern.ton('tipp'); return nachZug(null, sitz, false); }
+function rufAus(sitz) {
+  const r = M.rufen(S);
+  if (!r.ok) { sag(sitz, r.grund); Netz.melden(); return; }
+  Kern.ton('warn'); speichern(); zeichnen(); Netz.melden();
+  hinweis(r.text + '!', 1500, true); Netz.ereignis({daten: {ruf: r.text}});
+}
+function startwunschAus(f) { if (!M.wunschStart(S, f).ok) return Netz.melden(); Kern.ton('tipp'); speichern(); zeichnen(); Netz.melden(); }
+
+/* Zug beendet: Hand zeigen (wenn neue Karten kamen), dann zudecken und übergeben. Im Netzspiel nur Stand melden. */
+async function nachZug(r, sitz = null, zeigen = false) {
+  speichern();
+  if (NETZ()) {
+    if (amEnde()) { zeichnen(); Netz.melden(); await Kern.warte(800); if (S && amEnde() && NETZ()) wertung(); return; }
+    if (r && r.sp === sitz && S.dran === sitz && S.phase === 'zug') sag(sitz, 'Du bist gleich noch einmal dran.');
+    zeichnen(); Netz.melden(); return;
+  }
+  if (amEnde()) { OFFEN = null; WEITERGEBEN = false; zeichnen(); await Kern.warte(900); wertung(); return; }
+  if (zeigen && !WEITERGEBEN) { WEITERGEBEN = true; zeichnen(); return; }
+  if (S.dran === OFFEN) { WEITERGEBEN = false; speichern(); zeichnen(); hinweis('Du bist gleich noch einmal dran.'); return; }
+  OFFEN = null; WEITERGEBEN = false; FRISCH.clear(); zeichnen();
+  await Kern.warte(650);
+  weiterAn();
+}
+async function weiterAn() {
+  if (amEnde()) { wertung(); return; }
+  OFFEN = null; WEITERGEBEN = false; zeichnen();
+  const sp = S.dran, was = S.log.slice(-2).join(' ');
+  await Kern.sichtschutz({name: S.namen[sp], farbe: farbe(sp), text: (was ? esc(was) + '<br>' : '') + 'Nur du schaust jetzt auf deine Karten.'});
+  OFFEN = sp; zeichnen();
+}
+
+/* ---------- Wertung ---------- */
+function tabelle(mitRunde) {
+  const e = S.ergebnis, pkt = S.opt.wertung === 'punkte';
+  const zeilen = S.namen.map((n, i) => ({i, n})).sort((a, b) => pkt ? S.punkte[a.i] - S.punkte[b.i] : 0);
+  return `<table class="mm-tab"><tr><th>Name</th>${mitRunde ? '<th>Restkarten</th><th class="r">Punkte</th>' : ''}${pkt ? '<th class="r">Gesamt</th>' : ''}</tr>
+    ${zeilen.map(({i, n}) => `<tr class="${e && e.spielSieger && e.spielSieger.includes(i) ? 'sieg' : ''}"><td><span class="k-dot" style="--pc:${farbe(i)};display:inline-grid;margin-right:8px;vertical-align:-5px">${esc(n.charAt(0))}</span>${esc(n)}</td>
+      ${mitRunde ? `<td>${i === e.sieger ? '<span style="color:var(--akzent)">alle Karten los</span>' : `<div class="mm-reste">${sortiert(S.haende[i]).map(k => karteHtml(k)).join('')}</div>`}</td>
+      <td class="r">${i === e.sieger ? '–' : e.einzel[i].wert}</td>` : ''}${pkt ? `<td class="r"><b>${S.punkte[i]}</b></td>` : ''}</tr>`).join('')}</table>`;
+}
+function wertung() {
+  document.querySelectorAll('.mm-meldung').forEach(m => m.remove());
+  if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; }
+  const netz = NETZ(), gast = Netz.istGast;
+  const e = S.ergebnis, ende = S.phase === 'spielende', box = Kern.el('div'), pkt = S.opt.wertung === 'punkte';
+  const sieger = ende ? e.spielSieger : [e.sieger];
+  const siegNamen = sieger.map(i => nm(i)).join(' und ');
+  const rechen = S.namen.map((_, i) => i).filter(i => i !== e.sieger).map(i => {
+    const h = S.haende[i]; return `${nm(i)}: ${h.length > 1 ? h.map(k => M.wert(k)).join(' + ') + ' = ' : ''}${e.einzel[i].wert}`; }).join(' · ');
+  box.innerHTML = `<h2>${ende ? `${siegNamen} gewinn${sieger.length > 1 ? 'en' : 't'}!` : `${nm(e.sieger)} gewinnt Runde ${S.runde}`}</h2>
+    <p>${ende && pkt ? `${nm(e.sieger)} ist als Erste oder Erster alle Karten los. Jemand hat 100 Punkte erreicht – es gewinnt, wer die wenigsten hat.` : `${nm(e.sieger)} ist alle Karten los.`}${pkt ? `<br><small style="color:var(--ink2)">${rechen}</small>` : ''}</p>
+    ${tabelle(true)}<div class="k-knoepfe"></div>`;
+  const fe = Kern.fenster(box, {breit: true, schliessbar: gast, beimSchliessen: () => { if (WERT_FE === fe) WERT_FE = null; }}), kn = box.querySelector('.k-knoepfe');
+  WERT_FE = fe;
+  const knopf = (t, id, art, fn) => { const b = Kern.el('button', 'k-btn ' + art, t); b.id = id; b.onclick = () => { fe.schliessen(); fn(); }; kn.appendChild(b); };
+  if (gast) kn.innerHTML = `<p class="mm-wartet" style="margin:0;color:var(--ink2)">${nm(0)} entscheidet, wie es weitergeht.</p>`;
+  if (ende) {
+    Kern.speicher.loeschen(); Kern.ton('sieg'); Kern.feier();
+    if (!gast) {
+      knopf(netz ? 'Spiel beenden' : 'Neues Spiel', 'mm-neu', 'leise', () => { if (NETZ()) Netz.verlassen(); startseite(); });
+      knopf('Nochmal', 'mm-nochmal', '', () => neuesSpiel(S.namen, S.farben, S.opt));
+    }
+  } else {
+    Kern.ton('runde');
+    if (!gast) knopf('Nächste Runde', 'mm-weiter', '', () => {
+      M.naechsteRunde(S, R); speichern(); ZULETZT_OBEN = M.oben(S).id;
+      if (NETZ()) { zeichnen(); Netz.melden(); } else weiterAn();
+    });
+  }
+}
+function punkteFenster() {
+  if (!S) return;
+  Kern.fenster(`<h2>Punktestand</h2><p>Runde ${S.runde}${S.opt.wertung === 'punkte' ? ' · Spielende bei 100 Punkten, die wenigsten gewinnen' : ' · bis zum ersten Sieger'}</p>${tabelle(false)}`);
+}
+
+/* ---------- Test-Zugang ---------- */
+window.__test = {
+  S: () => S, offen: () => OFFEN, logik: M,
+  zufall(seed) { let s = seed >>> 0; TEST.rnd = n => { s = (s * 1664525 + 1013904223) >>> 0; return s % n; }; },
+  setze(fn) { fn(S); if (OFFEN !== null && !Netz.laeuft) OFFEN = S.dran; speichern(); zeichnen(); Netz.melden(); }
+};
+
+/* ---------- Netzspiel ----------
+   Sitz 0 = Gastgeber. Alle zustandsändernden Tipps laufen über Netz.tun; der Gastgeber prüft, ob der Sitz dran ist.
+   Entscheidungen (Wunschfarbe, Startwunsch, Mau-Ruf, Ziehen/Behalten) trifft das Gerät der Person am Zug. */
+Netz.einrichten({
+  spiel: 'maumau', min: 2, max: 6,
+  starten(spieler, optionen) {
+    neuesSpiel(spieler.map(p => p.name), spieler.map(p => p.farbe), optionen || {});
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    if (amEnde() || (sitz !== null && sitz !== S.dran)) return Netz.melden();
+    switch (name) {
+      case 'lege': return legeAus_(Number(d.id), d.wunsch || null, sitz);
+      case 'ziehe': return ziehAus(sitz);
+      case 'behalte': return behaltAus(sitz);
+      case 'ruf': return rufAus(sitz);
+      case 'startwunsch': return startwunschAus(String(d.f));
+    }
+    Netz.melden();
+  },
+  zustand(sitz) {
+    const ende = amEnde();
+    return {s: Object.assign({}, S, {
+      haende: S.haende.map((h, i) => (i === sitz || ende) ? h : h.length),
+      stapel: S.stapel.length, ablage: S.ablage.slice(-3),
+      gezogen: S.dran === sitz ? S.gezogen : null,
+    })};
+  },
+  stand(d) {
+    const alt = S, altOben = alt && alt.ablage && alt.ablage.length ? M.oben(alt).id : null, warDran = alt && alt.dran;
+    const s = Object.assign({}, d.s);
+    s.haende = s.haende.map(h => Array.isArray(h) ? h : Array.from({length: h}, (_, j) => ({id: -1 - j, f: 'pik', r: '?'})));
+    s.stapel = Array.from({length: s.stapel}, () => null);
+    S = s;
+    if (!B || !document.body.contains(B)) buehneBauen(); else zeichnen();
+    if (altOben !== null && M.oben(S).id !== altOben) Kern.ton('legen');
+    else if (alt && warDran !== S.dran && S.dran === Netz.meinSitz) Kern.ton('tipp');
+    if (amEnde()) {
+      const m = S.runde + S.phase;
+      if (WERT_MARKE !== m) { WERT_MARKE = m; setTimeout(() => { if (S && amEnde() && WERT_MARKE === m && Netz.laeuft) wertung(); }, 800); }
+    } else { WERT_MARKE = ''; if (WERT_FE) { WERT_FE.schliessen(); WERT_FE = null; } }
+  },
+  ereignis(d) {
+    if (d.an != null && d.an !== Netz.meinSitz) return;
+    if (d.ruf) { Kern.ton('warn'); hinweis(d.ruf + '!', 1500, true); }
+    if (d.hinweis) hinweis(d.hinweis, d.ms);
+  },
+  beendet: () => startseite(),
+});
+
+startseite();
+})();
+</script>
+</body>
+</html>

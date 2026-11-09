@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Kritzelraten · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Kritzelraten: ein Zeichenblatt aus Papier auf dem Seekarten-Tisch, rechts Uhr, Raten und Punktestand.
+   Akzent Himmelblau. */
+:root{--kz-ak:#5aa9e6;--kz-papier:#fbf8f1}
+
+/* ---------- Startseite ---------- */
+.kz-teamvorschau{font-size:14px;color:var(--ink2);line-height:1.5;margin:0}
+.kz-teamvorschau b{color:var(--ink)}
+.kz-teamvorschau .k-chip{font-size:13px;margin-right:4px}
+
+/* ---------- Bühne ---------- */
+.kz-buehne{display:flex;flex-direction:column}
+.kz-spiel{flex:1;min-height:0;display:grid;gap:12px 16px;
+  grid-template-columns:minmax(0,1fr) minmax(250px,300px);grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-areas:"kopf kopf" "platz seite" "werkzeug seite"}
+.kz-kopf{grid-area:kopf;display:flex;align-items:center;gap:14px;min-height:50px;padding-left:118px}
+body.kz-netz .kz-kopf{padding-right:96px}
+.kz-was{flex:1;min-width:0}
+.kz-was small{display:block;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.kz-was h2{font-size:clamp(22px,2.6vw,30px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kz-was h2 em{font-style:normal;color:var(--kz-ak)}
+.kz-muster{font-family:var(--f-disp);font-weight:800;letter-spacing:.32em;font-size:clamp(20px,2.4vw,28px);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}
+.kz-muster small{letter-spacing:.04em;font-family:var(--f-ui);font-weight:700;font-size:13px;color:var(--ink2);margin-left:6px;display:inline}
+.kz-uhr{display:flex;align-items:center;gap:10px;flex:none}
+.kz-zeit{font-family:var(--f-disp);font-weight:800;font-size:clamp(34px,4vw,46px);line-height:1;font-variant-numeric:tabular-nums;min-width:2.4ch;text-align:right}
+.kz-ring{width:44px;height:44px;transform:rotate(-90deg)}
+.kz-ring circle{fill:none;stroke-width:6}
+.kz-ring .bg{stroke:rgba(255,255,255,.12)}.kz-ring .vg{stroke:var(--kz-ak);stroke-linecap:round;transition:stroke .3s}
+.kz-uhr.knapp .kz-zeit{color:var(--warn)}.kz-uhr.knapp .vg{stroke:var(--warn)}
+.kz-uhr.sehrknapp .kz-zeit{color:var(--fehler)}.kz-uhr.sehrknapp .vg{stroke:var(--fehler)}
+
+/* Zeichenfläche */
+.kz-platz{grid-area:platz;min-height:0;min-width:0;display:grid;place-items:center;position:relative}
+.kz-blatt{position:relative;border-radius:18px;background:var(--kz-papier);box-shadow:0 22px 50px rgba(0,0,0,.45),inset 0 0 0 1px rgba(0,0,0,.06);overflow:hidden}
+.kz-blatt canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.kz-blatt.malt{cursor:crosshair}
+.kz-leerhinweis{position:absolute;inset:0;display:grid;place-items:center;color:rgba(27,42,47,.28);font-family:var(--f-disp);font-weight:800;font-size:clamp(20px,3vw,32px);pointer-events:none;text-align:center;padding:20px}
+
+/* Werkzeuge der zeichnenden Person */
+.kz-werkzeug{grid-area:werkzeug;display:flex;align-items:center;justify-content:center;gap:8px 14px;flex-wrap:wrap;min-height:0}
+.kz-farben,.kz-dicken,.kz-aktion{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+.kz-farbe{width:40px;height:40px;border-radius:50%;border:3px solid rgba(255,255,255,.18);background:var(--c);padding:0}
+.kz-farbe[aria-pressed="true"]{border-color:#fff;box-shadow:0 0 0 3px var(--kz-ak)}
+.kz-dicke{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel-hell);display:grid;place-items:center;padding:0}
+.kz-dicke i{display:block;border-radius:50%;background:var(--ink)}
+.kz-dicke[aria-pressed="true"]{background:color-mix(in srgb,var(--kz-ak) 28%,transparent);border-color:var(--kz-ak)}
+.kz-wz{width:48px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel-hell);display:grid;place-items:center;padding:0;color:var(--ink)}
+.kz-wz svg{width:24px;height:24px}
+.kz-wz[aria-pressed="true"]{background:color-mix(in srgb,var(--kz-ak) 28%,transparent);border-color:var(--kz-ak)}
+.kz-wz:disabled{opacity:.35}
+.kz-trenner{width:1px;height:30px;background:var(--line)}
+
+/* Seite: Raten, Knöpfe, Punkte */
+.kz-seite{grid-area:seite;min-height:0;display:flex;flex-direction:column;gap:12px}
+.kz-box{border-radius:18px;background:var(--panel);border:1px solid var(--line);padding:12px}
+.kz-box h3{font-family:var(--f-ui);font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);margin:0 0 8px}
+.kz-leute{display:flex;flex-direction:column;gap:4px;overflow-y:auto;touch-action:pan-y;min-height:0}
+.kz-mensch{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:10px;font-weight:700;font-size:16px}
+.kz-mensch .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kz-mensch b{font-family:var(--f-disp);font-variant-numeric:tabular-nums;font-size:18px;color:var(--kz-ak)}
+.kz-mensch.malt{background:rgba(90,169,230,.12)}
+.kz-mensch.hat{background:rgba(127,212,154,.12)}
+.kz-mensch .zeichen{font-size:12px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--kz-ak);color:#0c2430}
+.kz-mensch.hat .zeichen{background:var(--gut);color:#0d2416}
+.kz-mensch.ich .nm::after{content:" (du)";font-weight:400;color:var(--ink2);font-size:14px}
+.kz-team{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin:6px 6px 2px;display:flex;justify-content:space-between}
+.kz-team b{font-family:var(--f-disp);font-size:18px;color:var(--pc);letter-spacing:0}
+.kz-gross{min-height:72px!important;font-size:24px!important;border-radius:18px!important;width:100%}
+.kz-zeigen{width:100%;min-height:52px;border-radius:14px;border:1px dashed var(--line-stark);background:none;color:var(--ink);font-weight:700;font-size:16px;touch-action:none}
+.kz-zeigen.an{background:var(--papier);color:var(--papier-ink);border-style:solid;font-family:var(--f-disp);font-size:24px}
+.kz-knopfzeile{display:flex;gap:8px}
+.kz-knopfzeile .k-btn{flex:1}
+
+/* Raten im Netzspiel */
+.kz-raten{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0}
+.kz-log{flex:1;min-height:60px;overflow-y:auto;touch-action:pan-y;display:flex;flex-direction:column;gap:4px;font-size:15px}
+.kz-log div{display:flex;gap:6px;align-items:baseline;line-height:1.3}
+.kz-log .wer{font-weight:700;color:var(--pc);flex:none}
+.kz-log .t{overflow-wrap:anywhere;color:var(--ink)}
+.kz-log .treffer{color:var(--gut);font-weight:700}
+.kz-log .knapp{color:var(--warn);font-weight:700}
+.kz-log .leer{color:var(--ink3)}
+.kz-form{display:flex;gap:8px}
+.kz-form .k-feld{flex:1;min-width:0;height:52px}
+.kz-form .k-btn{min-height:52px;padding:0 16px}
+.kz-geschafft{padding:12px;border-radius:14px;background:rgba(127,212,154,.14);color:var(--gut);font-weight:700;text-align:center}
+
+/* Begriff vor dem Start */
+.kz-mitte{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(14px,2.4vh,26px);padding:60px 10px 10px}
+.kz-satz{color:var(--ink2);font-size:19px;text-align:center;max-width:42ch;margin:0 auto;line-height:1.45;text-wrap:balance}
+.kz-satz b{color:var(--ink)}
+.kz-reihe{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.kz-karte{width:min(440px,100%);border-radius:26px;background:var(--papier);color:var(--papier-ink);box-shadow:0 22px 50px rgba(0,0,0,.45);overflow:hidden;text-align:center}
+.kz-karte small{display:block;background:linear-gradient(160deg,#4a90d9,#2a5ea8);color:#fff;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:12px}
+.kz-karte b{display:block;font-family:var(--f-disp);font-weight:800;font-size:clamp(40px,6vw,64px);letter-spacing:-.03em;line-height:1.05;padding:28px 20px 10px;overflow-wrap:anywhere}
+.kz-karte>span{display:block;font-size:14px;color:#5b6b70;padding:0 20px 22px}
+.kz-tafel{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px}
+.kz-tafel>span{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:99px;background:var(--panel);border:1px solid var(--line);font-weight:700;font-size:16px}
+.kz-tafel>span b{font-family:var(--f-disp);font-size:18px;font-variant-numeric:tabular-nums;color:var(--kz-ak)}
+.kz-tafel>span.dran{border-color:var(--kz-ak);box-shadow:0 0 0 1px var(--kz-ak)}
+
+/* Auflösung über dem Bild */
+.kz-aufl{position:absolute;inset:0;display:grid;place-items:center;background:rgba(6,20,27,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:5;padding:16px;animation:kz-ein .25s ease-out}
+@keyframes kz-ein{from{opacity:0}}
+.kz-aufl .kz-karte{animation:kz-hoch .35s cubic-bezier(.2,1.2,.4,1)}
+@keyframes kz-hoch{from{transform:translateY(20px) scale(.95);opacity:0}}
+.kz-aufl .kz-wer{padding:0 18px 14px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.kz-aufl .kz-wer .k-chip{font-size:14px}
+.kz-aufl .kz-reihe{padding:0 18px 20px}
+
+/* Spielende */
+.kz-sieger{font-size:clamp(40px,6vw,72px);text-align:center;color:var(--kz-ak)}
+.kz-podest{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:960px}
+.kz-podest div{min-width:120px;padding:12px 16px;border-radius:18px;background:var(--panel);border:1px solid var(--line);text-align:center;border-top:4px solid var(--pc)}
+.kz-podest div b{display:block;font-family:var(--f-disp);font-size:34px;line-height:1.05}
+.kz-podest div small{color:var(--ink2);font-size:14px}
+.kz-podest div.erst{border-color:var(--kz-ak);box-shadow:0 0 30px rgba(90,169,230,.25)}
+.kz-bilder{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:900px;max-height:24vh;overflow-y:auto;touch-action:pan-y}
+.kz-bilder span{font-size:14px;padding:5px 10px;border-radius:10px;background:rgba(255,255,255,.06);color:var(--ink2)}
+.kz-bilder span b{color:var(--ink)}
+
+/* ---------- Hochformat ---------- */
+@media (max-aspect-ratio:1/1){
+  .kz-spiel{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto minmax(0,auto);
+    grid-template-areas:"kopf" "platz" "werkzeug" "seite"}
+  .kz-seite{flex-direction:row;flex-wrap:wrap;align-items:stretch;max-height:38vh}
+  .kz-seite>*{flex:1 1 260px;min-width:0}
+  .kz-seite .kz-leute{max-height:28vh}
+}
+/* ---------- Telefon hoch ---------- */
+@media (max-width:700px){
+  .kz-spiel{gap:8px;grid-template-rows:auto auto auto minmax(0,1fr)}
+  .kz-platz{place-items:start center}
+  .kz-kopf{padding-left:112px;min-height:46px;gap:8px}
+  .kz-was small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.kz-netz .kz-kopf{padding-right:84px}
+  .kz-was h2{font-size:18px}
+  .kz-was small{font-size:12px}
+  .kz-muster{font-size:18px;letter-spacing:.18em}
+  .kz-muster small,.kz-nurbreit{display:none!important}
+  .kz-zeit{font-size:30px}
+  .kz-ring{width:34px;height:34px}
+  .kz-uhr{gap:6px}
+  .kz-blatt{border-radius:14px}
+  .kz-werkzeug{gap:6px 10px}
+  .kz-farben{gap:4px}
+  .kz-farbe{width:32px;height:32px;border-width:2px}
+  .kz-dicke{width:40px;height:40px}
+  .kz-wz{width:44px;height:40px}
+  .kz-trenner{display:none}
+  .kz-seite{flex-direction:column;flex-wrap:nowrap;max-height:none;gap:8px}
+  .kz-seite>*{flex:none}
+  .kz-seite{min-height:0}
+  .kz-seite .kz-raten{flex:1 1 auto;min-height:120px}
+  .kz-seite .kz-log{min-height:40px;flex:1}
+  .kz-box{padding:10px;border-radius:14px}
+  .kz-leute{flex-direction:row;flex-wrap:wrap;gap:4px 6px}
+  .kz-seite .kz-leute{max-height:none}
+  .kz-mensch{font-size:14px;padding:3px 8px 3px 4px;background:rgba(255,255,255,.05);border-radius:99px}
+  .kz-mensch .nm{flex:none;max-width:9em}
+  .kz-mensch b{font-size:15px}
+  .kz-mensch .zeichen{font-size:11px;padding:1px 6px}
+  .kz-mensch.ich .nm::after{content:""}
+  .kz-team{width:100%;margin:4px 2px 0}
+  .kz-box h3{display:none}
+  .kz-gross{min-height:62px!important;font-size:22px!important}
+  .kz-mitte{justify-content:flex-start;overflow-y:auto;touch-action:pan-y;padding:58px 0 4px;gap:16px}
+  .kz-mitte::before,.kz-mitte::after{content:"";flex:1 0 0}
+  .kz-satz{font-size:17px}
+  .kz-karte b{font-size:clamp(36px,11vw,52px)}
+  .kz-reihe{width:100%}
+  .kz-reihe .k-btn{flex:1 1 auto;white-space:normal;line-height:1.2;padding-block:8px;text-align:center}
+  .kz-sieger{font-size:clamp(34px,10vw,48px)}
+  .kz-podest div{min-width:0;flex:1 1 40%;padding:10px 12px}
+  .kz-podest div b{font-size:28px}
+  .kz-bilder{max-height:none}
+  @media (max-width:420px){.kz-farbe{width:30px;height:30px}}
+  body.kz-tastatur .kz-werkzeug,body.kz-tastatur .kz-seite .kz-box.kz-leutebox{display:none}
+}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
+<script src="kritzeln.logik.js"></script>
+<script src="kritzeln.daten.js"></script>
+<script>
+'use strict';
+const L = window.KritzelnLogik, BEGRIFFE = window.KRITZELN_BEGRIFFE;
+const BEKANNT = new Set(BEGRIFFE.flatMap(b => [b.b, ...(b.auch || [])]).map(L.norm));
+const AKZENT = '#5aa9e6', TEAMFARBEN = ['#f2c14e', '#ef7d6d'];
+const FARBEN = ['#1e2a30', '#7a8a90', '#c0392b', '#ef7d39', '#f2c14e', '#3a9a57', '#2c7fb8', '#6cc7d8', '#7b4fc9', '#e86fa6', '#8a5a2b'];
+const RADIERER = 11, PAPIER = '#fbf8f1';
+const DICKEN = [4, 10, 20, 38];
+const esc = Kern.esc, el = Kern.el;
+const ICON = {
+  radierer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M15 4l5 5-9.5 9.5H6L3.5 16a1.5 1.5 0 010-2.1z"/><path d="M9 10l5 5M11 18.5h9" stroke-linecap="round"/></svg>',
+  zurueck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>',
+  leeren: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>'
+};
+const REGELN = `
+<p>Eine Person zeichnet einen Begriff, die anderen raten. Wer schnell richtig liegt, bekommt Punkte – und wer gut zeichnet, auch.</p>
+<h3>Zeichnen</h3>
+<ul>
+<li>Reihum ist jede Person dran. Den Begriff sieht nur, wer zeichnet. Einmal je Bild darf man vor dem Start einen anderen Begriff nehmen.</li>
+<li>Beim Zeichnen nicht sprechen, keine Buchstaben und keine Zahlen. Pfeile und Symbole sind erlaubt.</li>
+<li>Die Uhr läuft 80 Sekunden (einstellbar).</li>
+</ul>
+<h3>Raten am selben ${Kern.geraet}</h3>
+<p>Alle rufen ihre Vermutungen laut. Wer den Begriff zuerst ruft, hat ihn: Die zeichnende Person tippt auf <b>Erraten!</b> und wählt, wer es war. Damit endet das Bild. Den Begriff kann die zeichnende Person jederzeit nachsehen (Knopf gedrückt halten).</p>
+<h3>Raten mit eigenem Gerät</h3>
+<p>Jede Person tippt ihre Vermutungen ein. Kleine Tippfehler zählen nicht. Liegst du knapp daneben, siehst nur du „knapp“. Das Bild läuft weiter, bis alle den Begriff haben oder die Zeit um ist.</p>
+<h3>Punkte</h3>
+<ul>
+<li>Erste richtige Lösung 10 Punkte, zweite 8, dritte 6, jede weitere 5.</li>
+<li>Die zeichnende Person bekommt 5 Punkte für die erste richtige Lösung und 2 für jede weitere.</li>
+</ul>
+<h3>Zwei Teams</h3>
+<p>Ab 4 Personen. Die Teams zeichnen abwechselnd, nur das eigene Team rät. Die erste richtige Lösung beendet das Bild: 3 Punkte im ersten Drittel der Zeit, 2 im zweiten, 1 im letzten.</p>
+<h3>Spielende</h3>
+<p>Wenn alle so oft gezeichnet haben wie gewählt (Vorgabe zweimal). Die meisten Punkte gewinnen.</p>`;
+
+let S = null;
+const buehne = el('div', 'k-buehne kz-buehne'); buehne.hidden = true; document.body.appendChild(buehne);
+let setupZiel = null;
+let UHR = null;                 // {iv, ende (performance.now), nurAnzeige}
+let GEZEIGT = null;             // Schlüssel der gebauten Ansicht (Phase + Bild)
+let GEHEIM = false;             // am selben Gerät: Begriff nach dem Sichtschutz sichtbar
+const WZ = { f: 0, d: 1, radierer: false };   // gewähltes Werkzeug (nur dieses Gerät)
+let AKTIV = null;               // Strich, der gerade gezeichnet wird {id,f,w,p:[], gesendet}
+const OFFEN = new Map();        // eigene Striche, die der Gastgeber noch nicht bestätigt hat
+let sendeIv = null, strichNr = 0;
+let blattEl = null, cv = null, ctx2 = null, malPlan = false;
+
+Kern.init({ id: 'kritzeln', name: 'Kritzelraten', akzent: AKZENT, regeln: REGELN,
+  onNeu: () => { uhrStopp(); Kern.speicher.loeschen(); startseite(); } });
+
+/* ---------- Startseite ---------- */
+const BILD = `<svg width="200" height="132" viewBox="0 0 200 132" aria-hidden="true">
+  <g transform="rotate(-4 90 66)"><rect x="12" y="12" width="150" height="110" rx="14" fill="#fbf8f1"/>
+  <path d="M40 92c10-30 30-46 50-46s30 14 34 30" stroke="#1e2a30" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <circle cx="66" cy="62" r="5" fill="#1e2a30"/><path d="M118 74c8 4 14 10 16 18" stroke="#1e2a30" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M34 104h108" stroke="#3a9a57" stroke-width="6" stroke-linecap="round"/><circle cx="138" cy="34" r="12" fill="#f2c14e"/></g>
+  <g transform="rotate(32 170 70)"><rect x="160" y="18" width="16" height="84" rx="4" fill="#5aa9e6"/><path d="M160 102h16l-8 18z" fill="#f4d7a8"/><path d="M165 113h6l-3 7z" fill="#1e2a30"/></g>
+  <text x="178" y="20" font-family="Bricolage Grotesque, system-ui" font-weight="800" font-size="30" fill="#5aa9e6">?</text>
+</svg>`;
+
+function teamVorschau(anzahl, namen) {
+  const A = [], B = [];
+  for (let i = 0; i < anzahl; i++) (i % 2 === 0 ? A : B).push(namen[i] || `Spieler ${i + 1}`);
+  return `<span class="k-chip" style="--pc:${TEAMFARBEN[0]}">Team Kreide</span>${esc(A.join(', '))}<br><span class="k-chip" style="--pc:${TEAMFARBEN[1]}">Team Pinsel</span>${esc(B.join(', '))}`;
+}
+function startseite() {
+  uhrStopp(); stopSenden(); S = null; buehne.hidden = true; buehne.innerHTML = ''; GEZEIGT = null; GEHEIM = false;
+  document.body.classList.remove('kz-netz', 'kz-tastatur');
+  Kern.kopf(true, 'links');
+  if (!setupZiel) { setupZiel = el('div', 'k-scroll chart'); document.body.appendChild(setupZiel); }
+  setupZiel.hidden = false;
+  const alt = Kern.speicher.laden();
+  const vorschau = el('p', 'kz-teamvorschau');
+  const box = el('div'); box.appendChild(vorschau);
+  const st = Kern.setup({
+    ziel: setupZiel,
+    titel: 'Kritzelraten', bild: BILD,
+    unter: 'Eine Person zeichnet, alle anderen raten um die Wette. Am ' + Kern.geraet + ' oder jeder mit dem eigenen Gerät.',
+    fakten: ['3–12 Personen', `${BEGRIFFE.length} Begriffe`, 'jeder für sich oder 2 Teams'],
+    spieler: { min: 3, max: 12, standard: 4 },
+    fortsetzen: alt && alt.phase !== 'ende' && alt.spieler ? `Bild ${alt.zug + 1} von ${alt.reihe.length} · ${alt.spieler.map(p => p.name).join(', ')}` : null,
+    onFortsetzen: () => { S = alt; spielZeigen(); },
+    extra: box,
+    optionen: [
+      { id: 'teams', label: 'Spielart', werte: [{ wert: 'einzeln', text: 'Jeder für sich' }, { wert: 'teams', text: '2 Teams' }], standard: 'einzeln' },
+      { id: 'zeit', label: 'Zeit je Bild', werte: [{ wert: 60, text: '60 s' }, { wert: 80, text: '80 s' }, { wert: 120, text: '2 Min' }], standard: 80 },
+      { id: 'stufe', label: 'Begriffe', klein: true, werte: [{ wert: 'leicht', text: 'Leicht' }, { wert: 'mittel', text: 'Mittel' }, { wert: 'schwer', text: 'Schwer' }, { wert: 'gemischt', text: 'Gemischt' }], standard: 'gemischt' },
+      { id: 'mal', label: 'Jeder zeichnet', werte: [{ wert: 1, text: '1×' }, { wert: 2, text: '2×' }, { wert: 3, text: '3×' }], standard: 2 }
+    ],
+    beimZeichnen: ({ anzahl, optionen }) => {
+      if (optionen.teams === 'teams') {
+        const namen = [...document.querySelectorAll('[id^="k-name-"]')].map(i => i.value.trim());
+        vorschau.innerHTML = anzahl < 4 ? '<b>Teams gibt es ab 4 Personen.</b>' : teamVorschau(anzahl, namen);
+      } else vorschau.innerHTML = 'Jede Person sammelt eigene Punkte.';
+    },
+    onStart: ({ anzahl, namen, farben, optionen }) => {
+      if (optionen.teams === 'teams' && anzahl < 4) return Kern.hinweis('Für zwei Teams braucht ihr mindestens 4 Personen.');
+      S = L.neu({ spieler: namen.map((n, i) => ({ name: n, farbe: farben[i] })), optionen: optionenAus(optionen), stapel: stapelBauen(optionen.stufe) });
+      speichern(); spielZeigen();
+    }
+  });
+  setupZiel.addEventListener('input', () => st.zeichnen());
+}
+function optionenAus(o) { return { zeit: o.zeit || 80, mal: o.mal || 2, stufe: o.stufe || 'gemischt', teams: o.teams === 'teams' }; }
+/* Gespielte Begriffe merkt sich das Gerät; sie kommen erst wieder, wenn die Stufe einmal durch ist. */
+function stapelBauen(stufe) {
+  const alle = BEGRIFFE.filter(b => stufe === 'gemischt' || !stufe || b.s === stufe);
+  let gesehen = []; try { gesehen = JSON.parse(localStorage.getItem('spieltisch.kritzeln.gesehen')) || []; } catch (e) {}
+  let frisch = alle.filter(b => !gesehen.includes(b.b));
+  if (frisch.length < 20) { frisch = alle; }
+  const rest = alle.filter(b => !frisch.includes(b));
+  return [...Kern.mischen(frisch.slice()), ...Kern.mischen(rest)].map(b => ({ b: b.b, s: b.s, auch: b.auch }));
+}
+function gesehenMerken(b) {
+  try {
+    let g = JSON.parse(localStorage.getItem('spieltisch.kritzeln.gesehen')) || [];
+    if (!g.includes(b)) g.push(b);
+    if (g.length >= BEGRIFFE.length - 20) g = [];
+    localStorage.setItem('spieltisch.kritzeln.gesehen', JSON.stringify(g));
+  } catch (e) {}
+}
+function speichern() { if (S) Kern.speicher.speichern(S); }
+
+/* ---------- Hilfen ---------- */
+const NETZ = () => !!(Netz.laeuft && S && S.modus === 'netz');
+const ICH = () => (NETZ() ? Netz.meinSitz : null);
+const name = i => S.spieler[i].name;
+const farbe = i => S.spieler[i].farbe || Kern.farben[i % 8];
+const zeichnerNr = () => S.reihe[S.zug];
+const binZeichner = () => !NETZ() || ICH() === zeichnerNr();
+const teamVon = sp => (S.teams ? (S.teams[0].mitglieder.includes(sp) ? 0 : 1) : null);
+const raterListe = () => S.spieler.map((_, i) => i).filter(i => i !== zeichnerNr() && (!S.teams || teamVon(i) === teamVon(zeichnerNr())));
+const hat = sp => S.treffer.some(t => t.sp === sp);
+const naechsterZeichner = () => (S.zug + 1 < S.reihe.length ? S.reihe[S.zug + 1] : null);
+function muster(b) { return String(b).replace(/[A-Za-zÄÖÜäöüß]/g, '_'); }
+const pkt = n => (n === 1 ? '1 Punkt' : `${n} Punkte`);
+
+/* ---------- Bühne ---------- */
+function spielZeigen() { if (setupZiel) setupZiel.hidden = true; buehne.hidden = false; GEZEIGT = null; zeichnen(); }
+function zeichnen() {
+  if (!S) return;
+  const schluessel = `${S.phase}|${S.zug}`;
+  if (S.phase === 'bereit') zeigeBereit();
+  else if (S.phase === 'zeichnen' || S.phase === 'aufloesung') { if (GEZEIGT !== `spiel|${S.zug}`) zeigeSpiel(); else spielAuffrischen(); }
+  else if (S.phase === 'ende') zeigeEnde();
+  if (S.phase !== 'zeichnen' && S.phase !== 'aufloesung') GEZEIGT = schluessel;
+}
+function tafelHtml() {
+  if (S.teams) return `<div class="kz-tafel">${S.teams.map((t, i) => `<span class="${teamVon(zeichnerNr()) === i ? 'dran' : ''}" style="--pc:${TEAMFARBEN[i]}"><span class="k-dot"></span>${esc(t.name)}<b>${t.punkte}</b></span>`).join('')}</div>`;
+  return `<div class="kz-tafel">${S.spieler.map((p, i) => `<span class="${i === zeichnerNr() ? 'dran' : ''}" style="--pc:${farbe(i)}"><span class="k-dot">${esc(p.name.charAt(0).toUpperCase())}</span>${esc(p.name)}<b>${S.punkte[i]}</b></span>`).join('')}</div>`;
+}
+function bildNrText() { return `Bild ${S.zug + 1} von ${S.reihe.length}`; }
+
+/* ---------- Vor dem Bild ---------- */
+function zeigeBereit() {
+  uhrStopp(); stopSenden();
+  const z = zeichnerNr(), wer = name(z);
+  const teamText = S.teams ? ` für <b style="color:${TEAMFARBEN[teamVon(z)]}">${esc(S.teams[teamVon(z)].name)}</b>` : '';
+  let inhalt;
+  if ((!NETZ() && GEHEIM) || (NETZ() && binZeichner())) {
+    inhalt = `<div class="kz-karte" id="kz-begriffkarte"><small>Zeichne</small><b id="kz-begriff">${esc(S.begriff.b)}</b><span>${{ leicht: 'leicht', mittel: 'mittel', schwer: 'schwer' }[S.begriff.s] || ''} · nicht sprechen, keine Buchstaben</span></div>
+      <div class="kz-reihe">${S.getauscht ? '' : '<button class="k-btn gross leise" id="kz-anderer">Anderer Begriff</button>'}<button class="k-btn gross" id="kz-los">Los – Uhr starten</button></div>`;
+  } else if (!NETZ()) {
+    inhalt = `<p class="kz-satz"><b>${esc(wer)}</b> zeichnet${teamText}. ${S.teams ? 'Nur das eigene Team rät.' : 'Alle anderen raten laut.'}</p>
+      <div class="kz-reihe"><button class="k-btn gross" id="kz-geben">${Kern.geraet} an ${esc(wer)} geben</button></div>`;
+  } else {
+    inhalt = `<p class="kz-satz"><b>${esc(wer)}</b> zeichnet${teamText} und schaut sich gerade den Begriff an.</p>
+      <p class="kz-satz">${S.teams && teamVon(ICH()) !== teamVon(z) ? 'Diesmal rät das andere Team – du schaust zu.' : 'Mach dich bereit zum Raten!'}</p>`;
+  }
+  buehne.innerHTML = `<div class="kz-mitte">
+    <div class="kz-was" style="text-align:center;flex:none"><small>${esc(bildNrText())}</small></div>
+    ${inhalt}
+    ${tafelHtml()}
+  </div>`;
+  const g = buehne.querySelector('#kz-geben');
+  if (g) Kern.tap(g, async () => {
+    await Kern.sichtschutz({ name: wer, farbe: farbe(z), knopf: `Ich bin ${wer}`, text: 'Gleich siehst du deinen Begriff. Die anderen schauen weg, bis du die Uhr startest.' });
+    GEHEIM = true; zeigeBereit();
+  });
+  const a = buehne.querySelector('#kz-anderer'); if (a) Kern.tap(a, () => Netz.tun('anderer'));
+  const l = buehne.querySelector('#kz-los'); if (l) Kern.tap(l, () => Netz.tun('start'));
+}
+
+/* ---------- Das Bild: Zeichnen und Raten ---------- */
+function zeigeSpiel() {
+  GEZEIGT = `spiel|${S.zug}`;
+  const malt = binZeichner() && S.phase === 'zeichnen';
+  const netz = NETZ();
+  const z = zeichnerNr();
+  const darfRaten = netz && raterListe().includes(ICH());
+  buehne.innerHTML = `<div class="kz-spiel">
+    <div class="kz-kopf"><div class="kz-was" id="kz-was"></div>
+      <div class="kz-uhr" id="kz-uhr"><svg class="kz-ring" viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="18"/><circle class="vg" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="0"/></svg><span class="kz-zeit k-zahl">0</span></div></div>
+    <div class="kz-platz" id="kz-platz"><div class="kz-blatt ${malt ? 'malt' : ''}" id="kz-blatt"><canvas id="kz-cv"></canvas><div class="kz-leerhinweis" id="kz-leer"></div></div></div>
+    ${malt ? `<div class="kz-werkzeug" id="kz-werkzeug">
+      <div class="kz-farben">${FARBEN.map((c, i) => `<button class="kz-farbe" data-f="${i}" style="--c:${c}" aria-label="Farbe ${i + 1}"></button>`).join('')}</div>
+      <span class="kz-trenner"></span>
+      <div class="kz-dicken">${DICKEN.map((d, i) => `<button class="kz-dicke" data-d="${i}" aria-label="Strich ${i + 1}"><i style="width:${Math.min(30, 4 + d * .7)}px;height:${Math.min(30, 4 + d * .7)}px"></i></button>`).join('')}</div>
+      <span class="kz-trenner"></span>
+      <div class="kz-aktion"><button class="kz-wz" id="kz-radierer" aria-label="Radierer">${ICON.radierer}</button><button class="kz-wz" id="kz-zurueck" aria-label="Rückgängig">${ICON.zurueck}</button><button class="kz-wz" id="kz-leeren" aria-label="Alles löschen">${ICON.leeren}</button></div>
+    </div>` : '<div class="kz-werkzeug" id="kz-werkzeug"></div>'}
+    <div class="kz-seite" id="kz-seite">
+      ${!netz && S.phase === 'zeichnen' ? `<div class="kz-box"><button class="k-btn gut kz-gross" id="kz-erraten">Erraten!</button>
+        <div style="height:8px"></div><button class="kz-zeigen" id="kz-zeigen">Begriff ansehen (halten)</button>
+        <div style="height:8px"></div><div class="kz-knopfzeile"><button class="k-btn leise klein" id="kz-aufgeben">Aufgeben</button></div></div>` : ''}
+      ${netz && malt ? '<div class="kz-box"><div class="kz-knopfzeile"><button class="k-btn leise klein" id="kz-aufgeben">Aufgeben</button></div></div>' : ''}
+      ${netz ? `<div class="kz-box kz-raten"><h3>${darfRaten ? 'Dein Tipp' : 'Tipps'}</h3><div class="kz-log" id="kz-log"></div>
+        ${darfRaten ? '<form class="kz-form" id="kz-form" autocomplete="off"><label class="k-feld"><input id="kz-tipp" maxlength="30" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" placeholder="Was ist das?"></label><button class="k-btn" id="kz-senden" type="submit">Raten</button></form>' : ''}</div>` : ''}
+      <div class="kz-box kz-leutebox"><h3>${S.teams ? 'Teams' : 'Punkte'}</h3><div class="kz-leute" id="kz-leute"></div></div>
+    </div>
+  </div>`;
+  blattEl = buehne.querySelector('#kz-blatt'); cv = buehne.querySelector('#kz-cv'); ctx2 = cv.getContext('2d');
+  groesse();
+  if (malt) werkzeugBinden();
+  const er = buehne.querySelector('#kz-erraten'); if (er) Kern.tap(er, erratenWaehlen);
+  const ag = buehne.querySelector('#kz-aufgeben'); if (ag) Kern.tap(ag, async () => {
+    const ja = await Kern.frage({ titel: 'Aufgeben?', text: 'Das Bild endet, niemand bekommt Punkte.', knoepfe: [{ text: 'Weiterzeichnen', wert: false, art: 'leise' }, { text: 'Aufgeben', wert: true, art: 'gefahr' }] });
+    if (ja) Netz.tun('aufgeben');
+  });
+  const zg = buehne.querySelector('#kz-zeigen');
+  if (zg) {
+    const an = () => { zg.classList.add('an'); zg.textContent = S.begriff ? S.begriff.b : ''; };
+    const aus = () => { zg.classList.remove('an'); zg.textContent = 'Begriff ansehen (halten)'; };
+    zg.addEventListener('pointerdown', an); ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => zg.addEventListener(e, aus));
+  }
+  const fm = buehne.querySelector('#kz-form');
+  if (fm) {
+    const inp = fm.querySelector('input');
+    fm.addEventListener('submit', ev => { ev.preventDefault(); const t = inp.value.trim(); if (!t) return; inp.value = ''; Netz.tun('raten', { t }); });
+  }
+  spielAuffrischen();
+  if (S.phase === 'zeichnen') uhrStart(NETZ() && !Netz.istHost ? S.restMs : Math.max(0, S.ende - Date.now()), NETZ() && !Netz.istHost);
+}
+function spielAuffrischen() {
+  if (!buehne.querySelector('.kz-spiel')) return zeigeSpiel();
+  const z = zeichnerNr(), ich = ICH(), malt = binZeichner() && S.phase === 'zeichnen';
+  // Kopf: wer zeichnet, was zu tun ist
+  const was = buehne.querySelector('#kz-was');
+  const tz = S.teams ? ` · ${esc(S.teams[teamVon(z)].name)}` : '';
+  const nr = `<span class="kz-nurbreit">${esc(bildNrText())} · </span>`;
+  if (S.phase === 'aufloesung') was.innerHTML = `<small>${esc(bildNrText())}</small><h2>Aufgelöst</h2>`;
+  else if (NETZ() && malt) was.innerHTML = `<small>${nr}du zeichnest${tz}</small><h2>Zeichne: <em>${esc(S.begriff.b)}</em></h2>`;
+  else if (NETZ()) {
+    const m = S.muster || '';
+    was.innerHTML = `<small>${nr}${esc(name(z))} zeichnet${tz}</small><div class="kz-muster">${esc(m)}<small>${m.replace(/[^_]/g, '').length} Buchstaben</small></div>`;
+  } else was.innerHTML = `<small>${esc(bildNrText())}${tz}</small><h2><em>${esc(name(z))}</em> zeichnet</h2>`;
+  // Leute
+  const zeile = i => `<div class="kz-mensch ${i === z ? 'malt' : ''} ${hat(i) ? 'hat' : ''} ${i === ich ? 'ich' : ''}"><span class="k-dot" style="--pc:${farbe(i)}">${esc(name(i).charAt(0).toUpperCase())}</span><span class="nm">${esc(name(i))}</span>${i === z ? '<span class="zeichen">zeichnet</span>' : hat(i) ? '<span class="zeichen">hat es</span>' : ''}${S.teams ? '' : `<b>${S.punkte[i]}</b>`}</div>`;
+  const leute = buehne.querySelector('#kz-leute');
+  leute.innerHTML = S.teams ? S.teams.map((t, ti) => `<div class="kz-team" style="--pc:${TEAMFARBEN[ti]}">${esc(t.name)}<b>${t.punkte}</b></div>${t.mitglieder.map(zeile).join('')}`).join('') : S.spieler.map((_, i) => zeile(i)).join('');
+  // Tipps
+  const log = buehne.querySelector('#kz-log');
+  if (log) {
+    const unten = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+    log.innerHTML = S.raten.length ? S.raten.map(r => {
+      const w = `<span class="wer" style="--pc:${farbe(r.sp)}">${esc(r.sp === ich ? 'Du' : name(r.sp))}</span>`;
+      if (r.art === 'treffer') return `<div>${w}<span class="treffer">${r.sp === ich ? `„${esc(r.t || '')}“ – richtig!` : 'hat es erraten!'}</span></div>`;
+      if (r.art === 'knapp') return `<div>${w}${r.t != null ? `<span class="t">${esc(r.t)}</span><span class="knapp">knapp!</span>` : '<span class="leer">…</span>'}</div>`;
+      return `<div>${w}<span class="t">${esc(r.t)}</span></div>`;
+    }).join('') : `<div class="leer">${raterListe().includes(ich) ? 'Tippe, was du erkennst.' : 'Noch keine Tipps.'}</div>`;
+    if (unten) log.scrollTop = log.scrollHeight;
+  }
+  const fm = buehne.querySelector('#kz-form');
+  if (fm) {
+    const fertig = hat(ich) || S.phase !== 'zeichnen';
+    fm.hidden = fertig;
+    let gs = buehne.querySelector('.kz-geschafft');
+    if (hat(ich) && !gs) { gs = el('div', 'kz-geschafft', 'Richtig! Warte auf die anderen.'); fm.after(gs); }
+  }
+  // Leerer Bogen
+  const leer = buehne.querySelector('#kz-leer');
+  const anzahl = S.bild.striche.length + OFFEN.size + (AKTIV ? 1 : 0);
+  leer.textContent = anzahl ? '' : S.phase !== 'zeichnen' ? '' : malt ? 'Hier zeichnen' : 'Gleich geht’s los …';
+  // Nach der Auflösung: Werkzeuge, Knöpfe und Uhr weg
+  const vorbei = S.phase !== 'zeichnen';
+  const wz = buehne.querySelector('#kz-werkzeug'); if (wz) wz.style.visibility = vorbei ? 'hidden' : '';
+  buehne.querySelectorAll('#kz-erraten, #kz-zeigen, #kz-aufgeben').forEach(b => { const box = b.closest('.kz-box'); if (box) box.hidden = vorbei; });
+  const uh = buehne.querySelector('#kz-uhr'); if (uh) uh.style.visibility = vorbei ? 'hidden' : '';
+  werkzeugZeigen();
+  aufloesungZeigen();
+  malen();
+}
+
+/* ---------- Werkzeug ---------- */
+function werkzeugBinden() {
+  buehne.querySelectorAll('.kz-farbe').forEach(b => Kern.tap(b, () => { WZ.f = +b.dataset.f; WZ.radierer = false; werkzeugZeigen(); Kern.ton('tipp'); }));
+  buehne.querySelectorAll('.kz-dicke').forEach(b => Kern.tap(b, () => { WZ.d = +b.dataset.d; werkzeugZeigen(); Kern.ton('tipp'); }));
+  Kern.tap(buehne.querySelector('#kz-radierer'), () => { WZ.radierer = !WZ.radierer; werkzeugZeigen(); Kern.ton('tipp'); });
+  Kern.tap(buehne.querySelector('#kz-zurueck'), () => {
+    if (AKTIV) return;
+    if (OFFEN.size) return Kern.hinweis('Einen Moment …', 900);
+    if (!S.bild.striche.length) return;
+    Netz.tun('zurueck');
+  });
+  let scharf = 0;
+  const le = buehne.querySelector('#kz-leeren');
+  Kern.tap(le, () => {
+    if (!S.bild.striche.length && !OFFEN.size) return;
+    if (Date.now() - scharf > 2500) { scharf = Date.now(); Kern.hinweis('Nochmal tippen, um alles zu löschen.', 2000); return; }
+    scharf = 0; OFFEN.clear(); Netz.tun('leeren');
+  });
+  cv.addEventListener('pointerdown', stiftAb);
+  cv.addEventListener('pointermove', stiftZug);
+  cv.addEventListener('pointerup', stiftAuf);
+  cv.addEventListener('pointercancel', stiftAuf);
+}
+function werkzeugZeigen() {
+  buehne.querySelectorAll('.kz-farbe').forEach(b => b.setAttribute('aria-pressed', !WZ.radierer && +b.dataset.f === WZ.f));
+  buehne.querySelectorAll('.kz-dicke').forEach(b => b.setAttribute('aria-pressed', +b.dataset.d === WZ.d));
+  const r = buehne.querySelector('#kz-radierer'); if (r) r.setAttribute('aria-pressed', WZ.radierer);
+  const zu = buehne.querySelector('#kz-zurueck'); if (zu) zu.disabled = !S.bild.striche.length && !OFFEN.size;
+  const le = buehne.querySelector('#kz-leeren'); if (le) le.disabled = !S.bild.striche.length && !OFFEN.size;
+}
+
+/* ---------- Zeichnen mit Stift oder Finger ---------- */
+function punktAus(ev) {
+  const r = cv.getBoundingClientRect();
+  return [Math.round(Math.max(0, Math.min(L.BREITE, (ev.clientX - r.left) / r.width * L.BREITE))),
+    Math.round(Math.max(0, Math.min(L.HOEHE, (ev.clientY - r.top) / r.height * L.HOEHE)))];
+}
+function stiftAb(ev) {
+  if (!S || S.phase !== 'zeichnen' || !binZeichner() || AKTIV) return;
+  ev.preventDefault();
+  try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+  const p = punktAus(ev);
+  const id = `${ICH() == null ? 'l' : ICH()}${(Date.now() % 1e7).toString(36)}${(strichNr++ % 1296).toString(36)}`;
+  AKTIV = { id, f: WZ.radierer ? RADIERER : WZ.f, w: WZ.radierer ? Math.max(24, DICKEN[WZ.d] * 1.6) | 0 : DICKEN[WZ.d], p: [p[0], p[1]], roh: p, gesendet: 0, zeiger: ev.pointerId };
+  buehne.querySelector('#kz-leer').textContent = '';
+  if (!sendeIv) sendeIv = setInterval(teilSenden, 120);
+  malen();
+}
+function stiftZug(ev) {
+  if (!AKTIV || ev.pointerId !== AKTIV.zeiger) return;
+  const evs = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
+  for (const e of (evs.length ? evs : [ev])) {
+    const p = punktAus(e), q = AKTIV.p, lx = q[q.length - 2], ly = q[q.length - 1];
+    // leicht glätten: neuer Punkt liegt zwischen Rohpunkt und letztem Punkt
+    const sx = Math.round(lx + (p[0] - lx) * .6), sy = Math.round(ly + (p[1] - ly) * .6);
+    if (Math.hypot(sx - lx, sy - ly) >= 3) q.push(sx, sy);
+    AKTIV.roh = p;
+  }
+  malen();
+}
+function stiftAuf(ev) {
+  if (!AKTIV || ev.pointerId !== AKTIV.zeiger) return;
+  const q = AKTIV.p, r = AKTIV.roh;
+  if (r && (q[q.length - 2] !== r[0] || q[q.length - 1] !== r[1]) && q.length > 2) q.push(r[0], r[1]);
+  const fertig = AKTIV;
+  OFFEN.set(fertig.id, { id: fertig.id, f: fertig.f, w: fertig.w, p: fertig.p.slice() });
+  teilSenden(true);
+  AKTIV = null;
+  malen();
+}
+/** Neue Punkte des laufenden Strichs als kleines Paket an den Gastgeber. */
+function teilSenden(ende) {
+  const a = AKTIV; if (!a) { stopSenden(); return; }
+  const neuP = a.p.slice(a.gesendet * 2);
+  if (!neuP.length && !ende) return;
+  const d = { id: a.id, f: a.f, w: a.w, ab: a.gesendet, p: neuP };
+  if (ende) d.e = 1;
+  a.gesendet += neuP.length / 2;
+  Netz.tun('strich', d);
+  if (ende) stopSenden();
+}
+function stopSenden() { if (sendeIv) { clearInterval(sendeIv); sendeIv = null; } }
+
+/* ---------- Malen ---------- */
+function groesse() {
+  const platz = buehne.querySelector('#kz-platz'); if (!platz || !blattEl) return;
+  const r = platz.getBoundingClientRect();
+  const handy = matchMedia('(max-width:700px)').matches;   // Telefon hoch: Blatt so breit wie möglich, darunter Raten
+  const w = Math.max(120, Math.floor(handy ? r.width : Math.min(r.width, r.height * L.BREITE / L.HOEHE))), h = Math.floor(w * L.HOEHE / L.BREITE);
+  blattEl.style.width = w + 'px'; blattEl.style.height = h + 'px';
+  const dpr = Math.min(2.5, devicePixelRatio || 1);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  malen();
+}
+new ResizeObserver(() => { if (blattEl && blattEl.isConnected) groesse(); }).observe(buehne);
+function malen() {
+  if (malPlan) return; malPlan = true;
+  requestAnimationFrame(() => { malPlan = false; jetztMalen(); });
+}
+/** Striche zum Zeichnen: bestätigte aus dem Stand, eigene noch offene darüber, der laufende zuletzt. */
+function sichtbareStriche() {
+  const L2 = S.bild.striche;
+  for (const [id, o] of OFFEN) { const s = L2.find(x => x.id === id); if (s && s.p.length >= o.p.length) OFFEN.delete(id); }
+  const liste = L2.map(s => (OFFEN.has(s.id) ? OFFEN.get(s.id) : s)).filter(s => !AKTIV || s.id !== AKTIV.id);
+  for (const [id, o] of OFFEN) if (!L2.some(x => x.id === id)) liste.push(o);
+  if (AKTIV) liste.push(AKTIV);
+  return liste;
+}
+function jetztMalen() {
+  if (!cv || !cv.isConnected || !S) return;
+  const c = ctx2, k = cv.width / L.BREITE;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.fillStyle = PAPIER; c.fillRect(0, 0, cv.width, cv.height);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  for (const s of sichtbareStriche()) {
+    const p = s.p; if (!p || p.length < 2) continue;
+    c.strokeStyle = c.fillStyle = s.f === RADIERER ? PAPIER : FARBEN[s.f] || FARBEN[0];
+    c.lineWidth = s.w * k;
+    if (p.length === 2) { c.beginPath(); c.arc(p[0] * k, p[1] * k, s.w * k / 2, 0, Math.PI * 2); c.fill(); continue; }
+    c.beginPath(); c.moveTo(p[0] * k, p[1] * k);
+    for (let i = 2; i < p.length - 2; i += 2) {
+      const mx = (p[i] + p[i + 2]) / 2, my = (p[i + 1] + p[i + 3]) / 2;
+      c.quadraticCurveTo(p[i] * k, p[i + 1] * k, mx * k, my * k);
+    }
+    c.lineTo(p[p.length - 2] * k, p[p.length - 1] * k);
+    c.stroke();
+  }
+  werkzeugZeigen();
+}
+
+/* ---------- Uhr ---------- */
+function uhrStart(restMs, nurAnzeige) {
+  uhrStopp();
+  if (restMs == null) return;
+  UHR = { ende: performance.now() + restMs, nurAnzeige: !!nurAnzeige, letzte: null, iv: setInterval(uhrTakt, 200) };
+  uhrTakt();
+}
+function uhrStopp() { if (UHR) { clearInterval(UHR.iv); UHR = null; } }
+function uhrTakt() {
+  if (!UHR || !S || S.phase !== 'zeichnen') return uhrStopp();
+  const rest = Math.max(0, UHR.ende - performance.now()), sek = Math.ceil(rest / 1000);
+  const u = buehne.querySelector('#kz-uhr');
+  if (u) {
+    u.querySelector('.kz-zeit').textContent = sek;
+    u.querySelector('.vg').setAttribute('stroke-dashoffset', String(113.1 * (1 - rest / (S.optionen.zeit * 1000))));
+    u.classList.toggle('knapp', sek <= 15); u.classList.toggle('sehrknapp', sek <= 5);
+  }
+  if (sek !== UHR.letzte) { UHR.letzte = sek; if (sek <= 5 && sek > 0) Kern.ton('zeit'); }
+  if (rest <= 0) { const nur = UHR.nurAnzeige; uhrStopp(); if (!nur) Netz.tun('zeit'); }
+}
+
+/* ---------- Erraten (am selben Gerät) ---------- */
+async function erratenWaehlen() {
+  if (S.phase !== 'zeichnen') return;
+  if (S.teams) return Netz.tun('erraten', {});
+  const r = raterListe();
+  const wer = await Kern.frage({ titel: 'Wer hat es erraten?', text: `Es war <b>${esc(S.begriff.b)}</b>. Wer hat es zuerst gerufen?`, schliessbar: true,
+    knoepfe: [...r.map(i => ({ text: name(i), wert: i })), { text: 'Abbrechen', wert: -1, art: 'leise' }] });
+  if (wer == null || wer < 0) return;
+  Netz.tun('erraten', { sp: wer });
+}
+
+/* ---------- Auflösung ---------- */
+function aufloesungZeigen() {
+  const platz = buehne.querySelector('#kz-platz'); if (!platz) return;
+  let a = platz.querySelector('.kz-aufl');
+  if (S.phase !== 'aufloesung') { if (a) a.remove(); return; }
+  if (a && a.dataset.zug === String(S.zug)) return;
+  const v = S.verlauf[S.verlauf.length - 1], z = zeichnerNr();
+  const nx = naechsterZeichner();
+  const darf = !NETZ() || Netz.meinSitz === 0 || Netz.meinSitz === nx;
+  const grund = { zeit: 'Die Zeit ist um.', aufgeben: `${name(z)} hat aufgegeben.`, alle: '' }[S.grund] || '';
+  let wer;
+  if (S.teams) wer = v.treffer.length ? `<span class="k-chip" style="--pc:${TEAMFARBEN[v.team]}">${esc(S.teams[v.team].name)} +${v.teamPunkte}</span>` : '<span class="k-chip leise">Niemand hat es erraten</span>';
+  else wer = v.treffer.length ? v.treffer.map(sp => `<span class="k-chip" style="--pc:${farbe(sp)}">${esc(name(sp))} +${v.punkte[sp]}</span>`).join('') + `<span class="k-chip" style="--pc:${farbe(z)}">${esc(name(z))} +${PUNKTE_ZEICHNER(v.treffer.length)} fürs Zeichnen</span>` : '<span class="k-chip leise">Niemand hat es erraten</span>';
+  a = el('div', 'kz-aufl', `<div class="kz-karte"><small>${esc(grund || 'Erraten!')}</small><b>${esc(S.begriff.b)}</b><div class="kz-wer">${wer}</div>
+    <div class="kz-reihe">${darf ? `<button class="k-btn gross" id="kz-weiter">${nx == null ? 'Zum Ergebnis' : 'Nächstes Bild'}</button>` : `<p class="kz-satz" style="font-size:15px;color:#5b6b70">Weiter geht es bei ${esc(name(0))}${nx != null && nx !== 0 ? ` oder ${esc(name(nx))}` : ''}.</p>`}</div></div>`);
+  a.dataset.zug = S.zug;
+  platz.appendChild(a);
+  const w = a.querySelector('#kz-weiter'); if (w) Kern.tap(w, () => Netz.tun('weiter'));
+}
+const PUNKTE_ZEICHNER = n => (n ? 5 + 2 * (n - 1) : 0);
+
+/* ---------- Spielende ---------- */
+function zeigeEnde(feiern) {
+  uhrStopp(); stopSenden();
+  const sg = L.sieger(S);
+  let titel, podest;
+  if (S.teams) {
+    titel = sg.length > 1 ? 'Unentschieden!' : `${S.teams[sg[0]].name} gewinnt`;
+    podest = S.teams.map((t, i) => `<div class="${sg.includes(i) ? 'erst' : ''}" style="--pc:${TEAMFARBEN[i]}"><small>${esc(t.mitglieder.map(name).join(', '))}</small><b class="k-zahl">${t.punkte}</b>${esc(t.name)}</div>`).join('');
+  } else {
+    titel = sg.length > 1 ? `Gleichstand: ${sg.map(name).join(' und ')}` : `${name(sg[0])} gewinnt`;
+    podest = S.spieler.map((_, i) => i).sort((a, b) => S.punkte[b] - S.punkte[a]).map((i, r) => `<div class="${sg.includes(i) ? 'erst' : ''}" style="--pc:${farbe(i)}"><small>${r + 1}. Platz</small><b class="k-zahl">${S.punkte[i]}</b>${esc(name(i))}</div>`).join('');
+  }
+  buehne.innerHTML = `<div class="kz-mitte">
+    <div class="kz-was" style="text-align:center;flex:none"><small>Spielende · ${S.reihe.length} Bilder</small></div>
+    <h1 class="kz-sieger">${esc(titel)}</h1>
+    <div class="kz-podest">${podest}</div>
+    <div class="kz-bilder">${S.verlauf.map(v => `<span>${esc(name(v.zeichner))}: <b>${esc(v.begriff)}</b>${v.treffer.length ? '' : ' ✕'}</span>`).join('')}</div>
+    <div class="kz-reihe">${NETZ() && !Netz.istHost ? `<p class="kz-satz">${esc(name(0))} entscheidet, wie es weitergeht.</p>` : '<button class="k-btn gross" id="kz-nochmal">Nochmal</button><button class="k-btn gross leise" id="kz-neu">Neues Spiel</button>'}</div>
+  </div>`;
+  if (feiern) { Kern.feier(); Kern.ton('sieg'); }
+  const nm = buehne.querySelector('#kz-nochmal'); if (nm) Kern.tap(nm, () => Netz.tun('nochmal'));
+  const ne = buehne.querySelector('#kz-neu'); if (ne) Kern.tap(ne, () => { if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); });
+}
+
+/* ---------- Züge (ohne Netz direkt, im Netz beim Gastgeber) ---------- */
+/** Bild beenden (oder, wenn die Logik es schon beendet hat, nur noch nachbereiten). */
+function bildEnde(grund) {
+  if (S.phase === 'zeichnen' && !L.aufloesen(S, grund)) return false;
+  if (S.phase !== 'aufloesung') return false;
+  uhrStopp(); stopSenden(); AKTIV = null;
+  gesehenMerken(S.begriff.b);
+  Kern.ton(S.treffer.length ? 'punkt' : 'gong');
+  speichern(); zeichnen(); Netz.melden(); Netz.ereignis({ ton: S.treffer.length ? 'punkt' : 'gong' });
+  return true;
+}
+Netz.einrichten({
+  spiel: 'kritzeln', min: 3, max: 12,
+  stilleAktionen: ['strich'], // Teilstücke gehen per Netz.ereignis, der volle Stand erst am Strichende
+  starten(spieler, optionen) {
+    const o = optionenAus(optionen);
+    if (o.teams && spieler.length < 4) o.teams = false;
+    const teamSitze = o.teams ? [spieler.filter(p => p.sitz % 2 === 0).map(p => p.sitz), spieler.filter(p => p.sitz % 2 === 1).map(p => p.sitz)] : null;
+    S = L.neu({ spieler: spieler.map(p => ({ name: p.name, farbe: p.farbe })), optionen: o, stapel: stapelBauen(o.stufe), teamSitze, modus: 'netz' });
+    document.body.classList.add('kz-netz');
+    spielZeigen();
+  },
+  aktion(nm, d, sitz) {
+    if (!S) return;
+    const netz = sitz !== null && S.modus === 'netz';
+    const nein = () => { if (sitz !== null) Netz.melden(sitz); };
+    const istZeichner = !netz || sitz === zeichnerNr();
+    switch (nm) {
+      case 'anderer': if (!istZeichner || !L.anderer(S)) return nein(); speichern(); Kern.ton('karte'); zeichnen(); Netz.melden(); return;
+      case 'start':
+        if (!istZeichner || !L.starten(S, Date.now())) return nein();
+        GEHEIM = false; OFFEN.clear(); AKTIV = null;
+        speichern(); Kern.ton('runde'); zeichnen(); Netz.melden(); Netz.ereignis({ ton: 'runde' });
+        return;
+      case 'strich':
+        if (!istZeichner || !L.strichDazu(S, d)) return nein();
+        if (d.e) { speichern(); Netz.melden(); } else Netz.ereignis({ daten: { s: { id: d.id, f: d.f, w: d.w, ab: d.ab, p: d.p } } });
+        if (netz) malen();
+        return;
+      case 'zurueck': if (!istZeichner || !L.strichZurueck(S)) return nein(); speichern(); malen(); spielAuffrischen(); Netz.melden(); return;
+      case 'leeren': if (!istZeichner || !L.bildLeeren(S)) return nein(); speichern(); malen(); spielAuffrischen(); Netz.melden(); return;
+      case 'raten': {
+        if (!netz) return;
+        const e = L.raten(S, sitz, d.t, Date.now(), BEKANNT);
+        if (!e) return nein();
+        if (e.art === 'treffer') {
+          Kern.ton('punkt');
+          if (S.phase === 'aufloesung') return bildEnde('alle');
+          Netz.ereignis({ ton: 'punkt', hinweis: `${name(sitz)} hat es erraten!` });
+          if (sitz !== 0) Kern.hinweis(`${name(sitz)} hat es erraten!`);
+        }
+        speichern(); spielAuffrischen(); Netz.melden();
+        return;
+      }
+      case 'erraten':
+        if (netz || S.phase !== 'zeichnen') return nein();
+        if (!L.erratenDurch(S, d.sp, Date.now())) return;
+        return bildEnde('alle');
+      case 'aufgeben': if (!istZeichner || S.phase !== 'zeichnen') return nein(); return bildEnde('aufgeben');
+      case 'zeit': if ((netz && sitz !== 0) || S.phase !== 'zeichnen') return nein(); return bildEnde('zeit');
+      case 'weiter': {
+        if (S.phase !== 'aufloesung' || (netz && sitz !== 0 && sitz !== naechsterZeichner())) return nein();
+        L.weiter(S); GEHEIM = false; OFFEN.clear(); AKTIV = null;
+        if (S.phase === 'ende') { Kern.speicher.loeschen(); zeigeEnde(true); GEZEIGT = 'ende|' + S.zug; Netz.melden(); Netz.ereignis({ ton: 'sieg', feier: true }); }
+        else { speichern(); Kern.ton('tipp'); zeichnen(); Netz.melden(); }
+        return;
+      }
+      case 'nochmal': {
+        if (S.phase !== 'ende' || (netz && sitz !== 0)) return nein();
+        const teamSitze = S.teams ? S.teams.map(t => t.mitglieder) : null;
+        S = L.neu({ spieler: S.spieler, optionen: S.optionen, stapel: stapelBauen(S.optionen.stufe), teamSitze, modus: S.modus });
+        speichern(); spielZeigen(); Netz.melden(); return;
+      }
+    }
+  },
+  zustand(sitz) {
+    if (!S) return { warte: true };
+    const k = JSON.parse(JSON.stringify(Object.assign({}, S, { stapel: [], gezogen: [] })));
+    k.stapelAnz = S.stapel.length;
+    const zeichnet = sitz === zeichnerNr();
+    if ((S.phase === 'bereit' || S.phase === 'zeichnen') && !zeichnet) {   // den Begriff sieht nur, wer zeichnet
+      k.muster = muster(S.begriff.b);
+      k.begriff = null;
+      k.raten = S.raten.map(r => (r.sp === sitz ? r : r.art === 'nein' ? r : { sp: r.sp, art: r.art, t: null }));
+    }
+    if (S.phase === 'zeichnen' && S.ende) k.restMs = Math.max(0, S.ende - Date.now());
+    return k;
+  },
+  stand(d) {
+    if (!d || d.warte) return;
+    const alt = S;
+    S = d;
+    document.body.classList.add('kz-netz');
+    if (setupZiel) setupZiel.hidden = true;
+    buehne.hidden = false;
+    if (!alt || alt.zug !== S.zug || alt.phase !== S.phase) {
+      if (alt && alt.phase === 'zeichnen' && S.phase === 'aufloesung') { uhrStopp(); AKTIV = null; stopSenden(); }
+      if (S.phase === 'ende') { zeigeEnde(alt && alt.phase !== 'ende'); GEZEIGT = 'ende|' + S.zug; return; }
+      if (S.phase === 'zeichnen' && (!alt || alt.phase !== 'zeichnen' || alt.zug !== S.zug)) { OFFEN.clear(); GEZEIGT = null; }
+    }
+    zeichnen();
+    if (S.phase === 'zeichnen' && UHR && UHR.nurAnzeige && S.restMs != null) UHR.ende = performance.now() + S.restMs;
+  },
+  ereignis(d) {
+    if (!d || !d.s || !S || S.phase !== 'zeichnen') return;
+    // Teilstück eines Strichs live übernehmen (nur Anzeige; der volle Stand kommt am Strichende)
+    const c = d.s, L2 = S.bild.striche;
+    let s = L2.find(x => x.id === c.id);
+    if (!s) { if (c.ab !== 0) return; s = { id: c.id, f: c.f, w: c.w, p: [] }; L2.push(s); }
+    if (s.p.length / 2 < c.ab) return;
+    s.p.length = c.ab * 2; s.p.push(...c.p);
+    const leer = buehne.querySelector('#kz-leer'); if (leer) leer.textContent = '';
+    malen();
+  },
+  beendet() { document.body.classList.remove('kz-netz'); startseite(); },
+});
+
+/* Bildschirmtastatur beim Raten (Telefon): Bühne auf den sichtbaren Bereich verkleinern. */
+if (window.visualViewport) {
+  const vv = visualViewport;
+  const anpassen = () => {
+    const offen = S && S.phase === 'zeichnen' && NETZ() && vv.height < innerHeight - 120;
+    document.body.classList.toggle('kz-tastatur', !!offen);
+    if (offen) { buehne.style.bottom = 'auto'; buehne.style.top = vv.offsetTop + 'px'; buehne.style.height = vv.height + 'px'; }
+    else { buehne.style.bottom = ''; buehne.style.top = ''; buehne.style.height = ''; }
+  };
+  vv.addEventListener('resize', anpassen); vv.addEventListener('scroll', anpassen);
+}
+addEventListener('pagehide', () => { if (S && !NETZ()) speichern(); });
+
+window.__test = { zustand: () => S, uhrSetzen: ms => { if (UHR) UHR.ende = performance.now() + ms; if (S && S.ende && !(UHR && UHR.nurAnzeige)) S.ende = Date.now() + ms; },
+  offen: () => OFFEN.size, werkzeug: () => ({ ...WZ }) };
+startseite();
+</script>
+</body>
+</html>

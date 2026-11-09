@@ -1,7 +1,7 @@
 /* Spieltisch - Service Worker. Offline zuerst: jeder Start kommt aus dem Speicher des Geraets.
    Eine neue Fassung laedt ALLE Dateien in einen eigenen Speicher und gilt ab dem naechsten Start.
    Ein laufendes Spiel wird dabei nie neu geladen. VERSION setzt Werkzeuge/bauen.py. */
-var VERSION = "2f4ce6ea32ff";
+var VERSION = "4c042d3ff388";
 var CACHE = "spieltisch-" + VERSION;
 var ASSETS = [
   "./",
@@ -11,6 +11,7 @@ var ASSETS = [
   "./gemeinsam/kern.css",
   "./gemeinsam/kern.js",
   "./gemeinsam/netz.js",
+  "./gemeinsam/three.module.min.js",
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -28,22 +29,41 @@ var ASSETS = [
   "./spiele/funkstille.logik.js",
   "./spiele/halma.html",
   "./spiele/halma.logik.js",
+  "./spiele/heimlauf.html",
+  "./spiele/heimlauf.logik.js",
+  "./spiele/igelhuegel.html",
+  "./spiele/igelhuegel.logik.js",
+  "./spiele/kritzeln.daten.js",
+  "./spiele/kritzeln.html",
+  "./spiele/kritzeln.logik.js",
   "./spiele/letztekarte.html",
   "./spiele/letztekarte.logik.js",
   "./spiele/maexchen.html",
   "./spiele/maexchen.logik.js",
+  "./spiele/maumau.html",
+  "./spiele/maumau.logik.js",
   "./spiele/muehle.html",
   "./spiele/muehle.logik.js",
+  "./spiele/paare.daten.js",
+  "./spiele/paare.html",
+  "./spiele/paare.logik.js",
   "./spiele/poker.html",
   "./spiele/poker.logik.js",
   "./spiele/rheinbaron.html",
   "./spiele/rheinbaron.logik.js",
   "./spiele/romme.html",
   "./spiele/romme.logik.js",
+  "./spiele/ruhighand.daten.js",
+  "./spiele/ruhighand.html",
+  "./spiele/ruhighand.logik.js",
   "./spiele/schach.html",
   "./spiele/schach.logik.js",
   "./spiele/schiffe.html",
   "./spiele/schiffe.logik.js",
+  "./spiele/schwimmen.html",
+  "./spiele/schwimmen.logik.js",
+  "./spiele/stadtlandfluss.html",
+  "./spiele/stadtlandfluss.logik.js",
   "./spiele/stapelei.html",
   "./spiele/stapelei.logik.js",
   "./spiele/tiefpunkt.html",
@@ -53,7 +73,9 @@ var ASSETS = [
   "./spiele/wortverbot.html",
   "./spiele/wortverbot.logik.js",
   "./spiele/zahlenromme.html",
-  "./spiele/zahlenromme.logik.js"
+  "./spiele/zahlenromme.logik.js",
+  "./spiele/zahnweh.html",
+  "./spiele/zahnweh.logik.js"
 ];
 
 self.addEventListener('install', function (e) {

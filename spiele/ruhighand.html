@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Ruhige Hand · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Ruhige Hand: links (bzw. oben) Lagesatz, Aufgabenkarte, Spieler; daneben Kuno, der Uhrwerk-Roboter. Präfix .rh- */
+.rh-buehne{display:grid;grid-template-columns:clamp(250px,26vw,330px) minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:16px}
+.rh-seite{display:flex;flex-direction:column;gap:14px;padding-top:62px;min-height:0;min-width:0}
+.rh-satz{font-family:var(--f-disp);font-weight:800;font-size:clamp(21px,2.1vw,26px);line-height:1.12;letter-spacing:-.02em;text-wrap:balance}
+.rh-satz b{display:block;font-weight:inherit}
+.rh-satz small{display:block;font-family:var(--f-ui);font-weight:400;font-size:15px;letter-spacing:0;color:var(--ink2);margin-top:6px;line-height:1.35}
+.rh-satz .rh-nm{color:var(--pc)}
+.rh-satz .rh-bzz{color:var(--fehler)}
+.rh-kartenplatz{display:flex;gap:12px;align-items:stretch;min-height:0}
+.rh-aufgabe{position:relative;flex:1;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px;padding:12px 14px;border-radius:16px;
+  background:var(--papier);color:var(--papier-ink);box-shadow:0 12px 30px rgba(0,0,0,.4);animation:rh-umdrehen .45s cubic-bezier(.3,.75,.3,1)}
+@keyframes rh-umdrehen{from{transform:perspective(700px) rotateY(80deg);opacity:.2}}
+.rh-aufgabe .rh-bild{width:84px;height:66px;display:grid;place-items:center;border-radius:12px;background:#e9e0cd}
+.rh-aufgabe .rh-bild svg{width:78px;height:60px}
+.rh-aufgabe small{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#7a6a52;font-weight:700}
+.rh-aufgabe b{display:block;font-family:var(--f-disp);font-size:22px;line-height:1.05;margin:2px 0 6px}
+.rh-taler{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-family:var(--f-disp);font-size:17px;color:#7a4b06}
+.rh-taler i{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe58a,#d69a1c);box-shadow:inset 0 0 0 1.5px #9a6b0e;flex:none}
+.rh-aufgabe.fach{box-shadow:0 0 0 3px var(--pc),0 12px 30px rgba(0,0,0,.4)}
+.rh-aufgabe .rh-fachhin{display:block;font-size:12px;font-weight:700;color:#8a3a1a;margin-top:4px}
+.rh-stapel{flex:1;display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:var(--panel);border:1px dashed var(--line-stark)}
+.rh-stapel .rh-ruecken{position:relative;width:62px;height:62px;flex:none}
+.rh-stapel .rh-ruecken span{position:absolute;inset:0;border-radius:11px;background:linear-gradient(150deg,#e3b552,#9a6a1c);box-shadow:inset 0 0 0 3px #fbf1d6,inset 0 0 0 5px #8a5c14,0 3px 8px rgba(0,0,0,.4)}
+.rh-stapel .rh-ruecken span:nth-child(1){transform:translate(6px,-5px) rotate(6deg)}
+.rh-stapel .rh-ruecken span:nth-child(2){transform:translate(3px,-2px) rotate(2deg)}
+.rh-stapel .rh-ruecken svg{position:absolute;inset:14px;width:34px;height:34px}
+.rh-stapel .k-btn{flex:1}
+.rh-stapel p{margin:0;color:var(--ink2);font-size:15px}
+.rh-spieler{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}
+.rh-sp{--pc:var(--akzent);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:4px 10px;padding:9px 12px 9px 10px;border-radius:16px;
+  background:var(--panel);border:2px solid var(--line);transition:border-color .3s,box-shadow .3s}
+.rh-sp .k-dot{width:28px;height:28px;font-size:13px}
+.rh-sp b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rh-sp .rh-geld{font-family:var(--f-disp);font-weight:800;font-size:22px;text-align:right;white-space:nowrap}
+.rh-sp .rh-geld small{display:block;font-family:var(--f-ui);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.rh-sp .rh-fach{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.rh-sp .rh-fach span{display:grid;place-items:center;width:30px;height:24px;border-radius:7px;background:rgba(255,255,255,.07)}
+.rh-sp .rh-fach span.weg{opacity:.28}
+.rh-sp .rh-fach span.jetzt{background:color-mix(in srgb,var(--pc) 40%,transparent);box-shadow:0 0 0 1.5px var(--pc)}
+.rh-sp .rh-fach svg{width:26px;height:20px}
+.rh-sp .rh-fach em{font-style:normal;font-size:11px;color:var(--ink2);letter-spacing:.06em;text-transform:uppercase;font-weight:700;margin-right:2px}
+.rh-sp.dran{border-color:var(--pc);background:rgba(9,32,42,.92);box-shadow:0 0 24px color-mix(in srgb,var(--pc) 30%,transparent)}
+.rh-sp .rh-du{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--pc);margin-left:6px}
+.rh-info{display:flex;gap:8px;margin-top:auto}
+.rh-info div{flex:1;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.rh-info small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.rh-info b{font-family:var(--f-disp);font-size:20px;font-weight:800}
+
+.rh-feld{position:relative;min-width:0;min-height:0;display:grid;place-items:center}
+.rh-brett{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;overflow:visible}
+.rh-brett.wackeln{animation:rh-wackeln .38s ease-in-out}
+@keyframes rh-wackeln{20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-4px)}80%{transform:translateX(2px)}}
+.rh-teil{transition:transform .55s cubic-bezier(.3,.75,.3,1)}
+.rh-teil.zieht{transition:none}
+.rh-teil.fern{transition:transform .12s linear}
+.rh-teil.ziel{cursor:grab}
+.rh-teil.ziel .rh-griff{fill:none;stroke:var(--pc,#ffd76a);stroke-width:3;stroke-dasharray:5 6;animation:rh-puls 1.2s ease-in-out infinite}
+.rh-teil .rh-griff{pointer-events:none;fill:none;stroke:none}
+.rh-teil .rh-tast{fill:transparent;stroke:transparent;stroke-width:22;stroke-linejoin:round}
+@keyframes rh-puls{50%{stroke-opacity:.25}}
+.rh-mulde .rh-rand{fill:#7a501a;stroke:#7a501a}
+.rh-mulde.ziel .rh-rand{fill:#f5cf62;stroke:#f5cf62;animation:rh-glimm 1.4s ease-in-out infinite}
+@keyframes rh-glimm{50%{fill:#a87622;stroke:#a87622}}
+.rh-mulde.leer .rh-innen{fill:#2e1e0e;stroke:#2e1e0e}
+.rh-innen{fill:#23170b;stroke:#23170b}
+.rh-boden{fill:#3d2914;stroke:#3d2914}
+.rh-nase .rh-glut{opacity:0}
+.rh-nase.an .rh-glut{animation:rh-blink .9s steps(1,end) 1}
+.rh-nase.an .rh-licht{animation:rh-licht .9s steps(1,end) 1}
+@keyframes rh-blink{0%,33%,66%{opacity:1}16%,50%,83%{opacity:.15}100%{opacity:0}}
+@keyframes rh-licht{0%,33%,66%{fill:#ff3b2f}16%,50%,83%{fill:#a31f17}100%{fill:#7a1c16}}
+.rh-funke{animation:rh-funke .7s ease-out forwards;pointer-events:none}
+@keyframes rh-funke{from{opacity:1;transform:scale(.4)}to{opacity:0;transform:scale(1.6)}}
+.rh-funke{transform-box:fill-box;transform-origin:center}
+
+/* Hochformat (iPad hoch, Handy): Leiste oben, Kuno darunter */
+@media (max-aspect-ratio:1/1){
+  .rh-buehne{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:12px}
+  .rh-seite{padding-top:0;gap:10px}
+  .rh-satz{padding-left:118px;min-height:56px;display:flex;flex-direction:column;justify-content:center}
+  .rh-spieler{display:grid;grid-template-columns:repeat(var(--rh-n2,3),minmax(0,1fr));gap:8px;overflow:visible}
+  .rh-info{margin-top:0}
+}
+.rh-netz .rh-satz{padding-right:96px}
+@media (max-width:700px){
+  .rh-buehne{gap:8px}
+  .rh-seite{gap:8px}
+  .rh-satz{padding-left:110px;font-size:18px;min-height:48px}
+  .rh-satz small{font-size:13px;margin-top:3px}
+  .rh-aufgabe{padding:8px 10px;gap:10px;border-radius:13px}
+  .rh-aufgabe .rh-bild{width:60px;height:46px;border-radius:9px}
+  .rh-aufgabe .rh-bild svg{width:56px;height:42px}
+  .rh-aufgabe b{font-size:18px;margin:1px 0 3px}
+  .rh-aufgabe small{font-size:10px}
+  .rh-aufgabe .rh-fachhin{font-size:11px;margin-top:2px}
+  .rh-taler{font-size:15px}
+  .rh-stapel{padding:8px 10px;gap:10px;border-radius:13px}
+  .rh-stapel .rh-ruecken{width:46px;height:46px}
+  .rh-stapel .rh-ruecken svg{inset:9px;width:28px;height:28px}
+  .rh-stapel p{font-size:13px}
+  .rh-stapel .k-btn{min-height:48px;font-size:17px;padding:0 12px}
+  .rh-spieler{gap:6px}
+  .rh-sp{padding:5px 7px 5px 6px;gap:2px 6px;border-radius:12px}
+  .rh-sp .k-dot{width:20px;height:20px;font-size:10px}
+  .rh-sp b{font-size:13px}
+  .rh-sp .rh-geld{font-size:16px}
+  .rh-sp .rh-geld small{display:none}
+  .rh-sp .rh-fach{grid-column:1/-1;gap:2px}
+  .rh-sp .rh-fach em{display:none}
+  .rh-sp .rh-fach span{width:22px;height:18px;border-radius:5px}
+  .rh-sp .rh-fach svg{width:20px;height:15px}
+  .rh-info{display:none}
+}
+.rh-tab{width:100%;border-collapse:collapse;font-size:16px;margin-top:6px}
+.rh-tab td{padding:8px 6px;border-top:1px solid var(--line)}
+.rh-tab tr:first-child td{border-top:0;color:var(--ink2);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.rh-tab .k-dot{display:inline-grid;vertical-align:middle;margin-right:8px}
+.rh-tab .gross{font-family:var(--f-disp);font-weight:800;font-size:22px}
+@media (prefers-reduced-motion:reduce){.rh-teil{transition-duration:.05s}.rh-mulde.ziel .rh-rand,.rh-teil.ziel .rh-griff{animation:none}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
+<script src="ruhighand.daten.js"></script>
+<script src="ruhighand.logik.js"></script>
+<script>
+"use strict";
+const R = window.RuhigeHand;
+const AKZENT = '#e3b552';
+const AKK = {zahnrad: 'das Zahnrad', batterie: 'die Batterie', schluessel: 'den Aufziehschlüssel', gluehbirne: 'die Glühbirne', magnet: 'den Hufeisenmagneten',
+  mutter: 'die Mutter', feder: 'die Spiralfeder', zeiger: 'den Uhrzeiger', schraube: 'die Schraube', pendel: 'das Pendel'};
+const REGELN = `
+<h3>Ziel</h3><p>Kuno, der Uhrwerk-Roboter, ist aufgeschraubt. Hol seine Teile heraus, ohne den Rand zu berühren – und sammle die meisten Taler.</p>
+<h3>Vorbereitung</h3><p>Zu jedem Teil gibt es eine Aufgabenkarte mit Belohnung und eine Fachkarte. Die Fachkarten werden an alle verteilt und liegen offen. Die Aufgabenkarten liegen verdeckt als Stapel.</p>
+<h3>Dein Zug</h3><ol>
+<li>Zieh die oberste Aufgabenkarte. Sie zeigt, welches Teil du holen sollst und was es bringt.</li>
+<li>Tippe das Teil an und zieh es mit dem Finger durch seinen Gang seitlich aus Kuno heraus. Du darfst zwischendurch loslassen – das Teil bleibt liegen.</li>
+<li>Geschafft: Du bekommst die Belohnung, das Teil kommt in die Ablage.</li>
+<li>Berührt das Teil den Rand, summt es und Kunos Nase blinkt. Das Teil springt zurück. Wer die passende Fachkarte hat, darf es jetzt versuchen – für die doppelte Belohnung. Klappt es auch dann nicht, kommt die Karte unter den Stapel.</li></ol>
+<p>Danach ist die nächste Person dran.</p>
+<h3>Ende</h3><p>Sind alle Teile draußen, gewinnt, wer die meisten Taler hat.</p>
+<h3>Allein</h3><p>Ohne Fachkarten: Hol alle Teile mit möglichst wenig Summen. Dein bester Wert je Schwierigkeit wird gemerkt.</p>
+<h3>Schwierigkeit</h3><p>Bestimmt, wie viel Platz zwischen Teil und Rand ist: leicht, mittel oder schwer.</p>`;
+
+let S = null, B = null, SVG = null, START = null, ENDE_FE = null;
+let ZIEH = {nr: -1, t: 0}, ZUG = {id: null, o: [0, 0], k: -1}, GRIFF = null, GESPERRT = false, SUMMER_GESEHEN = 0, MULDEN_C = null, POS_ZEIT = 0, POS_LETZT = '';
+const esc = Kern.esc, NAME = i => esc(S.spieler[i].name);
+const allein = () => S && S.spieler.length === 1;
+const leitet = () => !Netz.laeuft || Netz.istHost;
+const meins = i => !Netz.laeuft || Netz.meinSitz === i;
+const randC = () => R.RANDABSTAND[S.schwierigkeit] || 10;
+const speichern = () => { if (S.phase === 'ende') Kern.speicher.loeschen(); else Kern.speicher.speichern(S); };
+
+Kern.init({id: 'ruhighand', name: 'Ruhige Hand', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+
+/* ---------- Klang: Summer (eigener Ton, Kern hat keinen) ---------- */
+let AC = null;
+function summer() {
+  try { if (localStorage.getItem('spieltisch.ton') === 'aus') return; } catch (e) {}
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume();
+    const t = AC.currentTime, g = AC.createGain(), lfo = AC.createOscillator(), lg = AC.createGain();
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .02); g.gain.setValueAtTime(.09, t + .55); g.gain.exponentialRampToValueAtTime(.0001, t + .75);
+    lfo.frequency.value = 38; lg.gain.value = .05; lfo.connect(lg).connect(g.gain);
+    [[110, 'sawtooth'], [55.5, 'square'], [221, 'sawtooth']].forEach(([f, typ], k) => { const o = AC.createOscillator(); o.type = typ; o.frequency.value = f; const og = AC.createGain(); og.gain.value = [1, .55, .25][k]; o.connect(og).connect(g); o.start(t); o.stop(t + .8); });
+    g.connect(AC.destination); lfo.start(t); lfo.stop(t + .8);
+  } catch (e) {}
+}
+document.addEventListener('pointerdown', () => { if (AC && AC.state === 'suspended') AC.resume(); }, {passive: true});
+
+/* ---------- Zeichnungen ---------- */
+const teilSvg = (t, extra = '') => `<path d="${t.pfad}" fill="${t.farbe}" stroke="#3b2a14" stroke-width="2" stroke-linejoin="round"/>${t.deko}${extra}`;
+function teilBild(id, w = 78, h = 60) { // kleines Bild eines Teils (Aufgabenkarte, Fachkarten)
+  const t = R.teil(id), xs = t.umriss.map(p => p[0]), ys = t.umriss.map(p => p[1]);
+  const x0 = Math.min(...xs) - 4, y0 = Math.min(...ys) - 4, bw = Math.max(...xs) - x0 + 4, bh = Math.max(...ys) - y0 + 4;
+  return `<svg viewBox="${x0} ${y0} ${bw} ${bh}" width="${w}" height="${h}" aria-hidden="true">${teilSvg(t)}</svg>`;
+}
+const polysD = g => g.polys.map(P => 'M' + P.p.map(q => q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join('L') + 'Z').join('');
+const ABLAGE = id => { // Platz eines geholten Teils in der Ablage (links bzw. rechts oben)
+  const links = R.geo(id).links, liste = R.TEILE.filter(t => R.geo(t.id).links === links), k = liste.findIndex(t => t.id === id);
+  return [links ? 145 : 655, 64 + k * 48];
+};
+function brettSvg() {
+  const T = R.BRETT.torso;
+  const niete = (x, y) => `<circle cx="${x}" cy="${y}" r="7" fill="#b9862c"/><circle cx="${x}" cy="${y}" r="7" fill="none" stroke="#6e4a14" stroke-width="2"/><circle cx="${x - 2}" cy="${y - 2}" r="2.2" fill="#fbe6a8"/>`;
+  const zahn = (cx, cy, ra, ri, z) => { let d = ''; for (let i = 0; i < z; i++) { const a = 2 * Math.PI / z, b = i * a; [[b - a * .3, ri], [b - a * .17, ra], [b + a * .17, ra], [b + a * .3, ri]].forEach(([w, r], k) => { d += (i || k ? 'L' : 'M') + (cx + r * Math.cos(w)).toFixed(1) + ' ' + (cy + r * Math.sin(w)).toFixed(1); }); } return d + 'Z'; };
+  const spirale = (cx, cy) => { let d = ''; for (let i = 0; i <= 120; i++) { const a = i * .26, r = 6 + i * .38; d += (i ? 'L' : 'M') + (cx + r * Math.cos(a)).toFixed(1) + ' ' + (cy + r * Math.sin(a)).toFixed(1); } return d; };
+  const ablage = x => `<g><rect x="${x}" y="30" width="170" height="256" rx="22" fill="#14303b" stroke="rgba(170,215,215,.22)" stroke-width="2"/>
+    <rect x="${x + 8}" y="38" width="154" height="240" rx="16" fill="#0e2731"/>${[0, 1, 2, 3, 4].map(k => `<ellipse cx="${x + 85}" cy="${76 + k * 48}" rx="58" ry="7" fill="rgba(0,0,0,.22)"/>`).join('')}</g>`;
+  return `<defs>
+    <linearGradient id="rh-messing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9c46a"/><stop offset=".55" stop-color="#d5a443"/><stop offset="1" stop-color="#b9862f"/></linearGradient>
+    <linearGradient id="rh-kopfmessing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efcf7c"/><stop offset="1" stop-color="#c8963a"/></linearGradient>
+    <radialGradient id="rh-glas" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#5fc3d0"/><stop offset=".6" stop-color="#1d5c6b"/><stop offset="1" stop-color="#0e3440"/></radialGradient>
+    <radialGradient id="rh-glutverlauf"><stop offset="0" stop-color="#ff5a40" stop-opacity=".9"/><stop offset="1" stop-color="#ff5a40" stop-opacity="0"/></radialGradient>
+    <clipPath id="rh-torso-clip"><rect x="${T.x0}" y="${T.y0}" width="${T.x1 - T.x0}" height="${T.y1 - T.y0}" rx="${T.r}"/></clipPath>
+  </defs>
+  ${ablage(60)}${ablage(570)}
+  <g class="rh-kopf">
+    <rect x="356" y="250" width="88" height="56" rx="8" fill="#a8792a" stroke="#6e4a14" stroke-width="3"/>
+    <path d="M400 70V38" stroke="#6e4a14" stroke-width="5" stroke-linecap="round"/><path d="M393 62l14-6M393 54l14-6M393 46l14-6" stroke="#8d6420" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="400" cy="30" r="11" fill="#f2c14e" stroke="#6e4a14" stroke-width="3"/>
+    <circle cx="252" cy="166" r="17" fill="#c8963a" stroke="#6e4a14" stroke-width="3"/><path d="M245 166h14M252 159v14" stroke="#6e4a14" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="548" cy="166" r="17" fill="#c8963a" stroke="#6e4a14" stroke-width="3"/><path d="M541 166h14M548 159v14" stroke="#6e4a14" stroke-width="3" stroke-linecap="round"/>
+    <rect x="262" y="68" width="276" height="192" rx="36" fill="url(#rh-kopfmessing)" stroke="#6e4a14" stroke-width="4"/>
+    <path d="M286 86h228" stroke="#fbe6a8" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/>
+    ${[330, 470].map(x => `<circle cx="${x}" cy="140" r="31" fill="#8d6420" stroke="#6e4a14" stroke-width="3"/><circle cx="${x}" cy="140" r="23" fill="url(#rh-glas)"/><circle cx="${x + 3}" cy="143" r="8" fill="#0b2028"/><circle cx="${x - 8}" cy="131" r="5" fill="#fff" fill-opacity=".8"/>`).join('')}
+    <g class="rh-nase" id="rh-nase"><circle class="rh-glut" cx="400" cy="190" r="58" fill="url(#rh-glutverlauf)"/>
+      <circle cx="400" cy="190" r="19" fill="#6e4a14"/><circle class="rh-licht" cx="400" cy="190" r="15" fill="#7a1c16"/><circle cx="395" cy="185" r="5" fill="#fff" fill-opacity=".55"/></g>
+    <rect x="336" y="222" width="128" height="24" rx="10" fill="#6e4a14"/>${[0, 1, 2, 3, 4, 5].map(k => `<rect x="${348 + k * 18}" y="227" width="10" height="14" rx="3" fill="#e9c46a"/>`).join('')}
+  </g>
+  <rect x="${T.x0}" y="${T.y0}" width="${T.x1 - T.x0}" height="${T.y1 - T.y0}" rx="${T.r}" fill="url(#rh-messing)" stroke="#6e4a14" stroke-width="5"/>
+  <rect x="${T.x0 + 12}" y="${T.y0 + 12}" width="${T.x1 - T.x0 - 24}" height="${T.y1 - T.y0 - 24}" rx="${T.r - 10}" fill="none" stroke="#fbe6a8" stroke-opacity=".35" stroke-width="2"/>
+  <g fill="none" stroke="#8d6420" stroke-opacity=".55" stroke-width="2.5">
+    <path d="M400 318V958" stroke-dasharray="2 9"/><path d="${zahn(400, 425, 44, 36, 14)}"/><circle cx="400" cy="425" r="14"/>
+    <circle cx="400" cy="630" r="62"/><path d="${spirale(400, 630)}"/><path d="${zahn(400, 835, 40, 32, 12)}"/><circle cx="400" cy="835" r="12"/>
+  </g>
+  ${niete(T.x0 + 26, T.y0 + 26)}${niete(T.x1 - 26, T.y0 + 26)}${niete(T.x0 + 26, T.y1 - 26)}${niete(T.x1 - 26, T.y1 - 26)}${niete(400, T.y0 + 22)}${niete(400, T.y1 - 52)}
+  <g clip-path="url(#rh-torso-clip)"><g id="rh-mulden"></g></g>
+  <rect x="352" y="${T.y1 - 32}" width="96" height="20" rx="6" fill="#8d6420"/><text x="400" y="${T.y1 - 17.5}" text-anchor="middle" font-family="Bricolage Grotesque, system-ui" font-weight="800" font-size="13" letter-spacing="3" fill="#f6dc92">KUNO · 7</text>
+  <g id="rh-teile"></g><g id="rh-funken"></g>`;
+}
+function muldenZeichnen() {
+  const c = randC(); if (MULDEN_C === c && SVG.querySelector('#rh-mulden').childElementCount) return; MULDEN_C = c;
+  SVG.querySelector('#rh-mulden').innerHTML = R.TEILE.map(t => { const d = polysD(R.geo(t.id));
+    return `<g class="rh-mulde" data-id="${t.id}"><path class="rh-rand" d="${d}" stroke-width="${2 * c + 8}" stroke-linejoin="round"/>
+      <path class="rh-innen" d="${d}" stroke-width="${2 * c}" stroke-linejoin="round"/>
+      <path class="rh-boden" d="${d}" stroke-width="${Math.max(2, 2 * c - 8)}" stroke-linejoin="round" transform="translate(0 4)"/></g>`; }).join('');
+}
+
+/* ---------- Startseite ---------- */
+function startbild() {
+  return `<svg viewBox="0 0 260 120" width="290" height="134" aria-hidden="true">
+    <rect x="18" y="24" width="224" height="88" rx="18" fill="#d5a443" stroke="#6e4a14" stroke-width="4"/>
+    <path d="M40 68h70l20 -14h40" stroke="#7a501a" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M40 68h70l20 -14h40" stroke="#23170b" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <g transform="translate(150 54)">${teilSvg(R.teil('zahnrad'))}</g>
+    <circle cx="214" cy="46" r="12" fill="#6e4a14"/><circle cx="214" cy="46" r="9" fill="#ff3b2f"/><circle cx="214" cy="46" r="22" fill="#ff5a40" fill-opacity=".25"/>
+  </svg>`;
+}
+function startseite() {
+  document.querySelectorAll('.rh-buehne').forEach(e => e.remove()); B = null; SVG = null;
+  if (ENDE_FE) { ENDE_FE.schliessen(); ENDE_FE = null; }
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null;
+  const alt = Kern.speicher.laden(), ok = alt && alt.spieler && alt.phase !== 'ende';
+  Kern.setup({
+    ziel: START, titel: 'Ruhige Hand', unter: 'Kuno ist aufgeschraubt. Zieh seine Teile durch die Gänge heraus – aber wehe, du berührst den Rand.',
+    bild: startbild(), fakten: ['1–6 Personen', 'Geschicklichkeit', '10 Teile'],
+    spieler: {min: 1, max: 6, standard: 2, frage: 'Wie viele spielen mit?'},
+    optionen: [
+      {id: 'schwierigkeit', label: 'Wie viel Platz zum Rand?', standard: 'mittel', werte: [{wert: 'leicht', text: 'Viel (leicht)'}, {wert: 'mittel', text: 'Mittel'}, {wert: 'schwer', text: 'Wenig (schwer)'}]},
+      {id: 'start', label: 'Wer beginnt?', standard: '1', werte: [{wert: '1', text: 'Spieler 1 (die Jüngste)'}, {wert: 'zufall', text: 'Zufall'}]}
+    ],
+    fortsetzen: ok ? `${Object.keys(alt.raus).length} von 10 Teilen draußen · ${alt.spieler.map(p => `${p.name} ${p.taler}`).join(', ')}` : null,
+    onFortsetzen: () => { S = alt; spielen(); },
+    onStart: ({namen, farben, optionen}) => { S = neuesSpiel(namen, farben, optionen); speichern(); spielen(); }
+  });
+}
+function neuesSpiel(namen, farben, o) {
+  const s = R.neu({namen, farben, schwierigkeit: R.RANDABSTAND[o.schwierigkeit] ? o.schwierigkeit : 'mittel',
+    beginner: o.start === 'zufall' ? Kern.zufall(namen.length) : 0, mischen: Kern.mischen});
+  s.start = o.start || '1';
+  return s;
+}
+
+/* ---------- Spielfläche ---------- */
+function spielen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.rh-buehne').forEach(e => e.remove());
+  if (ENDE_FE) { ENDE_FE.schliessen(); ENDE_FE = null; }
+  B = Kern.el('div', 'k-buehne rh-buehne' + (Netz.laeuft ? ' rh-netz' : ''));
+  B.innerHTML = `<aside class="rh-seite"><div class="rh-satz" id="rh-satz"></div><div class="rh-kartenplatz" id="rh-karte"></div>
+    <div class="rh-spieler" id="rh-spieler"></div><div class="rh-info" id="rh-info"></div></aside><main class="rh-feld"></main>`;
+  document.body.appendChild(B);
+  SVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  SVG.setAttribute('viewBox', '40 0 720 1000'); SVG.setAttribute('class', 'rh-brett'); SVG.id = 'rh-brett';
+  SVG.innerHTML = brettSvg(); B.querySelector('.rh-feld').appendChild(SVG);
+  MULDEN_C = null; muldenZeichnen();
+  SVG.querySelector('#rh-teile').innerHTML = R.TEILE.map(t => `<g class="rh-teil" data-id="${t.id}">
+    <path class="rh-tast" d="M${R.geo(t.id).H.map(p => p.join(' ')).join('L')}Z"/>${teilSvg(t)}<path class="rh-griff" d="M${R.geo(t.id).H.map(p => p.join(' ')).join('L')}Z" transform="scale(1.18)"/></g>`).join('');
+  SVG.addEventListener('pointerdown', greifen);
+  SVG.addEventListener('pointermove', ziehenBewegung);
+  SVG.addEventListener('pointerup', loslassen); SVG.addEventListener('pointercancel', loslassen);
+  ZUG = {id: S.phase === 'operieren' ? S.aufgabe : null, o: [0, 0], k: S.nr}; GRIFF = null; GESPERRT = false; SUMMER_GESEHEN = S.summer;
+  zeichnen(true);
+  if (S.phase === 'ende') setTimeout(ende, 500);
+}
+function teilLage(id) { // [x, y, Maßstab]
+  if (S.raus[id] != null) { const [x, y] = ABLAGE(id); return [x, y, .6]; }
+  const t = R.teil(id), o = ZUG.id === id ? ZUG.o : [0, 0];
+  return [t.ruhe[0] + o[0], t.ruhe[1] + o[1], 1];
+}
+function teilSetzen(id, art) {
+  const el = SVG && SVG.querySelector(`.rh-teil[data-id="${id}"]`); if (!el) return;
+  el.classList.toggle('zieht', art === 'zieht'); el.classList.toggle('fern', art === 'fern');
+  if (art === 'sofort') { el.style.transition = 'none'; }
+  const [x, y, s] = teilLage(id);
+  el.style.transform = `translate(${x}px,${y}px) scale(${s})`;
+  if (art === 'sofort') { void el.getBoundingClientRect(); el.style.transition = ''; }
+}
+
+function lagesatz() {
+  const l = S.letzter, dranF = `style="--pc:${S.spieler[S.dran].farbe}"`;
+  const wer = i => Netz.laeuft && Netz.meinSitz === i ? 'Du' : `<span class="rh-nm" style="--pc:${S.spieler[i].farbe}">${NAME(i)}</span>`;
+  if (S.phase === 'ende') {
+    if (allein()) return `Kuno ist leer!<small>${S.spieler[0].taler} Taler · ${S.summer}× gesummt</small>`;
+    const s = S.sieger; return s.length > 1 ? `Gleichstand!<small>${s.map(NAME).join(' und ')} teilen sich den Sieg.</small>` : `${wer(s[0])} ${Netz.laeuft && Netz.meinSitz === s[0] ? 'gewinnst' : 'gewinnt'}!<small>${S.spieler[s[0]].taler} Taler</small>`;
+  }
+  let kopf = '';
+  if (l && l.art === 'geschafft') kopf = `Geschafft! +${l.betrag} Taler${allein() ? '' : ` für ${l.spieler === Netz.meinSitz && Netz.laeuft ? 'dich' : NAME(l.spieler)}`}.`;
+  else if (l && l.art === 'beruehrt' && S.phase === 'ziehen') kopf = `<span class="rh-bzz">Bzzz!</span> ${l.fach ? 'Auch daneben.' : 'Rand berührt.'}`;
+  if (S.phase === 'ziehen') {
+    const tun = meins(S.dran) ? 'Zieh eine Aufgabe vom Stapel.' : 'Gleich wird eine Aufgabe gezogen.';
+    const nachsatz = l && l.art === 'beruehrt' ? 'Die Karte liegt jetzt unter dem Stapel. ' : '';
+    if (kopf) return `${kopf}<small>${nachsatz}${allein() ? 'Zieh die nächste Aufgabe.' : `${wer(S.dran)} ${Netz.laeuft && Netz.meinSitz === S.dran ? 'bist' : 'ist'} dran. ${tun}`}</small>`;
+    return `${wer(S.dran)} ${Netz.laeuft && Netz.meinSitz === S.dran ? 'bist' : 'ist'} dran.<small>${tun}</small>`;
+  }
+  // operieren
+  const a = S.aktiv, ich = meins(a), was = AKK[S.aufgabe] || R.teil(S.aufgabe).name;
+  if (S.art === 'fach') return `<span class="rh-bzz">Bzzz!</span> ${wer(a)} ${Netz.laeuft && Netz.meinSitz === a ? 'hast' : 'hat'} die Fachkarte.<small>${ich ? `Hol ${was} – für die doppelte Belohnung.` : `${NAME(a)} versucht es jetzt – für die doppelte Belohnung.`}</small>`;
+  if (ich) return `${allein() || (Netz.laeuft) ? 'Hol' : NAME(a) + ', hol'} ${was} heraus!<small>Antippen und durch den Gang seitlich herausziehen. Nicht den Rand berühren!</small>`;
+  return `${wer(a)} holt ${was}.<small>Schau genau hin …</small>`;
+}
+function zeichnen(neu) {
+  if (!B || !S) return;
+  const ls = lagesatz(), lk = ls.indexOf('<small>');
+  B.querySelector('#rh-satz').innerHTML = lk < 0 ? `<b>${ls}</b>` : `<b>${ls.slice(0, lk)}</b>${ls.slice(lk)}`;
+  // Aufgabenkarte bzw. Stapel
+  const kp = B.querySelector('#rh-karte'), schl = `${S.phase}|${S.aufgabe}|${S.art}|${S.aktiv}|${typeof S.stapel === 'number' ? S.stapel : S.stapel.length}|${S.dran}`;
+  if (kp.dataset.s !== schl) {
+    kp.dataset.s = schl; kp.innerHTML = '';
+    if (S.phase === 'operieren') {
+      const t = R.teil(S.aufgabe), fach = S.art === 'fach';
+      const k = Kern.el('div', 'rh-aufgabe' + (fach ? ' fach' : '')); k.style.setProperty('--pc', S.spieler[S.aktiv].farbe);
+      k.innerHTML = `<div class="rh-bild">${teilBild(t.id)}</div><div><small>Aufgabe</small><b>${esc(t.name)}</b>
+        <span class="rh-taler"><i></i>${fach ? `${t.belohnung * 2} Taler` : `${t.belohnung} Taler`}</span>${fach ? `<span class="rh-fachhin">Fachkarte: doppelte Belohnung</span>` : ''}</div>`;
+      kp.appendChild(k);
+    } else if (S.phase === 'ziehen') {
+      const n = typeof S.stapel === 'number' ? S.stapel : S.stapel.length;
+      const st = Kern.el('div', 'rh-stapel');
+      st.innerHTML = `<div class="rh-ruecken"><span></span><span></span><span></span><svg viewBox="0 0 34 34"><path d="M17 4l3.4 8.2L29 13l-6.6 5.6L24.5 27 17 22.4 9.5 27l2.1-8.4L5 13l8.6-.8z" fill="#fbf1d6" stroke="#8a5c14" stroke-width="1.6" stroke-linejoin="round"/></svg></div>`;
+      if (meins(S.dran)) { const b = Kern.el('button', 'k-btn', 'Aufgabe ziehen'); b.id = 'rh-ziehen'; b.onclick = () => { if (!S || S.phase !== 'ziehen' || (ZIEH.nr === S.nr && Date.now() - ZIEH.t < 1500)) return; ZIEH = {nr: S.nr, t: Date.now()}; Netz.tun('ziehen'); }; st.appendChild(b); }
+      else st.appendChild(Kern.el('p', '', `${n} ${n === 1 ? 'Aufgabe' : 'Aufgaben'} im Stapel. ${NAME(S.dran)} zieht.`));
+      kp.appendChild(st);
+    } else {
+      const b = Kern.el('button', 'k-btn', 'Ergebnis'); b.onclick = ende; b.style.flex = '1'; kp.appendChild(b);
+    }
+  }
+  // Spieler
+  const sp = B.querySelector('#rh-spieler'); sp.style.setProperty('--rh-n2', S.spieler.length <= 2 ? 2 : 3);
+  const amZug = S.phase === 'operieren' ? S.aktiv : S.phase === 'ziehen' ? S.dran : -1;
+  sp.innerHTML = S.spieler.map((p, i) => `<div class="rh-sp${i === amZug && !allein() ? ' dran' : ''}" style="--pc:${p.farbe}">
+    <span class="k-dot">${esc(p.name.charAt(0).toUpperCase())}</span><span><b>${NAME(i)}</b>${Netz.laeuft && i === Netz.meinSitz ? '<span class="rh-du">du</span>' : ''}</span>
+    <span class="rh-geld k-zahl">${p.taler}<small>Taler</small></span>
+    ${p.fach.length ? `<div class="rh-fach"><em>Fach</em>${p.fach.map(id => `<span class="${S.raus[id] != null ? 'weg' : ''}${S.phase === 'operieren' && S.aufgabe === id ? ' jetzt' : ''}" title="${esc(R.teil(id).name)}">${teilBild(id, 26, 20)}</span>`).join('')}</div>` : ''}</div>`).join('');
+  // Info
+  const draussen = Object.keys(S.raus).length;
+  const best = allein() ? Kern.einst.laden({})['best_' + S.schwierigkeit] : null;
+  B.querySelector('#rh-info').innerHTML = `<div><small>Teile draußen</small><b class="k-zahl">${draussen} / ${R.TEILE.length}</b></div><div><small>${allein() ? 'Gesummt' : 'Summer bisher'}</small><b class="k-zahl">${S.summer}</b></div>${allein() ? `<div><small>Bestwert</small><b class="k-zahl">${best ? best.summer + '× gesummt' : '–'}</b></div>` : ''}`;
+  // Brett
+  muldenZeichnen();
+  SVG.querySelectorAll('.rh-mulde').forEach(m => { m.classList.toggle('ziel', S.phase === 'operieren' && m.dataset.id === S.aufgabe); m.classList.toggle('leer', S.raus[m.dataset.id] != null); });
+  if (ZUG.k !== S.nr) { ZUG = {id: S.phase === 'operieren' ? S.aufgabe : null, o: [0, 0], k: S.nr}; GRIFF = null; GESPERRT = false; POS_LETZT = ''; }
+  R.TEILE.forEach(t => {
+    const el = SVG.querySelector(`.rh-teil[data-id="${t.id}"]`);
+    el.classList.toggle('ziel', S.phase === 'operieren' && t.id === S.aufgabe && meins(S.aktiv));
+    el.style.setProperty('--pc', S.phase === 'operieren' ? S.spieler[S.aktiv].farbe : AKZENT);
+    if (!(GRIFF && GRIFF.id === t.id)) teilSetzen(t.id, neu ? 'sofort' : '');
+    // Markierung in der Ablage: wer hat es geholt
+    let m = el.querySelector('.rh-wer'); const w = S.raus[t.id];
+    if (w != null && !m) { el.insertAdjacentHTML('beforeend', `<circle class="rh-wer" cx="${R.geo(t.id).links ? -80 : 80}" cy="0" r="11" stroke="#0e2731" stroke-width="4"/>`); m = el.querySelector('.rh-wer'); }
+    if (m) { if (w == null) m.remove(); else m.setAttribute('fill', S.spieler[w].farbe); }
+  });
+  // Summer, den dieses Gerät noch nicht gezeigt hat (Mitspieler, Gastgeber beim fremden Versuch)
+  if (S.summer > SUMMER_GESEHEN) { SUMMER_GESEHEN = S.summer; if (!neu) rueckmeldung(null); }
+}
+
+/* ---------- Ziehen mit dem Finger ---------- */
+function brettPunkt(e) { const p = SVG.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(SVG.getScreenCTM().inverse()); return [q.x, q.y]; }
+function nahAmTeil(id, q, o) { // Treffer auf das Teil (echter Umriss) oder knapp daneben (Hülle + 14)
+  const t = R.teil(id), lq = [q[0] - t.ruhe[0] - o[0], q[1] - t.ruhe[1] - o[1]];
+  return R.punktImPolygon(lq, t.umriss) || R.abstandKonvex(lq, R.geo(id).H) <= 14;
+}
+function greifen(e) {
+  if (!S || GRIFF || e.button > 0) return;
+  const q = brettPunkt(e);
+  if (S.phase !== 'operieren') {
+    const t = R.TEILE.find(t => S.raus[t.id] == null && nahAmTeil(t.id, q, [0, 0]));
+    if (t) Kern.hinweis(S.phase === 'ziehen' ? (meins(S.dran) ? 'Zieh zuerst eine Aufgabe.' : `${S.spieler[S.dran].name} ist dran.`) : 'Das Spiel ist vorbei.');
+    return;
+  }
+  const id = S.aufgabe;
+  if (!nahAmTeil(id, q, ZUG.o)) {
+    const anderes = R.TEILE.find(t => t.id !== id && S.raus[t.id] == null && nahAmTeil(t.id, q, [0, 0]));
+    if (anderes && meins(S.aktiv)) Kern.hinweis(`Deine Aufgabe ist ${AKK[id] || R.teil(id).name}.`);
+    return;
+  }
+  if (!meins(S.aktiv)) { Kern.ton('fehler'); return Kern.hinweis(`${S.spieler[S.aktiv].name} ist dran.`); }
+  if (GESPERRT) return;
+  e.preventDefault();
+  try { SVG.setPointerCapture(e.pointerId); } catch (_) {}
+  GRIFF = {id, pid: e.pointerId, start: q, o0: [...ZUG.o]};
+  teilSetzen(id, 'zieht'); Kern.ton('tipp');
+}
+function ziehenBewegung(e) {
+  if (!GRIFF || e.pointerId !== GRIFF.pid || GESPERRT) return;
+  const q = brettPunkt(e), ziel = [GRIFF.o0[0] + q[0] - GRIFF.start[0], GRIFF.o0[1] + q[1] - GRIFF.start[1]];
+  const r = R.bewegen(GRIFF.id, ZUG.o, ziel, randC());
+  ZUG.o = r.bei; teilSetzen(GRIFF.id, 'zieht'); posMelden();
+  if (!r.ok) return beruehrt(r.kontakt);
+  if (r.draussen) return geschafft();
+}
+function loslassen(e) {
+  if (!GRIFF || e.pointerId !== GRIFF.pid) return;
+  const id = GRIFF.id; GRIFF = null; teilSetzen(id, ''); posMelden(true);
+}
+let POS_TIMER = null;
+function posMelden(sofort) {
+  if (!Netz.laeuft || !ZUG.id || !S || S.phase !== 'operieren' || !meins(S.aktiv)) return;
+  const t = Date.now(), k = ZUG.o.map(Math.round).join(',');
+  if (k === POS_LETZT) return;
+  if (!sofort && t - POS_ZEIT < 100) { // höchstens alle 100 ms – die letzte Lage kommt verspätet nach
+    if (!POS_TIMER) POS_TIMER = setTimeout(() => { POS_TIMER = null; posMelden(true); }, 100 - (t - POS_ZEIT));
+    return;
+  }
+  clearTimeout(POS_TIMER); POS_TIMER = null;
+  POS_ZEIT = t; POS_LETZT = k;
+  const [x, y] = ZUG.o.map(Math.round);
+  if (Netz.istHost) Netz.ereignis({daten: {pos: [x, y], nr: S.nr}}); else Netz.tun('pos', {x, y});
+}
+function rueckmeldung(kontakt) { // Summer, Nase, Wackeln, Vibration, Funke
+  summer();
+  try { navigator.vibrate && navigator.vibrate([90, 40, 220]); } catch (_) {}
+  if (!SVG) return;
+  const n = SVG.querySelector('#rh-nase'); n.classList.remove('an'); void n.getBoundingClientRect(); n.classList.add('an');
+  SVG.classList.remove('wackeln'); void SVG.getBoundingClientRect(); SVG.classList.add('wackeln');
+  if (kontakt) {
+    const f = SVG.querySelector('#rh-funken');
+    f.insertAdjacentHTML('beforeend', `<g class="rh-funke"><circle cx="${kontakt[0]}" cy="${kontakt[1]}" r="16" fill="#ff5a40" fill-opacity=".5"/><circle cx="${kontakt[0]}" cy="${kontakt[1]}" r="6" fill="#fff6c4"/></g>`);
+    setTimeout(() => { const g = f.firstElementChild; if (g) g.remove(); }, 800);
+  }
+}
+function beruehrt(kontakt) {
+  const id = GRIFF ? GRIFF.id : ZUG.id; GRIFF = null; GESPERRT = true;
+  SUMMER_GESEHEN = S.summer + 1; // dieser Summer ist hier schon zu hören
+  rueckmeldung(kontakt); posMelden(true);
+  setTimeout(() => { // kurz stehen lassen, dann zurück in die Mulde, dann melden
+    if (!S || ZUG.id !== id) return;
+    ZUG.o = [0, 0]; teilSetzen(id, ''); posMelden(true);
+    setTimeout(() => { if (S && S.phase === 'operieren' && S.aufgabe === id) Netz.tun('versuch', {teil: id, ok: false}); }, 420);
+  }, 650);
+}
+function geschafft() {
+  const id = GRIFF.id; GRIFF = null; GESPERRT = true; posMelden(true);
+  Kern.ton('punkt');
+  Netz.tun('versuch', {teil: id, ok: true});
+}
+
+/* ---------- Züge (Gastgeber bzw. am selben Gerät) ---------- */
+function ziehen() {
+  if (!S || S.phase !== 'ziehen') return Netz.melden();
+  R.ziehen(S);
+  Kern.ton('karte'); speichern(); Netz.melden(); zeichnen();
+}
+function versuch(id, ok) {
+  if (!S || S.phase !== 'operieren' || S.aufgabe !== id) return Netz.melden();
+  const vorher = S.summer;
+  const r = R.versuch(S, !!ok);
+  if (r.art === 'beruehrt' || r.art === 'fach') { if (SUMMER_GESEHEN <= vorher) { SUMMER_GESEHEN = S.summer; rueckmeldung(null); } else SUMMER_GESEHEN = Math.max(SUMMER_GESEHEN, S.summer); }
+  if (r.art === 'geschafft') { setTimeout(() => Kern.ton(S && S.phase === 'ende' ? 'sieg' : 'runde'), 300); }
+  if (S.phase === 'ende' && allein()) rekord();
+  speichern(); Netz.melden(); zeichnen();
+  if (S.phase === 'ende') setTimeout(ende, 1100);
+}
+function rekord() {
+  const e = Kern.einst.laden({}), k = 'best_' + S.schwierigkeit, alt = e[k];
+  if (!alt || S.summer < alt.summer) { Kern.einst.speichern({[k]: {summer: S.summer, taler: S.spieler[0].taler}}); S.neuerRekord = true; }
+}
+// Bewegung eines fremden Versuchs nachzeichnen (grob, ca. alle 100 ms)
+function fremdePos(x, y) {
+  if (!S || S.phase !== 'operieren' || meins(S.aktiv)) return;
+  ZUG = {id: S.aufgabe, o: [Number(x) || 0, Number(y) || 0], k: S.nr}; teilSetzen(S.aufgabe, 'fern');
+}
+
+/* ---------- Ende ---------- */
+function ende() {
+  if (!S || S.phase !== 'ende') return;
+  if (ENDE_FE) ENDE_FE.schliessen();
+  Kern.ton('sieg'); Kern.feier();
+  const box = Kern.el('div');
+  if (allein()) {
+    const best = Kern.einst.laden({})['best_' + S.schwierigkeit];
+    box.innerHTML = `<h2>${S.neuerRekord ? 'Neuer Bestwert!' : 'Kuno ist leer!'}</h2><p>Alle 10 Teile draußen: <b>${S.spieler[0].taler} Taler</b>, <b>${S.summer}× gesummt</b>.</p>
+      <p>${best ? `Dein bester Wert (${S.schwierigkeit}): ${best.summer}× gesummt.` : ''} Ohne ein einziges Summen gäbe es 2.100 Taler.</p>`;
+  } else {
+    const r = R.rangliste(S), s = S.sieger;
+    box.innerHTML = `<h2>${s.length > 1 ? `Gleichstand: ${s.map(NAME).join(' und ')}` : `${NAME(s[0])} gewinnt!`}</h2>
+      <table class="rh-tab"><tr><td></td><td>Taler</td><td>Teile</td><td>Gesummt</td></tr>${r.map((x, k) => `<tr><td><span class="k-dot" style="--pc:${x.farbe}">${k + 1}</span><b>${esc(x.name)}</b></td>
+      <td class="gross k-zahl">${x.taler}</td><td class="k-zahl">${x.teile}</td><td class="k-zahl">${x.fehl}</td></tr>`).join('')}</table>`;
+  }
+  const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
+  const fe = ENDE_FE = Kern.fenster(box, {schliessbar: true, beimSchliessen: () => { if (ENDE_FE === fe) ENDE_FE = null; }});
+  const ansehen = Kern.el('button', 'k-btn leise', 'Kuno ansehen'); ansehen.onclick = () => fe.schliessen();
+  if (!leitet()) { box.insertBefore(Kern.el('p', '', `${NAME(0)} entscheidet, wie es weitergeht.`), k); k.append(ansehen); return; }
+  const n = Kern.el('button', 'k-btn', 'Nochmal'); n.id = 'rh-nochmal'; n.onclick = () => { fe.schliessen(); Netz.tun('nochmal'); };
+  const neu = Kern.el('button', 'k-btn leise', 'Neues Spiel'); neu.onclick = () => { fe.schliessen(); if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); };
+  k.append(n, neu, ansehen);
+}
+function nochmal() {
+  const alt = S;
+  S = neuesSpiel(alt.spieler.map(p => p.name), alt.spieler.map(p => p.farbe), {schwierigkeit: alt.schwierigkeit, start: alt.start});
+  if (alt.start !== 'zufall' && alt.spieler.length > 1) { // reihum beginnen, Fachkarten neu ab dem neuen Beginner
+    const b = (alt.beginner + 1) % alt.spieler.length;
+    S = R.neu({namen: alt.spieler.map(p => p.name), farben: alt.spieler.map(p => p.farbe), schwierigkeit: alt.schwierigkeit, beginner: b, mischen: Kern.mischen}); S.start = alt.start;
+  }
+  speichern(); spielen(); Netz.melden();
+}
+
+/* ---------- Netzspiel ----------
+   Gastgeber = Sitz 0: mischt Aufgaben- und Fachkarten und hält den echten Stand. Wer gerade operiert, zieht das Teil
+   auf dem EIGENEN Gerät; dort wird auch die Berührung gerechnet. Ans Netz gehen nur kleine Nachrichten: die Lage des
+   Teils höchstens alle 100 ms (Aktion „pos“, vom Gastgeber als Ereignis an alle weitergereicht) und am Ende das
+   Ergebnis (Aktion „versuch“: geschafft oder berührt). Den Aufgabenstapel kennen Mitspieler nur als Anzahl. */
+let STAND = null;
+Netz.einrichten({
+  spiel: 'ruhighand', min: 2, max: 6, stilleAktionen: ['pos'],   // Ziehbewegung: nur als Ereignis weiterreichen, kein voller Stand
+  starten(spieler, o) { S = neuesSpiel(spieler.map(p => p.name), spieler.map(p => p.farbe), o); spielen(); },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    if (name === 'nochmal') { if (sitz !== null && sitz !== 0) return Netz.melden(); if (S.phase === 'ende') return nochmal(); return; }
+    if (name === 'ziehen') { if (sitz !== null && sitz !== S.dran) return Netz.melden(); return ziehen(); }
+    if (name === 'versuch') { if (sitz !== null && sitz !== S.aktiv) return Netz.melden(); if (typeof d.teil !== 'string') return Netz.melden(); return versuch(d.teil, d.ok === true); }
+    if (name === 'pos') { // Lage beim fremden Versuch: anzeigen und an alle weiterreichen, nicht speichern
+      if (sitz === null || sitz !== S.aktiv || S.phase !== 'operieren') return;
+      const x = Math.max(-400, Math.min(400, Math.round(Number(d.x) || 0))), y = Math.max(-400, Math.min(400, Math.round(Number(d.y) || 0)));
+      fremdePos(x, y); Netz.ereignis({daten: {pos: [x, y], nr: S.nr}});
+    }
+  },
+  zustand: () => R.sicht(S),
+  stand(d) {
+    const alt = STAND; STAND = d;
+    const neuSpiel = !B || !B.isConnected || !alt || d.nr < alt.nr || (alt.phase === 'ende' && d.phase !== 'ende');
+    S = d;
+    if (neuSpiel) { if (START) START.hidden = true; spielen(); return; }
+    if (d.nr !== alt.nr && d.phase === 'operieren' && alt.phase === 'ziehen') Kern.ton('karte');
+    if (d.letzter && d.letzter.art === 'geschafft' && (!alt.letzter || Object.keys(alt.raus).length < Object.keys(d.raus).length)) Kern.ton('punkt');
+    zeichnen();
+    if (d.phase === 'ende' && alt.phase !== 'ende') setTimeout(ende, 1100);
+  },
+  ereignis(d) { if (d && d.pos && S && d.nr === S.nr) fremdePos(d.pos[0], d.pos[1]); },
+  beendet: () => startseite(),
+});
+
+window.__test = {zustand: () => S, setze: f => { f(S); speichern(); zeichnen(); Netz.melden(); }, zug: () => ZUG,
+  bildschirm: (x, y) => { const p = SVG.createSVGPoint(); p.x = x; p.y = y; const q = p.matrixTransform(SVG.getScreenCTM()); return [q.x, q.y]; }};
+startseite();
+</script>
+</body>
+</html>

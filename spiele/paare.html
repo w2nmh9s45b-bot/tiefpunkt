@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0c2430">
+<title>Paare finden · Spieltisch</title>
+<link rel="stylesheet" href="../gemeinsam/kern.css">
+<style>
+/* Paare finden: links (bzw. oben) Spielerleiste und Lagesatz, daneben das Kärtchenfeld. Alle Klassen mit Präfix .pa- */
+.pa-buehne{display:grid;grid-template-columns:clamp(230px,23vw,300px) minmax(0,1fr);gap:18px}
+.pa-seite{display:flex;flex-direction:column;gap:14px;padding-top:62px;min-height:0;min-width:0}
+.pa-satz{font-family:var(--f-disp);font-weight:800;font-size:clamp(21px,2.1vw,26px);line-height:1.12;letter-spacing:-.02em;text-wrap:balance;min-height:2.3em}
+.pa-satz small{display:block;font-family:var(--f-ui);font-weight:400;font-size:15px;letter-spacing:0;color:var(--ink2);margin-top:6px}
+.pa-satz .pa-nm{color:var(--pc)}
+.pa-satz b{display:block;font-weight:inherit}
+.pa-spieler{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}
+.pa-sp{--pc:var(--akzent);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 14px 10px 10px;border-radius:16px;
+  background:var(--panel);border:2px solid var(--line);transition:border-color .3s,box-shadow .3s,background-color .3s}
+.pa-sp .k-dot{width:30px;height:30px;font-size:14px}
+.pa-sp b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pa-sp small{display:block;font-size:12px;color:var(--ink2);font-weight:400}
+.pa-sp .pa-zahl{font-family:var(--f-disp);font-weight:800;font-size:30px;line-height:1;text-align:right}
+.pa-sp .pa-zahl small{font-family:var(--f-ui);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-top:2px}
+.pa-sp.dran{border-color:var(--pc);background:rgba(9,32,42,.92);box-shadow:0 0 26px color-mix(in srgb,var(--pc) 32%,transparent)}
+.pa-sp.sieger{border-color:var(--pc);background:color-mix(in srgb,var(--pc) 16%,rgba(9,32,42,.92))}
+.pa-sp .pa-du{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--pc);margin-left:6px}
+.pa-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+.pa-info div{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.pa-info small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:700}
+.pa-info b{font-family:var(--f-disp);font-size:24px;font-weight:800}
+.pa-info .breit{grid-column:1/-1}
+.pa-knoepfe{display:flex;gap:10px;flex-wrap:wrap}
+.pa-knoepfe .k-btn{flex:1}
+
+.pa-feld{position:relative;min-width:0;min-height:0;display:grid;place-items:center}
+.pa-raster{display:grid;grid-template-columns:repeat(var(--pa-sp),var(--pa-k));grid-auto-rows:var(--pa-k);gap:var(--pa-g)}
+.pa-karte{--pc:var(--akzent);position:relative;width:var(--pa-k);height:var(--pa-k);padding:0;border:0;background:none;perspective:calc(var(--pa-k)*6);border-radius:calc(var(--pa-k)*.14)}
+.pa-innen{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.3,.75,.3,1)}
+.pa-karte.offen .pa-innen,.pa-karte.weg .pa-innen{transform:rotateY(180deg)}
+.pa-rueck,.pa-vorn{position:absolute;inset:0;border-radius:calc(var(--pa-k)*.14);-webkit-backface-visibility:hidden;backface-visibility:hidden;overflow:hidden}
+.pa-rueck{background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke-linejoin='round'%3E%3Crect x='24' y='27' width='32' height='43' rx='7' transform='rotate(-14 40 48)' fill='%23fff' fill-opacity='.22' stroke='%23fff' stroke-opacity='.6' stroke-width='3'/%3E%3Crect x='43' y='29' width='32' height='43' rx='7' transform='rotate(10 59 50)' fill='%236c35b0' stroke='%23fbf8f1' stroke-width='4'/%3E%3Cpath d='M59 40.5l3 7.4 7.4 3-7.4 3-3 7.4-3-7.4-7.4-3 7.4-3z' fill='%23fbf8f1'/%3E%3C/g%3E%3C/svg%3E") center/70% no-repeat,
+  repeating-radial-gradient(circle at 50% 50%, transparent 0 calc(var(--pa-k)*.07), rgba(255,255,255,.08) calc(var(--pa-k)*.07) calc(var(--pa-k)*.085)),
+  linear-gradient(150deg,#a868e6,#5b2b94 78%);
+  box-shadow:inset 0 0 0 calc(var(--pa-k)*.045) rgba(251,248,241,.9), inset 0 0 0 calc(var(--pa-k)*.075) #4a2179, 0 calc(var(--pa-k)*.04) calc(var(--pa-k)*.1) rgba(0,0,0,.4)}
+.pa-vorn{transform:rotateY(180deg);background:#fbf8f1;display:grid;place-items:center;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08), 0 calc(var(--pa-k)*.04) calc(var(--pa-k)*.1) rgba(0,0,0,.4)}
+.pa-vorn svg{width:86%;height:86%;display:block}
+.pa-karte.weg .pa-vorn{box-shadow:inset 0 0 0 calc(var(--pa-k)*.05) var(--pc), 0 2px 6px rgba(0,0,0,.3)}
+.pa-karte.weg{opacity:.36;transform:scale(.9);transition:opacity .5s .9s,transform .5s .9s}
+.pa-karte.weg.neu{animation:pa-fund .9s ease-out}
+@keyframes pa-fund{0%{filter:none}30%{filter:drop-shadow(0 0 calc(var(--pa-k)*.12) var(--pc))}100%{filter:none}}
+.pa-karte.kann{cursor:pointer}
+.pa-karte.kann:hover .pa-rueck{filter:brightness(1.12)}
+.pa-karte.kann:active .pa-innen{transform:scale(.96)}
+.pa-karte.fehl .pa-vorn{box-shadow:inset 0 0 0 calc(var(--pa-k)*.04) var(--fehler), 0 2px 6px rgba(0,0,0,.3)}
+.pa-marke{position:absolute;right:6%;top:6%;width:16%;height:16%;border-radius:50%;background:var(--pc);box-shadow:0 0 0 2px #fbf8f1;opacity:0;transition:opacity .3s .5s;pointer-events:none}
+.pa-karte.weg .pa-marke{opacity:1}
+
+/* Hochformat (iPad hoch und Handy): Leiste oben, Feld darunter */
+@media (max-aspect-ratio:1/1){
+  .pa-buehne{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:14px}
+  .pa-seite{padding-top:0;gap:10px}
+  .pa-satz{padding-left:118px;min-height:56px;display:flex;flex-direction:column;justify-content:center}
+  .pa-spieler{flex-direction:row;flex-wrap:wrap;overflow:visible}
+  .pa-sp{flex:1 1 170px}
+  .pa-info{display:flex;margin-top:0}
+  .pa-info div{flex:1}
+}
+.pa-netz .pa-satz{padding-right:96px}
+@media (min-aspect-ratio:1/1){.pa-netz .pa-seite{padding-top:62px}}
+/* Telefon hoch: alles enger */
+@media (max-width:700px){
+  .pa-buehne{gap:10px}
+  .pa-seite{gap:8px}
+  .pa-satz{padding-left:110px;font-size:19px;min-height:48px}
+  .pa-satz small{font-size:13px;margin-top:3px}
+  .pa-spieler{display:grid;grid-template-columns:repeat(var(--pa-n2,3),minmax(0,1fr));gap:6px}
+  .pa-sp{padding:6px 8px 6px 6px;gap:6px;border-radius:13px;grid-template-columns:auto minmax(0,1fr) auto}
+  .pa-sp .k-dot{width:22px;height:22px;font-size:11px}
+  .pa-sp b{font-size:14px}
+  .pa-sp small{display:none}
+  .pa-sp .pa-zahl{font-size:22px}
+  .pa-sp .pa-zahl small{display:none}
+  .pa-info{gap:6px}
+  .pa-info div{padding:6px 10px;border-radius:12px}
+  .pa-info small{font-size:10px}
+  .pa-info b{font-size:19px}
+}
+.pa-tab{width:100%;border-collapse:collapse;font-size:16px;margin-top:6px}
+.pa-tab td{padding:8px 6px;border-top:1px solid var(--line)}
+.pa-tab tr:first-child td{border-top:0;color:var(--ink2);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.pa-tab .k-dot{display:inline-grid;vertical-align:middle;margin-right:8px}
+.pa-tab .gross{font-family:var(--f-disp);font-weight:800;font-size:22px}
+@media (prefers-reduced-motion:reduce){.pa-innen{transition-duration:.01ms}.pa-karte.weg{transition:none}}
+</style>
+</head>
+<body class="chart">
+<script src="../gemeinsam/kern.js"></script>
+<script src="../gemeinsam/netz.js"></script>
+<script src="paare.daten.js"></script>
+<script src="paare.logik.js"></script>
+<script>
+"use strict";
+const P = window.Paare, M = window.PaareMotive;
+const AKZENT = '#c08af0';
+const REGELN = `
+<h3>Ziel</h3><p>Finde die meisten Paare. Zu jedem Bild gibt es genau zwei gleiche Kärtchen.</p>
+<h3>Dein Zug</h3><ol>
+<li>Decke nacheinander zwei Kärtchen auf – alle schauen mit.</li>
+<li>Zeigen beide dasselbe Bild, gehört das Paar dir und du deckst gleich noch einmal zwei auf.</li>
+<li>Sind sie verschieden, drehen sie sich nach einem Moment wieder um (oder tippe, um schneller weiterzumachen). Dann ist die nächste Person dran.</li></ol>
+<h3>Ende</h3><p>Sind alle Paare gefunden, gewinnt, wer die meisten hat. Bei Gleichstand teilt ihr euch den Sieg.</p>
+<h3>Wer beginnt</h3><p>Die jüngste Person – tragt sie als Spieler 1 ein. Wahlweise bestimmt der Zufall.</p>
+<h3>Allein</h3><p>Du spielst gegen dich selbst: Gezählt werden deine Züge (je zwei aufgedeckte Kärtchen) und die Zeit. Dein bester Wert je Größe wird gemerkt.</p>
+<h3>Optionen</h3><p>16, 24, 36 oder 48 Kärtchen und vier Bildersätze – oder alles gemischt.</p>`;
+
+const SAETZE = Object.keys(M);
+const pool = satz => (satz === 'gemischt' ? SAETZE : [satz]).flatMap(s => M[s].motive.map((_, i) => `${s}:${i}`));
+const motiv = id => { const [s, i] = String(id).split(':'); return (M[s] && M[s].motive[+i]) || null; };
+const svgVon = id => { const m = motiv(id); return m ? `<svg viewBox="0 0 100 100" aria-hidden="true">${m.svg}</svg>` : ''; };
+
+let S = null, B = null, KARTEN = [], START = null, T_WEITER = null, T_UHR = null, laufSeit = null, ENDE_FE = null;
+const esc = Kern.esc;
+const allein = () => S && S.spieler.length === 1;
+const leitet = () => !Netz.laeuft || Netz.istHost;
+const darf = () => !Netz.laeuft || Netz.meinSitz === S.dran;
+
+/* ---------- Zeit (nur allein) ---------- */
+const zeitJetzt = () => (S.zeitMs || 0) + (laufSeit ? Date.now() - laufSeit : 0);
+const zeitText = ms => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function speichern() {
+  if (!S) return;
+  if (laufSeit) { S.zeitMs = zeitJetzt(); laufSeit = Date.now(); }
+  if (S.phase === 'ende') Kern.speicher.loeschen(); else Kern.speicher.speichern(S);
+}
+
+Kern.init({id: 'paare', name: 'Paare finden', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); startseite(); }});
+
+/* ---------- Startseite ---------- */
+function startbild() {
+  const k = (x, r, inhalt, rueck) => `<g transform="translate(${x} 14) rotate(${r} 32 32)"><rect width="64" height="64" rx="10" fill="${rueck ? '#7a40bf' : '#fbf8f1'}" stroke="${rueck ? '#fbf8f1' : 'none'}" stroke-width="${rueck ? 3 : 0}"/>${rueck ? '<g stroke-linejoin="round" transform="translate(32 32) scale(.64) translate(-50 -50)"><rect x="24" y="27" width="32" height="43" rx="7" transform="rotate(-14 40 48)" fill="#fff" fill-opacity=".22" stroke="#fff" stroke-opacity=".6" stroke-width="3"/><rect x="43" y="29" width="32" height="43" rx="7" transform="rotate(10 59 50)" fill="#6c35b0" stroke="#fbf8f1" stroke-width="4"/><path d="M59 40.5l3 7.4 7.4 3-7.4 3-3 7.4-3-7.4-7.4-3 7.4-3z" fill="#fbf8f1"/></g>' : `<svg x="5" y="5" width="54" height="54" viewBox="0 0 100 100">${inhalt}</svg>`}</g>`;
+  const m = M.tiere.motive[7].svg;
+  return `<svg viewBox="0 0 230 96" width="300" height="125">${k(4, -10, m)}${k(83, 0, '', true)}${k(162, 10, m)}</svg>`;
+}
+function startseite() {
+  clearTimeout(T_WEITER); clearInterval(T_UHR); laufSeit = null;
+  document.querySelectorAll('.pa-buehne').forEach(e => e.remove()); B = null;
+  if (ENDE_FE) { ENDE_FE.schliessen(); ENDE_FE = null; }
+  if (!START) { START = Kern.el('div', 'k-scroll chart'); document.body.appendChild(START); }
+  START.hidden = false; S = null;
+  const alt = Kern.speicher.laden(), ok = alt && alt.karten && alt.phase !== 'ende';
+  Kern.setup({
+    ziel: START, titel: 'Paare finden', unter: 'Deck zwei Kärtchen auf. Gleiches Bild? Behalten und nochmal. Wer die meisten Paare findet, gewinnt.',
+    bild: startbild(), fakten: ['1–6 Personen', 'allein auf Züge und Zeit', '16 bis 48 Kärtchen'],
+    spieler: {min: 1, max: 6, standard: 2, frage: 'Wie viele spielen mit?'},
+    optionen: [
+      {id: 'groesse', label: 'Wie viele Kärtchen?', standard: '24', werte: P.GROESSEN.map(g => ({wert: String(g), text: String(g)}))},
+      {id: 'satz', label: 'Welche Bilder?', standard: 'tiere', werte: [...SAETZE.map(s => ({wert: s, text: {obst: 'Obst'}[s] || M[s].name})), {wert: 'gemischt', text: 'Gemischt'}]},
+      {id: 'start', label: 'Wer beginnt?', standard: '1', werte: [{wert: '1', text: 'Spieler 1 (die Jüngste)'}, {wert: 'zufall', text: 'Zufall'}]}
+    ],
+    fortsetzen: ok ? `${alt.groesse} Kärtchen · ${alt.spieler.map(p => `${p.name} ${p.paare}`).join(', ')}` : null,
+    onFortsetzen: () => { S = alt; if (S.gestartet && allein()) laufSeit = Date.now(); spielen(); },
+    onStart: ({namen, farben, optionen}) => {
+      S = neuesSpiel(namen, farben, optionen);
+      speichern(); spielen();
+    }
+  });
+}
+function neuesSpiel(namen, farben, o) {
+  const groesse = P.GROESSEN.includes(Number(o.groesse)) ? Number(o.groesse) : 24;
+  const satz = o.satz === 'gemischt' || M[o.satz] ? o.satz : 'tiere';
+  const beginner = o.start === 'zufall' ? Kern.zufall(namen.length) : 0;
+  const s = P.neu({namen, farben, groesse, pool: pool(satz), beginner, mischen: Kern.mischen});
+  s.satz = satz; s.start = o.start || '1'; s.zeitMs = 0; s.gestartet = false;
+  return s;
+}
+
+/* ---------- Spielfläche ---------- */
+function spielen() {
+  if (START) START.hidden = true;
+  document.querySelectorAll('.pa-buehne').forEach(e => e.remove());
+  if (ENDE_FE) { ENDE_FE.schliessen(); ENDE_FE = null; }
+  B = Kern.el('div', 'k-buehne pa-buehne' + (Netz.laeuft ? ' pa-netz' : ''));
+  B.innerHTML = `<aside class="pa-seite"><div class="pa-satz" id="pa-satz"></div><div class="pa-spieler" id="pa-spieler"></div>
+    <div class="pa-info" id="pa-info"></div><div class="pa-knoepfe" id="pa-knoepfe"></div></aside>
+    <main class="pa-feld" id="pa-feld"><div class="pa-raster" id="pa-raster"></div></main>`;
+  document.body.appendChild(B);
+  const r = B.querySelector('#pa-raster'); KARTEN = [];
+  S.karten.forEach((_, i) => {
+    const k = Kern.el('button', 'pa-karte', '<span class="pa-innen"><span class="pa-rueck"></span><span class="pa-vorn"></span></span><i class="pa-marke"></i>');
+    k.dataset.i = i; k.setAttribute('aria-label', `Kärtchen ${i + 1}`);
+    Kern.tap(k, () => tippe(i)); r.appendChild(k); KARTEN.push({el: k, vorn: k.querySelector('.pa-vorn'), motiv: null, war: ''});
+  });
+  zeichnen(true); einpassen();
+  if (window.ResizeObserver) new ResizeObserver(() => { if (B && S) einpassen(); }).observe(B.querySelector('#pa-feld'));
+  clearInterval(T_UHR); T_UHR = setInterval(() => { const z = document.getElementById('pa-zeit'); if (z && S && allein()) z.textContent = zeitText(zeitJetzt()); }, 500);
+  if (S.phase === 'zeigen' && leitet()) planeWeiter();
+  if (S.phase === 'ende') setTimeout(ende, 400);
+}
+// Größtes quadratisches Kärtchen, das in die Fläche passt: Spaltenzahl = Teiler der Kärtchenzahl.
+function einpassen() {
+  if (!B) return;
+  const f = B.querySelector('#pa-feld'), r = B.querySelector('#pa-raster'), n = S.karten.length;
+  const W = f.clientWidth, H = f.clientHeight;
+  let best = {k: 0, sp: 4};
+  for (let sp = 2; sp <= n; sp++) {
+    if (n % sp) continue;
+    const z = n / sp, g0 = Math.min(W / sp, H / z) * .085;
+    const k = Math.min((W - (sp - 1) * g0) / sp, (H - (z - 1) * g0) / z);
+    if (k > best.k) best = {k, sp, g: g0};
+  }
+  const k = Math.max(24, Math.floor(Math.min(best.k, 150))), g = Math.max(4, Math.min(16, Math.round(k * .085)));
+  r.style.setProperty('--pa-sp', best.sp); r.style.setProperty('--pa-k', k + 'px'); r.style.setProperty('--pa-g', g + 'px');
+}
+addEventListener('resize', () => { if (B && S) einpassen(); });
+
+const NAME = i => esc(S.spieler[i].name);
+function lagesatz() {
+  const p = S.spieler[S.dran], f = `style="--pc:${p.farbe}"`, l = S.letzter;
+  const du = Netz.laeuft && Netz.meinSitz === S.dran;
+  const wer = du ? 'Du' : `<span class="pa-nm" ${f}>${NAME(S.dran)}</span>`;
+  if (S.phase === 'ende') {
+    if (allein()) return `Alle Paare gefunden!<small>${S.zuege} Züge · ${zeitText(S.zeitMs || 0)}</small>`;
+    const s = S.sieger; return s.length > 1 ? `Gleichstand!<small>${s.map(NAME).join(' und ')} teilen sich den Sieg.</small>` : `<span class="pa-nm" style="--pc:${S.spieler[s[0]].farbe}">${NAME(s[0])}</span> gewinnt!<small>${S.spieler[s[0]].paare} Paare</small>`;
+  }
+  if (S.phase === 'zeigen') {
+    const naechst = (S.dran + 1) % S.spieler.length;
+    return `Kein Paar.<small>${allein() ? 'Merk dir, wo sie liegen.' : `Gleich ist ${Netz.laeuft && Netz.meinSitz === naechst ? 'du' : NAME(naechst)} dran.`}${darf() ? ' Tippe, um weiterzumachen.' : ''}</small>`;
+  }
+  if (l && l.art === 'paar' && S.offen.length === 0) {
+    const m = motiv(l.motiv);
+    return `Paar${m ? ': ' + esc(m.name) : ''}!<small>${allein() ? 'Weiter so – deck die nächsten zwei auf.' : `${du ? 'Du darfst' : NAME(S.dran) + ' darf'} noch einmal.`}</small>`;
+  }
+  if (S.offen.length === 1) return `${wer}${du ? ' hast' : ' hat'} eins aufgedeckt.<small>${darf() ? 'Jetzt das zweite.' : 'Gleich kommt das zweite.'}</small>`;
+  if (allein()) return `Deck zwei Kärtchen auf.<small>Finde alle ${S.groesse / 2} Paare mit möglichst wenigen Zügen.</small>`;
+  return du ? `Du bist dran.<small>Deck zwei Kärtchen auf.</small>` : `${wer} ist dran.<small>${Netz.laeuft ? 'Schau gut hin und merk dir die Bilder.' : 'Deck zwei Kärtchen auf.'}</small>`;
+}
+function zeichnen(neuAufbau) {
+  if (!B || !S) return;
+  const sicht = P.sicht(S);
+  const ls = lagesatz(), lk = ls.indexOf('<small>');
+  B.querySelector('#pa-satz').innerHTML = lk < 0 ? `<b>${ls}</b>` : `<b>${ls.slice(0, lk)}</b>${ls.slice(lk)}`;
+  // Spieler
+  const sp = B.querySelector('#pa-spieler');
+  sp.style.setProperty('--pa-n2', S.spieler.length <= 2 ? 2 : 3);
+  sp.innerHTML = S.spieler.map((p, i) => `<div class="pa-sp${i === S.dran && S.phase !== 'ende' && !allein() ? ' dran' : ''}${S.phase === 'ende' && S.sieger.includes(i) && !allein() ? ' sieger' : ''}" style="--pc:${p.farbe}">
+    <span class="k-dot">${esc(p.name.charAt(0).toUpperCase())}</span><span><b>${NAME(i)}</b>${Netz.laeuft && i === Netz.meinSitz ? '<span class="pa-du">du</span>' : ''}<small>${p.zuege} ${p.zuege === 1 ? 'Zug' : 'Züge'}</small></span>
+    <span class="pa-zahl k-zahl">${p.paare}<small>${p.paare === 1 ? 'Paar' : 'Paare'}</small></span></div>`).join('');
+  // Info
+  const best = Kern.einst.laden({})['best' + S.groesse];
+  B.querySelector('#pa-info').innerHTML = allein()
+    ? `<div><small>Züge</small><b class="k-zahl">${S.zuege}</b></div><div><small>Zeit</small><b class="k-zahl" id="pa-zeit">${zeitText(zeitJetzt())}</b></div>
+       <div class="breit"><small>Bester Wert · ${S.groesse} Kärtchen</small><b class="k-zahl" style="font-size:18px">${best ? `${best.zuege} Züge · ${zeitText(best.zeitMs)}` : 'noch keiner'}</b></div>`
+    : `<div class="breit"><small>Noch verdeckt</small><b class="k-zahl">${P.offenePaare(S)} ${P.offenePaare(S) === 1 ? 'Paar' : 'Paare'}</b></div>`;
+  const kn = B.querySelector('#pa-knoepfe'); kn.innerHTML = '';
+  if (S.phase === 'ende') { const e = Kern.el('button', 'k-btn', 'Ergebnis'); e.onclick = ende; kn.appendChild(e); }
+  // Kärtchen
+  const neuGefunden = S.letzter && S.letzter.art === 'paar' ? S.letzter.i : [];
+  KARTEN.forEach((k, i) => {
+    const m = sicht.karten[i], weg = S.wer[i] !== -1, offen = S.offen.includes(i);
+    if (m && k.motiv !== m) { k.vorn.innerHTML = svgVon(m); k.motiv = m; const mm = motiv(m); k.el.setAttribute('aria-label', `Kärtchen ${i + 1}: ${mm ? mm.name : ''}`); }
+    if (!m && k.motiv) { // wieder verdeckt: Bild nach dem Umdrehen entfernen (niemand soll es später im Feld finden)
+      const war = k.motiv; k.motiv = null; k.el.setAttribute('aria-label', `Kärtchen ${i + 1}`);
+      setTimeout(() => { if (!k.motiv && k.vorn.innerHTML && war) k.vorn.innerHTML = ''; }, 650);
+    }
+    const zustand = weg ? 'weg' : offen ? 'offen' : 'zu';
+    if (weg) k.el.style.setProperty('--pc', S.spieler[S.wer[i]].farbe);
+    const zuvor = k.war; k.war = zustand;
+    k.el.classList.toggle('offen', offen);
+    k.el.classList.toggle('weg', weg);
+    k.el.classList.toggle('neu', weg && zuvor !== 'weg' && !neuAufbau && neuGefunden.includes(i));
+    k.el.classList.toggle('fehl', S.phase === 'zeigen' && offen);
+    k.el.classList.toggle('kann', S.phase === 'zug' && !weg && !offen && darf());
+    k.el.disabled = weg;
+    if (neuAufbau) { const inn = k.el.querySelector('.pa-innen'); inn.style.transition = k.el.style.transition = 'none'; void inn.offsetWidth; requestAnimationFrame(() => requestAnimationFrame(() => { inn.style.transition = k.el.style.transition = ''; })); }
+  });
+}
+
+/* ---------- Bedienung ---------- */
+function tippe(i) {
+  if (!S || S.phase === 'ende') return;
+  if (!darf()) { Kern.ton('fehler'); return Kern.hinweis(`${S.spieler[S.dran].name} ist dran.`); }
+  if (S.phase === 'zeigen') return Netz.tun('weiter');
+  if (S.wer[i] !== -1 || S.offen.includes(i)) return;
+  Netz.tun('decke', {i});
+}
+function decke(i) {
+  if (!S || S.phase === 'ende') return;
+  if (S.phase === 'zeigen') return weiterJetzt();
+  if (!P.kannAufdecken(S, i)) return Netz.melden();
+  if (allein() && !S.gestartet) { S.gestartet = true; laufSeit = Date.now(); }
+  const r = P.aufdecken(S, i);
+  if (r.art === 'paar' && r.ende && allein()) { S.zeitMs = zeitJetzt(); laufSeit = null; rekord(); }
+  speichern(); Netz.melden();
+  Kern.ton('karte'); zeichnen();
+  if (r.art === 'paar') { setTimeout(() => Kern.ton('punkt'), 260); if (r.ende) setTimeout(ende, 1300); }
+  if (r.art === 'fehl') planeWeiter();
+}
+function planeWeiter() {
+  clearTimeout(T_WEITER); const nr = S.nr;
+  T_WEITER = setTimeout(() => { if (S && S.nr === nr && S.phase === 'zeigen') weiterJetzt(); }, 1600);
+}
+function weiterJetzt() {
+  if (!S || !P.weiter(S)) return;
+  clearTimeout(T_WEITER);
+  speichern(); Netz.melden(); Kern.ton('karte'); zeichnen();
+}
+function rekord() {
+  const e = Kern.einst.laden({}), k = 'best' + S.groesse, alt = e[k];
+  if (!alt || S.zuege < alt.zuege || (S.zuege === alt.zuege && S.zeitMs < alt.zeitMs)) { Kern.einst.speichern({[k]: {zuege: S.zuege, zeitMs: S.zeitMs}}); S.neuerRekord = true; }
+}
+
+/* ---------- Ende ---------- */
+function ende() {
+  if (!S || S.phase !== 'ende') return;
+  if (ENDE_FE) ENDE_FE.schliessen();
+  Kern.ton('sieg'); Kern.feier();
+  const box = Kern.el('div');
+  if (allein()) {
+    const best = Kern.einst.laden({})['best' + S.groesse];
+    box.innerHTML = `<h2>${S.neuerRekord ? 'Neuer Bestwert!' : 'Alle Paare gefunden!'}</h2>
+      <p>${S.groesse / 2} Paare in <b>${S.zuege} Zügen</b> und <b>${zeitText(S.zeitMs || 0)}</b> Minuten.</p>
+      <p>Das Beste wären ${S.groesse / 2} Züge – jedes Paar beim ersten Versuch.${best ? ` Dein bester Wert bei ${S.groesse} Kärtchen: ${best.zuege} Züge · ${zeitText(best.zeitMs)}.` : ''}</p>`;
+  } else {
+    const r = P.rangliste(S), s = S.sieger;
+    box.innerHTML = `<h2>${s.length > 1 ? `Gleichstand: ${s.map(NAME).join(' und ')}` : `${NAME(s[0])} gewinnt!`}</h2>
+      <table class="pa-tab"><tr><td></td><td>Paare</td><td>Züge</td></tr>${r.map((x, k) => `<tr><td><span class="k-dot" style="--pc:${x.farbe}">${k + 1}</span><b>${esc(x.name)}</b></td>
+      <td class="gross k-zahl">${x.paare}</td><td class="k-zahl">${x.zuege}</td></tr>`).join('')}</table>`;
+  }
+  const k = Kern.el('div', 'k-knoepfe'); box.appendChild(k);
+  const fe = ENDE_FE = Kern.fenster(box, {schliessbar: true, beimSchliessen: () => { if (ENDE_FE === fe) ENDE_FE = null; }});
+  const ansehen = Kern.el('button', 'k-btn leise', 'Feld ansehen'); ansehen.onclick = () => fe.schliessen();
+  if (!leitet()) { box.insertBefore(Kern.el('p', '', `${NAME(0)} entscheidet, wie es weitergeht.`), k); k.append(ansehen); return; }
+  const n = Kern.el('button', 'k-btn', 'Nochmal'); n.id = 'pa-nochmal'; n.onclick = () => { fe.schliessen(); Netz.tun('nochmal'); };
+  const neu = Kern.el('button', 'k-btn leise', 'Neues Spiel'); neu.onclick = () => { fe.schliessen(); if (Netz.aktiv) Netz.verlassen(); Kern.speicher.loeschen(); startseite(); };
+  k.append(n, neu, ansehen);
+}
+function nochmal() {
+  const alt = S;
+  S = neuesSpiel(alt.spieler.map(p => p.name), alt.spieler.map(p => p.farbe), {groesse: String(alt.groesse), satz: alt.satz, start: alt.start});
+  if (alt.start !== 'zufall') S.dran = S.beginner = (alt.beginner + 1) % alt.spieler.length; // nächste Partie: reihum beginnen
+  laufSeit = null; speichern(); spielen(); Netz.melden();
+}
+
+/* ---------- Netzspiel ----------
+   Gastgeber = Sitz 0, er mischt und hält den echten Stand. Mitspieler bekommen nur, was alle sehen:
+   verdeckte Kärtchen ohne Motiv (P.sicht). Aufdecken darf nur das Gerät der Person am Zug. */
+let STAND = null;
+Netz.einrichten({
+  spiel: 'paare', min: 2, max: 6,
+  starten(spieler, o) {
+    S = neuesSpiel(spieler.map(p => p.name), spieler.map(p => p.farbe), o);
+    spielen();
+  },
+  aktion(name, d, sitz) {
+    if (!S) return;
+    if (sitz !== null && (name === 'nochmal' ? sitz !== 0 : sitz !== S.dran)) return Netz.melden();
+    if (name === 'decke') { const i = Number(d.i); if (!Number.isInteger(i)) return Netz.melden(); return decke(i); }
+    if (name === 'weiter') return weiterJetzt();
+    if (name === 'nochmal' && S.phase === 'ende') return nochmal();
+  },
+  zustand: () => P.sicht(S),
+  stand(d) {
+    const alt = STAND; STAND = d; S = d;
+    if (!B || !B.isConnected || !alt || alt.karten.length !== d.karten.length || d.nr < alt.nr || (alt.phase === 'ende' && d.phase !== 'ende')) {
+      if (START) START.hidden = true;
+      spielen(); return;
+    }
+    zeichnen();
+    if (d.nr !== alt.nr) {
+      if (d.offen.length > alt.offen.length || (d.letzter && d.letzter.art === 'paar' && (!alt.letzter || alt.nr !== d.nr))) Kern.ton('karte');
+      if (d.letzter && d.letzter.art === 'paar' && d.wer.filter(w => w !== -1).length > alt.wer.filter(w => w !== -1).length) setTimeout(() => Kern.ton('punkt'), 260);
+      if (d.phase === 'zug' && alt.phase === 'zeigen') { Kern.ton('karte'); if (d.dran === Netz.meinSitz) Kern.ton('tipp'); }
+    }
+    if (d.phase === 'ende' && alt.phase !== 'ende') setTimeout(ende, 1300);
+  },
+  beendet: () => startseite(),
+});
+
+window.__test = {zustand: () => S, setze: f => { f(S); speichern(); zeichnen(); Netz.melden(); }, motiv};
+startseite();
+</script>
+</body>
+</html>
