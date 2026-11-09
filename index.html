@@ -118,7 +118,7 @@ const SPIELE = [
     svg: `<rect x="6" y="10" width="52" height="44" rx="6" fill="#1b3f8a" stroke="#fff" stroke-width="2"/>${[0, 1, 2, 3].map(r => [0, 1, 2, 3].map(c => DOT(15 + c * 11.3, 19 + r * 10.5, 4, (r === 3 && c < 3) || (r === 2 && c === 1) ? '#f2c14e' : (r === 3 && c === 3) || (r === 2 && c === 2) || (r === 1 && c === 2) ? '#ef7d6d' : '#0e2147')).join('')).join('')}`},
   {regal: 'Brett', id: 'schiffe', name: 'Schiffe versenken', sp: '2', bg: 'linear-gradient(160deg,#21738a,#0f3b48)',
     svg: `<path d="M8 24h48M8 40h48M24 8v48M40 8v48" stroke="rgba(255,255,255,.35)" stroke-width="2"/><path d="M10 34h30l-4 8H14z" fill="#fbf8f1"/><path d="M20 34v-8h10v8" fill="#fbf8f1"/><path d="M46 14l8 8M54 14l-8 8" stroke="#ef7d6d" stroke-width="3.5" stroke-linecap="round"/>`},
-  {regal: 'Legen und Handeln', id: 'rheinbaron', name: 'Rheinbaron', sp: '2–6', bg: 'linear-gradient(160deg,#2e7d4f,#164229)',
+  {regal: 'Legen und Handeln', id: 'rheinbaron', name: 'Heimatbaron', sp: '2–6', bg: 'linear-gradient(160deg,#2e7d4f,#164229)',
     svg: `<path d="M12 30l14-12 14 12v20H12z" fill="#fbf8f1"/><path d="M22 50V38h8v12" fill="#d8483c"/><path d="M36 26l10-8 10 8v24H36z" fill="#f2c14e"/>${WUERFEL(6, 44, 13, 6, -10)}`},
   {regal: 'Legen und Handeln', id: 'zahlenromme', name: 'Zahlenrommé', sp: '2–4', bg: 'linear-gradient(160deg,#c58b2a,#6e4810)',
     svg: `${[['7', '#c0392b'], ['8', '#2c5bb8'], ['9', '#1e2a30']].map(([t, f], i) => `<rect x="${6 + i * 18}" y="18" width="16" height="24" rx="3" fill="#fbf8f1"/><text x="${14 + i * 18}" y="36" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="15" fill="${f}">${t}</text>`).join('')}<rect x="10" y="44" width="44" height="6" rx="3" fill="rgba(255,255,255,.35)"/>`},

@@ -11,19 +11,22 @@
 <link rel="stylesheet" href="../gemeinsam/kern.css">
 <style>
 /* Rheinbaron: helles Brett (Papier) als Ring auf dem Seekarten-Tisch, in der Mitte ein dunkles Kartenfenster mit
-   Rhein und Lahn, dort stehen Würfel, wer dran ist, Kontostände und die nächsten Schritte.
-   Felder an den Seiten sind zu ihrer Tischseite gedreht wie bei einem echten Brett. Präfix: .rb- */
+   dem Motiv der Ausgabe, dort stehen Würfel, wer dran ist, Kontostände und die nächsten Schritte.
+   Felder an den Seiten sind zu ihrer Tischseite gedreht wie bei einem echten Brett. Präfix: .rb-
+   Farben der Ausgabe (rheinbaron.ausgabe-*.js, design): --rb-papier, --rb-rand, --rb-mitte, --rb-motiv, --akzent. */
+:root{--rb-papier:#f6f0e3;--rb-rand:#1b2a2f;--rb-mitte:#133a49;--rb-motiv:none}
 .rb-buehne{padding:0}
-#rb-brett{position:absolute;width:var(--B);height:var(--B);border-radius:calc(var(--c)*.1);background:#efe7d6;
-  box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 2px #1b2a2f;overflow:hidden;--fs:max(9px,calc(var(--w)*.155))}
-.rb-feld{position:absolute;box-sizing:border-box;color:#1b2a2f;background:#f6f0e3;box-shadow:inset 0 0 0 .6px rgba(27,42,47,.45);overflow:hidden;
+#rb-brett{position:absolute;width:var(--B);height:var(--B);border-radius:calc(var(--c)*.1);background:color-mix(in srgb,var(--rb-papier) 92%,var(--rb-rand));
+  box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 2px var(--rb-rand);overflow:hidden;--fs:max(9px,calc(var(--w)*.155))}
+.rb-feld{position:absolute;box-sizing:border-box;color:var(--rb-rand);background:var(--rb-papier);box-shadow:inset 0 0 0 .6px color-mix(in srgb,var(--rb-rand) 45%,transparent);overflow:hidden;
   cursor:pointer}
 .rb-feld:active{filter:brightness(.95)}
 .rb-in{position:absolute;display:flex;flex-direction:column;align-items:center;text-align:center;box-sizing:border-box}
 .rb-bar{flex:none;width:100%;height:22%;background:var(--gc);display:flex;align-items:center;justify-content:center;gap:5%;
   box-shadow:inset 0 -1px 0 rgba(0,0,0,.35)}
-.rb-name{font:700 var(--fs)/1.06 var(--f-ui);padding:7% 4% 0;letter-spacing:-.01em;max-width:100%;overflow-wrap:break-word;-webkit-hyphens:manual;hyphens:manual}
-.rb-sub{font-size:calc(var(--fs)*.82);color:#5b6a6e;margin-top:2%;font-weight:700;letter-spacing:.02em}
+.rb-name{font:700 var(--fs)/1.06 var(--f-ui);padding:7% 4% 0;letter-spacing:-.01em;max-width:100%;box-sizing:border-box;overflow-wrap:break-word;-webkit-hyphens:manual;hyphens:manual}
+.rb-name.auto,.rb-sub.auto,.rb-ecke-t.auto{-webkit-hyphens:auto;hyphens:auto}
+.rb-sub{font-size:calc(var(--fs)*.82);color:color-mix(in srgb,var(--rb-rand) 70%,var(--rb-papier));margin-top:2%;font-weight:700;letter-spacing:.02em;max-width:100%;padding:0 3%;box-sizing:border-box;overflow-wrap:break-word}
 .rb-preis{margin-top:auto;margin-bottom:calc(var(--c)*.155);font:700 calc(var(--fs)*.95) var(--f-ui);font-variant-numeric:tabular-nums}
 .rb-ico{width:52%;height:auto;margin-top:6%;flex:none}
 .rb-band{position:absolute;left:0;right:0;bottom:0;height:14%;background:var(--oc);display:none;place-items:center;
@@ -33,15 +36,18 @@
 .rb-feld.hy .rb-band{background:repeating-linear-gradient(135deg,var(--oc) 0 5px,#fff 5px 8px)}
 .rb-haus{width:16%;aspect-ratio:1/1;background:#fff;clip-path:polygon(50% 0,100% 42%,100% 100%,0 100%,0 42%);filter:drop-shadow(0 0 .6px #000)}
 .rb-hotel{width:50%;height:62%;background:#fff;border-radius:2px;box-shadow:0 0 0 1px #1b2a2f;background-image:repeating-linear-gradient(90deg,transparent 0 18%,#1b2a2f 18% 28%);background-size:100% 40%;background-repeat:no-repeat;background-position:0 55%}
-.rb-feld.ziel{z-index:3;animation:rb-puls 1.3s ease-in-out infinite;box-shadow:inset 0 0 0 3px var(--akzent),0 0 18px rgba(92,196,138,.9)}
-@keyframes rb-puls{50%{box-shadow:inset 0 0 0 3px var(--akzent),0 0 4px rgba(92,196,138,.4)}}
+.rb-feld.ziel{z-index:3;animation:rb-puls 1.3s ease-in-out infinite;box-shadow:inset 0 0 0 3px var(--akzent),0 0 18px color-mix(in srgb,var(--akzent) 90%,transparent)}
+@keyframes rb-puls{50%{box-shadow:inset 0 0 0 3px var(--akzent),0 0 4px color-mix(in srgb,var(--akzent) 40%,transparent)}}
 .rb-feld.ecke .rb-in{justify-content:flex-start;padding:9% 6% 0;gap:3%}
-.rb-ecke-t{font:800 calc(var(--fs)*1.35)/1 var(--f-disp);letter-spacing:-.02em}
-.rb-ecke-s{font:700 calc(var(--fs)*.9)/1.15 var(--f-ui);color:#4e5e62}
-/* Hexenturm-Ecke */
-.rb-zelle{position:absolute;right:0;top:0;width:64%;height:64%;background:#3d4a52;box-shadow:inset 0 0 0 2px #1b2a2f;display:grid;place-items:center}
-.rb-zelle svg{width:62%;opacity:.95}
-.rb-besuch{position:absolute;font:800 calc(var(--fs)*.85) var(--f-ui);letter-spacing:.05em;color:#4e5e62;white-space:nowrap}
+.rb-ecke-t{font:800 calc(var(--fs)*1.35)/1 var(--f-disp);letter-spacing:-.02em;max-width:100%;overflow-wrap:break-word}
+.rb-ecke-s{font:700 calc(var(--fs)*.9)/1.15 var(--f-ui);color:color-mix(in srgb,var(--rb-rand) 74%,var(--rb-papier));max-width:100%}
+.rb-ecke-t.klein{font-size:calc(var(--fs)*1.12)}
+.rb-besuch.rb-senk{left:6%;top:6%;writing-mode:vertical-rl;transform:rotate(180deg);font-size:calc(var(--fs)*.78)}
+.rb-eck-img{display:block;flex:0 1 auto;min-height:0;height:auto;object-fit:contain}
+/* Gefängnis-Ecke */
+.rb-zelle{position:absolute;right:0;top:0;width:64%;height:64%;background:color-mix(in srgb,var(--rb-rand) 82%,#7d8a90);box-shadow:inset 0 0 0 2px var(--rb-rand);display:grid;place-items:center}
+.rb-zelle .rb-eck-img{width:62%;max-height:84%;opacity:.95}
+.rb-besuch{position:absolute;font:800 calc(var(--fs)*.85) var(--f-ui);letter-spacing:.05em;color:color-mix(in srgb,var(--rb-rand) 74%,var(--rb-papier));white-space:nowrap}
 /* Figuren */
 .rb-figur{position:absolute;width:var(--fg);height:var(--fg);margin:calc(var(--fg)*-.5) 0 0 calc(var(--fg)*-.5);z-index:6;pointer-events:none;
   transition:left .1s linear,top .1s linear;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
@@ -50,11 +56,13 @@
 .rb-figur svg{width:100%;height:100%;display:block}
 /* Mitte */
 #rb-mitte{position:absolute;left:var(--c);top:var(--c);width:var(--M);height:var(--M);box-sizing:border-box;
-  background:radial-gradient(ellipse at 50% 45%,#174353,#0b2531 75%);box-shadow:inset 0 0 0 2px #1b2a2f,inset 0 10px 40px rgba(0,0,0,.35);
+  background:radial-gradient(ellipse at 50% 45%,color-mix(in srgb,var(--rb-mitte) 92%,#fff),color-mix(in srgb,var(--rb-mitte) 72%,#000) 75%);box-shadow:inset 0 0 0 2px var(--rb-rand),inset 0 10px 40px rgba(0,0,0,.35);
   padding:calc(var(--M)*.035);display:flex;flex-direction:column;gap:calc(var(--M)*.022);font-size:var(--mf);overflow:hidden}
-#rb-fluss{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.9}
+#rb-fluss{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;background:var(--rb-motiv) center/cover no-repeat}
 #rb-mitte > *:not(#rb-fluss){position:relative}
-.rb-titel{text-align:center;font:800 calc(var(--mf)*.78) var(--f-disp);letter-spacing:.42em;color:rgba(232,241,238,.38);margin-bottom:-.3em}
+.rb-titel{text-align:center;font:800 calc(var(--mf)*.78) var(--f-disp);letter-spacing:.42em;color:rgba(232,241,238,.42);margin-bottom:-.3em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-titel.lang{letter-spacing:.22em}
+.rb-titel.sehrlang{letter-spacing:.12em;font-size:calc(var(--mf)*.7)}
 .rb-status{display:flex;align-items:center;gap:.7em;min-height:3.1em}
 .rb-status .rb-fg{width:2.6em;height:2.6em;flex:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
 .rb-wer{display:block;font:800 1.3em/1.05 var(--f-disp);color:var(--pc);letter-spacing:-.02em}
@@ -75,7 +83,7 @@
 .rb-sk.ich{outline:2px dashed var(--pc);outline-offset:2px}
 .rb-sk .rb-du{font-size:.68em;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-left:.4em;padding:.05em .45em;border-radius:99px;background:var(--pc);color:#0c2430;vertical-align:.12em}
 .rb-figur.ich{filter:drop-shadow(0 0 3px var(--akzent)) drop-shadow(0 0 6px var(--akzent))}
-.rb-angebot{border-radius:14px;padding:.6em .8em;background:rgba(92,196,138,.12);box-shadow:inset 0 0 0 2px var(--akzent);font-size:.95em;display:grid;gap:.5em}
+.rb-angebot{border-radius:14px;padding:.6em .8em;background:color-mix(in srgb,var(--akzent) 12%,transparent);box-shadow:inset 0 0 0 2px var(--akzent);font-size:.95em;display:grid;gap:.5em}
 .rb-angebot p{margin:0;color:var(--ink)}
 .rb-angebot .rb-knoepfe{justify-content:flex-start}
 .rb-sk svg{width:2em;height:2em;flex:none}
@@ -164,10 +172,11 @@
 /* ---------- Telefon hoch (iPhone): Brett oben über die ganze Breite, in seiner Mitte Spielerkarten, Bank und Zeit;
    darunter eine rollbare Leiste mit wer dran ist, Würfeln/Kaufen/Bieten und den Knöpfen. Felder antippen = Karte. */
 .rb-zentrum{position:absolute;left:var(--c);top:var(--c);width:var(--M);height:var(--M);box-sizing:border-box;overflow:hidden;
-  background:radial-gradient(ellipse at 50% 45%,#174353,#0b2531 75%);box-shadow:inset 0 0 0 2px #1b2a2f,inset 0 10px 40px rgba(0,0,0,.35);
+  background:radial-gradient(ellipse at 50% 45%,color-mix(in srgb,var(--rb-mitte) 92%,#fff),color-mix(in srgb,var(--rb-mitte) 72%,#000) 75%);box-shadow:inset 0 0 0 2px var(--rb-rand),inset 0 10px 40px rgba(0,0,0,.35);
   padding:8px;display:flex;flex-direction:column;justify-content:center;gap:6px;font-size:13px}
 .rb-zentrum > *:not(#rb-fluss){position:relative}
 .rb-zentrum .rb-titel{font-size:13px;letter-spacing:.38em;margin:0}
+.rb-zentrum .rb-titel.lang{letter-spacing:.2em}.rb-zentrum .rb-titel.sehrlang{letter-spacing:.1em;font-size:12px}
 .rb-zentrum .rb-spieler{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
 .rb-zentrum .rb-sk{min-height:40px;padding:4px 6px;gap:6px;border-radius:10px}
 .rb-zentrum .rb-sk svg{width:24px;height:24px}
@@ -202,43 +211,116 @@
   .rb-fwahl button{flex:1 1 auto}
   .rb-geld input{flex:1 1 4em;min-width:4em}
 }
-@media (prefers-reduced-motion:reduce){.rb-figur{transition:none}.rb-feld.ziel{animation:none}}
+/* ---------- Ausgabenwahl auf der Startseite ---------- */
+.rb-aw{display:grid;gap:10px}
+.rb-aw .k-lab{margin-bottom:0}
+.rb-aw-reihe{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px}
+@media (max-width:700px){.rb-aw-reihe{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}}
+.rb-aw-k{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:7px 7px 9px;border-radius:14px;
+  border:1px solid var(--line);background:var(--panel-hell);text-align:center;cursor:pointer;transition:transform .15s,box-shadow .2s,background .2s}
+.rb-aw-k:active{transform:scale(.97)}
+.rb-aw-k svg{display:block;width:100%;max-width:88px;margin:0 auto;height:auto;border-radius:8px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+.rb-aw-k b{font:700 14px/1.15 var(--f-ui);color:var(--ink);min-height:2.3em;display:grid;place-items:center;text-wrap:balance}
+.rb-aw-k[aria-checked="true"]{background:color-mix(in srgb,var(--ak) 16%,transparent);border-color:transparent;box-shadow:inset 0 0 0 2px var(--ak)}
+.rb-aw-k[aria-checked="true"] b{color:#fff}
+.rb-aw-text{margin:0;color:var(--ink2);font-size:15px;line-height:1.4;min-height:2.8em}
+.rb-aw-text b{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.rb-figur{transition:none}.rb-feld.ziel{animation:none}.rb-aw-k{transition:none}}
 </style>
 </head>
 <body class="chart">
 <script src="../gemeinsam/kern.js"></script>
 <script src="../gemeinsam/netz.js"></script>
 <script src="rheinbaron.logik.js"></script>
+<!-- Ausgaben (Spielbretter für verschiedene Orte): reine Daten, jede meldet sich in window.RheinbaronAusgaben an.
+     Fehlt eine Datei, bietet die Startseite nur die vorhandenen an. -->
+<script src="rheinbaron.ausgabe-rheinlahn.js"></script>
+<script src="rheinbaron.ausgabe-eschbach.js"></script>
+<script src="rheinbaron.ausgabe-panzweiler.js"></script>
+<script src="rheinbaron.ausgabe-blauesland.js"></script>
+<script src="rheinbaron.ausgabe-lahnstein.js"></script>
 <script>
 "use strict";
-const R = window.Rheinbaron, F = R.FELDER, G = R.GRUPPEN, E = Kern.esc, euro = R.euro;
+const R = window.Rheinbaron, F = R.FELDER, G = R.GRUPPEN, BG = R.BEGRIFFE, E = Kern.esc, euro = R.euro;
 const AKZENT = '#5cc48a';
-const REGELN = `
-<p>Zieht um das Brett zwischen Taunus, Lahn und Rhein, kauft Orte, baut Häuser und kassiert Miete. Wer am Ende als Einzige oder Einziger nicht pleite ist, gewinnt.</p>
+// Spielregeln mit den Begriffen der gewählten Ausgabe (erster Absatz kommt aus der Ausgabe)
+function regelnHtml() {
+  const b = k => E(BG[k]), gross = t => t.charAt(0).toUpperCase() + t.slice(1);
+  return `${A && A.regelnIntro ? A.regelnIntro : '<p>Zieht um das Brett, kauft Grundstücke, baut Häuser und kassiert Miete. Wer am Ende als Einzige oder Einziger nicht pleite ist, gewinnt.</p>'}
 <h3>Ablauf</h3>
-<p>Alle starten mit 1.500 € auf „Leinen los“. Wer am höchsten würfelt, beginnt. Würfle und zieh. Bei einem Pasch würfelst du nach deinem Zug noch einmal – beim dritten Pasch in Folge geht es sofort in den Hexenturm. Wer über „Leinen los“ zieht oder darauf landet, bekommt 200 €.</p>
+<p>Alle starten mit 1.500 € auf „${b('start')}“. Wer am höchsten würfelt, beginnt. Würfle und zieh. Bei einem Pasch würfelst du nach deinem Zug noch einmal – beim dritten Pasch in Folge geht es sofort ${b('inDenTurm')}. Wer über „${b('start')}“ zieht oder darauf landet, bekommt 200 €.</p>
 <h3>Freie Grundstücke</h3>
 <p>Kaufe zum Preis auf dem Feld – oder lass versteigern. Dann bieten alle, auch du, ab 10 € in Schritten von 1 €. Wer am meisten bietet, zahlt an die Bank. Bietet niemand, bleibt das Feld frei.</p>
 <h3>Miete</h3>
 <ul><li>Straßen: Miete laut Karte, doppelt, wenn dir die ganze Farbgruppe gehört und noch nicht gebaut ist.</li>
-<li>Bahnhöfe: 25, 50, 100 oder 200 € – je nachdem, wie viele Bahnhöfe der Besitzer hat.</li>
-<li>Werke: würfle; die Augen mal 4 (ein Werk) oder mal 10 (beide Werke).</li>
+<li>${b('bahnhoefe')}: 25, 50, 100 oder 200 € – je nachdem, wie viele davon der Besitzer hat.</li>
+<li>${b('werke')}: würfle; die Augen mal 4 (eins davon) oder mal 10 (beide).</li>
 <li>Für Grundstücke mit Hypothek gibt es keine Miete.</li></ul>
 <h3>Bauen</h3>
 <p>Gehört dir eine ganze Farbgruppe, darfst du jederzeit Häuser kaufen – gleichmäßig verteilt, höchstens 4 je Straße, danach ein Hotel (die 4 Häuser gehen zurück). Die Bank hat nur 32 Häuser und 12 Hotels; wollen mehrere das letzte, wird es versteigert. Gebäude verkaufst du zum halben Preis an die Bank.</p>
 <h3>Hypothek</h3>
 <p>Ohne Gebäude in der Farbgruppe kannst du ein Grundstück beleihen: Die Bank zahlt den halben Kaufpreis. Ablösen kostet diesen Betrag plus 10 %.</p>
-<h3>Hexenturm</h3>
-<p>Wer hinein muss, zieht nicht über „Leinen los“. Raus kommst du zu Beginn deines Zuges: 50 € zahlen und normal würfeln, einen Turmschlüssel nutzen, oder einen Pasch würfeln (dann ziehst du damit, ohne Extrawurf). Nach dem dritten Fehlversuch zahlst du 50 € und ziehst. Auch im Turm darfst du Miete kassieren, bauen, bieten und handeln.</p>
-<h3>Ereignis und Gemeinschaft</h3>
-<p>Ziehe eine Karte und führe sie sofort aus; sie kommt unter den Stapel. Turmschlüssel darfst du behalten oder verkaufen.</p>
+<h3>${b('turm')}</h3>
+<p>Wer hinein muss, zieht nicht über „${b('start')}“. Raus kommst du zu Beginn deines Zuges: 50 € zahlen und normal würfeln, die Karte „${b('schluessel')}“ nutzen, oder einen Pasch würfeln (dann ziehst du damit, ohne Extrawurf). Nach dem dritten Fehlversuch zahlst du 50 € und ziehst. Auch ${b('imTurm')} darfst du Miete kassieren, bauen, bieten und handeln.</p>
+<h3>${b('ereignis')} und ${b('gemeinschaft')}</h3>
+<p>Ziehe eine Karte und führe sie sofort aus; sie kommt unter den Stapel. Die Karte „${b('schluessel')}“ darfst du behalten oder verkaufen.</p>
 <h3>Handeln</h3>
-<p>Jederzeit zu zweit: Grundstücke (ohne Gebäude in der Farbgruppe), Geld und Turmschlüssel – beide müssen zustimmen. Wer ein belastetes Grundstück bekommt, löst es sofort ab oder zahlt sofort 10 % Zinsen.</p>
+<p>Jederzeit zu zweit: Grundstücke (ohne Gebäude in der Farbgruppe), Geld und ${b('schluesselMz')} – beide müssen zustimmen. Wer ein belastetes Grundstück bekommt, löst es sofort ab oder zahlt sofort 10 % Zinsen.</p>
 <h3>Pleite</h3>
 <p>Kannst du nicht zahlen, verkaufe Gebäude und nimm Hypotheken auf. Reicht es dann noch nicht, scheidest du aus. Schulden bei einer Person: Sie bekommt alles, was dir gehört. Schulden bei der Bank: Deine Grundstücke werden einzeln versteigert.</p>
-<p>Auf der „Uferpause“ passiert nichts.</p>
+<p>${gross(b('pause'))}: ${E(String(BG.pauseText).replace(/[.!]+$/, ''))}. Geld gibt es dort keins.</p>
 <h3>Variante Zeitlimit</h3>
 <p>Auf Wunsch endet das Spiel nach einer festen Zeit. Dann zählt das Vermögen: Bargeld, Grundstücke zum Kaufpreis (belastete zum Hypothekenwert) und Gebäude zum Kaufpreis.</p>`;
+}
+
+/* ---------- Ausgaben (Spielbretter für verschiedene Orte) ----------
+   Jede Ausgabe tauscht Namen, Karten, Begriffe und die Gestaltung; Regeln und Zahlen bleiben gleich (AUSGABEN.md).
+   WAHL = auf der Startseite gewählt (Geräte-Einstellung), A = gerade angezeigte bzw. gespielte Ausgabe. */
+const AUSGABEN = Object.values(window.RheinbaronAusgaben || {})
+  .filter(a => a && a.id && Array.isArray(a.felder) && a.felder.length === 40)
+  .sort((x, y) => (x.reihenfolge ?? 99) - (y.reihenfolge ?? 99) || String(x.name).localeCompare(String(y.name), 'de'));
+const ausgabeVon = id => AUSGABEN.find(a => a.id === id) || AUSGABEN.find(a => a.id === 'rheinlahn') || AUSGABEN[0] || null;
+let A = null;
+let WAHL = Kern.einst.laden({ausgabe: 'eschbach'}).ausgabe;   // Vorgabe beim allerersten Start: Eschbach
+const D = () => (A && A.design) || {};
+const spielname = () => (A && A.spielname) || 'Rheinbaron';
+const ausgabeName = id => { const a = ausgabeVon(id || 'rheinlahn'); return a ? a.name : ''; };
+function svgUrl(svg) {
+  let x = String(svg || '').trim(); if (!/^<svg[\s>]/.test(x)) return '';
+  if (!/\sxmlns=/.test(x.slice(0, x.indexOf('>')))) x = x.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(x);
+}
+function istHell(farbe) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(farbe || '').trim()); if (!m) return true;
+  const n = parseInt(m[1], 16), lin = c => { c /= 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; };
+  return .2126 * lin(n >> 16) + .7152 * lin((n >> 8) & 255) + .0722 * lin(n & 255) > .23;
+}
+function ausgabeAnwenden(id) {
+  const a = ausgabeVon(id);
+  try { R.ausgabeSetzen(a); A = a; } catch (e) { console.warn(e.message); R.ausgabeSetzen(null); A = null; }
+  const d = D(), st = document.documentElement.style, akz = d.akzent || AKZENT;
+  st.setProperty('--rb-papier', d.papier || '#f6f0e3'); st.setProperty('--rb-rand', d.rand || '#1b2a2f');
+  st.setProperty('--rb-mitte', d.mitte || '#133a49');
+  const motiv = svgUrl(d.mitteMotiv); st.setProperty('--rb-motiv', motiv ? `url("${motiv}")` : 'none');
+  Kern.init(Object.assign({}, KERN, {name: spielname(), akzent: akz, regeln: regelnHtml()}));
+  st.setProperty('--akzent-ink', istHell(akz) ? '#0b2229' : '#ffffff');
+  return A;
+}
+// Kleines Brett als Vorschau: Papierring mit den Farbgruppen, in der Mitte Farbe und Motiv der Ausgabe
+function brettMini(a, figuren) {
+  const d = (a && a.design) || {}, pap = d.papier || '#f6f0e3', rand = d.rand || '#1b2a2f', mi = d.mitte || '#133a49';
+  const motiv = svgUrl(d.mitteMotiv), gf = g => G[g].farbe;
+  const seite = (gr, f) => gr.map((g, k) => f(k, gf(g))).join('');
+  return `<svg viewBox="0 0 96 96" aria-hidden="true"><rect x="1.5" y="1.5" width="93" height="93" rx="8" fill="${pap}" stroke="${rand}" stroke-width="3"/>
+    <rect x="19" y="19" width="58" height="58" fill="${mi}"/>${motiv ? `<image href="${motiv}" x="19" y="19" width="58" height="58" preserveAspectRatio="xMidYMid slice"/>` : ''}
+    <rect x="19" y="19" width="58" height="58" fill="none" stroke="${rand}" stroke-width="1.4"/>
+    ${seite(['braun', 'hellblau'], (k, c) => `<rect x="${58 - k * 26}" y="78" width="20" height="5" fill="${c}"/>`)}
+    ${seite(['pink', 'orange'], (k, c) => `<rect x="13" y="${58 - k * 26}" width="5" height="20" fill="${c}"/>`)}
+    ${seite(['rot', 'gelb'], (k, c) => `<rect x="${20 + k * 26}" y="13" width="20" height="5" fill="${c}"/>`)}
+    ${seite(['gruen', 'blau'], (k, c) => `<rect x="78" y="${20 + k * 26}" width="5" height="20" fill="${c}"/>`)}
+    ${figuren ? `<g transform="translate(51 47) scale(.62)">${figurSvg(1, '#f2c14e').replace(/<\/?svg[^>]*>/g, '')}</g><g transform="translate(23 50) scale(.55)">${figurSvg(0, '#ef7d6d').replace(/<\/?svg[^>]*>/g, '')}</g>` : ''}</svg>`;
+}
+
 
 /* ---------- Figuren (eigene, schlichte Formen) ---------- */
 const FIGUR_NAMEN = ['Boot', 'Burg', 'Traube', 'Anker', 'Fisch', 'Weinglas'];
@@ -255,13 +337,11 @@ function figurSvg(nr, farbe) {
   return `<svg viewBox="0 0 40 40" aria-label="${FIGUR_NAMEN[nr % 6]}">${k[nr % 6]}</svg>`;
 }
 
-/* ---------- Anzeigenamen mit Trennstellen ---------- */
-const TRENN = {1: 'Frücht', 3: 'Fried­richs­segen', 4: 'Einkommen­steuer', 5: 'Nieder­lahn­stein', 6: 'Miehlen', 8: 'Nastätten',
-  9: 'Eschbach', 11: 'Dausenau', 12: 'Stadt­werke', 13: 'Nassau', 14: 'Bad Ems', 15: 'Bad Ems', 16: 'Salhof­platz', 18: 'Hoch­straße',
-  19: 'Burg Lahn­eck', 21: 'Braubach', 23: 'Schloss Stolzen­fels', 24: 'Marks­burg', 25: 'Braubach', 26: 'Ehren­breit­stein',
-  27: 'Rhein­seil­bahn', 28: 'Wasser­werk', 29: 'Festung Ehren­breit­stein', 31: 'Löhr­straße', 32: 'Görres­platz',
-  34: 'Jesuiten­platz', 35: 'Koblenz Haupt­bahn­hof', 37: 'Kurfürst­liches Schloss', 38: 'Zusatz­steuer', 39: 'Deutsches Eck',
-  2: 'Gemein­schaft', 17: 'Gemein­schaft', 33: 'Gemein­schaft', 7: 'Ereignis', 22: 'Ereignis', 36: 'Ereignis'};
+/* ---------- Anzeigenamen: trenn (weiche Trennstellen) vor kurz vor n ---------- */
+const anzeigeText = i => { const f = F[i]; return f.trenn ? String(f.trenn).replace(/&shy;/g, '\u00ad') : (f.kurz || f.n); };
+const anzeigeName = i => E(anzeigeText(i));
+const nameKlasse = i => 'rb-name' + (/\u00ad/.test(anzeigeText(i)) ? '' : ' auto');
+const eckBild = (k, stil = '') => { const u = svgUrl((D().ecken || {})[k]); return u ? `<img class="rb-eck-img" alt="" src="${u}" style="${stil}">` : ''; };
 const ICON = {
   bahn: '<svg viewBox="0 0 40 30"><rect x="9" y="3" width="22" height="19" rx="5" fill="#1b2a2f"/><rect x="12" y="6" width="16" height="7" rx="2" fill="#f6f0e3"/><circle cx="14" cy="18" r="2" fill="#f6f0e3"/><circle cx="26" cy="18" r="2" fill="#f6f0e3"/><path d="M12 22l-4 6M28 22l4 6" stroke="#1b2a2f" stroke-width="2.4" stroke-linecap="round"/></svg>',
   strom: '<svg viewBox="0 0 40 30"><path d="M23 2L11 17h8l-3 11 13-16h-8z" fill="#e8b92e" stroke="#1b2a2f" stroke-width="2" stroke-linejoin="round"/></svg>',
@@ -288,7 +368,8 @@ function sende(name, d = {}) {
   return Netz.tun(name, d);
 }
 function wurf() { return FEST.length ? FEST.shift() : [1 + Kern.zufall(6), 1 + Kern.zufall(6)]; }
-window.__test = {zustand: () => S, laden(s) { S = s; ANZEIGE = []; aufbauen(); zeichnen(); speichern(); }, wuerfel(...p) { FEST.push(...p); }, R, busy: () => BUSY};
+window.__test = {zustand: () => S, laden(s) { if (!A || ausgabeVon(s.ausgabe || 'rheinlahn') !== A) ausgabeAnwenden(s.ausgabe || 'rheinlahn'); S = s; ANZEIGE = []; aufbauen(); zeichnen(); speichern(); },
+  wuerfel(...p) { FEST.push(...p); }, R, busy: () => BUSY, ausgabe: () => A && A.id, ausgaben: () => AUSGABEN.map(a => a.id)};
 
 /* ---------- Startseite ---------- */
 let SETUP = null;
@@ -297,27 +378,42 @@ function startseite() {
   if (SETUP) SETUP.ziel.remove();
   Kern.kopf(true);
   const gesp = Kern.speicher.laden();
+  ausgabeAnwenden(WAHL);
+  const mehrere = AUSGABEN.length > 1;
   SETUP = Kern.setup({
-    titel: 'Rheinbaron', unter: 'Kaufen, bauen, kassieren – von Frücht bis zum Deutschen Eck.',
+    titel: spielname(), unter: (A && A.unter) || 'Kaufen, bauen, kassieren.',
     bild: bildSvg(), fakten: ['2–6 Personen', 'ab 90 Minuten', 'Würfeln · Kaufen · Handeln'],
     spieler: {min: 2, max: 6, standard: 3},
     optionen: [{id: 'zeit', label: 'Spielende', werte: [{wert: 0, text: 'Ohne Zeitlimit'}, {wert: 60, text: '60 Min.'}, {wert: 90, text: '90 Min.'}, {wert: 120, text: '120 Min.'}], standard: 0}],
     extra: '<p class="rb-leise" style="text-align:left;margin:0">Zeitlimit ist eine Variante: Nach Ablauf zählt das Vermögen. Ohne Zeitlimit gilt die Grundregel.</p>',
-    fortsetzen: gesp && !gesp.ende ? `Zug ${gesp.zug} · ${gesp.spieler.filter(p => !p.raus).map(p => p.name).join(', ')}` : null,
-    onFortsetzen: () => { S = gesp; spielZeigen(); },
+    fortsetzen: gesp && !gesp.ende ? `Zug ${gesp.zug}${mehrere ? ' · ' + ausgabeName(gesp.ausgabe) : ''} · ${gesp.spieler.filter(p => !p.raus).map(p => p.name).join(', ')}` : null,
+    onFortsetzen: () => { ausgabeAnwenden(gesp.ausgabe || 'rheinlahn'); S = gesp; spielZeigen(); },
     onStart: cfg => neuesSpiel(cfg.namen, cfg.farben, cfg.optionen)
   });
+  if (mehrere) ausgabenWahl(SETUP);
 }
-function bildSvg() {
-  return `<svg width="124" height="124" viewBox="0 0 96 96"><rect x="2" y="2" width="92" height="92" rx="8" fill="#efe7d6" stroke="#1b2a2f" stroke-width="3"/>
-  <rect x="20" y="20" width="56" height="56" fill="#123a49"/><path d="M38 20c6 12-8 22 0 34s-4 16 0 22" stroke="#6cc7d8" stroke-width="7" fill="none" opacity=".75"/>
-  <path d="M76 44c-12 0-18 4-28 6" stroke="#6cc7d8" stroke-width="4" fill="none" opacity=".75"/>
-  ${['#8a5a3c', '#8ccbe8', '#d65a9a', '#ef8a2e'].map((c, i) => `<rect x="${22 + i * 13}" y="78" width="11" height="5" fill="${c}"/>`).join('')}
-  ${['#d8483c', '#f2c94c', '#2f9a5a', '#2c5bb8'].map((c, i) => `<rect x="${22 + i * 13}" y="13" width="11" height="5" fill="${c}"/>`).join('')}
-  <g transform="translate(52 50) scale(.62)">${figurSvg(1, '#f2c14e').replace(/<\/?svg[^>]*>/g, '')}</g><g transform="translate(24 52) scale(.55)">${figurSvg(0, '#ef7d6d').replace(/<\/?svg[^>]*>/g, '')}</g></svg>`;
+/* Ausgabenwahl: Kacheln mit kleinem Brett, Name; darunter die Beschreibung der gewählten Ausgabe */
+function ausgabenWahl(setup) {
+  const box = Kern.el('div', 'rb-aw');
+  box.innerHTML = `<span class="k-lab" id="rb-aw-lab">Welches Spielbrett?</span><div class="rb-aw-reihe" role="radiogroup" aria-labelledby="rb-aw-lab">${AUSGABEN.map(a =>
+    `<button class="rb-aw-k" role="radio" data-ausgabe="${E(a.id)}" style="--ak:${E((a.design && a.design.akzent) || AKZENT)}" aria-checked="${a === A}">${brettMini(a)}<b>${E(a.name)}</b></button>`).join('')}</div><p class="rb-aw-text"></p>`;
+  const text = () => { box.querySelector('.rb-aw-text').innerHTML = A ? `<b>${E(A.spielname || A.name)}</b> · ${E(A.beschreibung || '')}` : ''; };
+  text();
+  box.querySelectorAll('[data-ausgabe]').forEach(b => b.onclick = () => {
+    const id = b.dataset.ausgabe; if (A && A.id === id) return;
+    WAHL = id; Kern.einst.speichern({ausgabe: id}); ausgabeAnwenden(id); Kern.ton('tipp');
+    box.querySelectorAll('[data-ausgabe]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.ausgabe === A.id)));
+    const t = setup.ziel.querySelector('.k-titel');
+    if (t) { const h = t.querySelector('h1'), u = t.querySelector('.k-unter'), bi = t.querySelector('.k-bild'); if (h) h.textContent = spielname(); if (u) u.textContent = A.unter || ''; if (bi) bi.innerHTML = bildSvg(); }
+    text();
+  });
+  const p = setup.panel, weiter = p.querySelector('.k-weiter');
+  p.insertBefore(box, weiter ? weiter.nextSibling : p.firstChild);
 }
-function neuesSpiel(namen, farben, optionen) {
+function bildSvg() { return brettMini(A, true).replace('<svg ', '<svg width="124" height="124" '); }
+function neuesSpiel(namen, farben, optionen, ausgabe = WAHL) {
   Kern.speicher.loeschen();
+  ausgabeAnwenden(ausgabe);
   S = R.neu({namen, farben, figuren: namen.map((n, i) => i), optionen: {zeit: optionen.zeit}, zufall: Kern.zufall});
   S.netzId = Date.now().toString(36) + Kern.zufall(1e6);   // erkennt im Netzspiel ein neues Spiel
   speichern(); spielZeigen();
@@ -358,17 +454,59 @@ function aufbauen() {
 }
 function feldInnen(i) {
   const f = F[i];
-  if (i === 0) return `<div class="rb-in"><div class="rb-ecke-t">Leinen los</div><div class="rb-ecke-s">+200 € bei jeder Runde</div><svg viewBox="0 0 60 24" style="width:58%;margin-top:4%"><path d="M56 12H10M19 3L7 12l12 9" fill="none" stroke="#d8483c" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`;
-  if (i === 10) return `<div class="rb-zelle">${ICON.turm}</div><span class="rb-besuch" style="left:6%;top:72%;font-size:calc(var(--fs)*.8)">NUR ZU</span><span class="rb-besuch" style="left:6%;top:84%;font-size:calc(var(--fs)*.8)">BESUCH</span><span class="rb-besuch" style="left:6%;top:6%;writing-mode:vertical-rl;transform:rotate(180deg);font-size:calc(var(--fs)*.78)">HEXENTURM</span>`;
-  if (i === 20) return `<div class="rb-in"><div class="rb-ecke-t">Uferpause</div><div class="rb-ecke-s">Hier passiert nichts</div><svg viewBox="0 0 60 36" style="width:50%;margin-top:4%"><path d="M8 18h44M10 18v12M50 18v12M12 10h36" stroke="#1b2a2f" stroke-width="4" stroke-linecap="round"/><path d="M4 32c8-4 14 4 22 0s14 4 22 0 8 2 10 0" stroke="#4b9bd4" stroke-width="3" fill="none"/></svg></div>`;
-  if (i === 30) return `<div class="rb-in"><div class="rb-ecke-t" style="font-size:calc(var(--fs)*1.12)">Ab in den Hexenturm</div><div style="width:30%;margin-top:3%">${ICON.turm}</div></div>`;
+  if (i === 0) return `<div class="rb-in"><div class="rb-ecke-t auto">${E(BG.start)}</div><div class="rb-ecke-s">+200 € bei jeder Runde</div>${eckBild('start', 'width:58%;max-height:34%;margin-top:4%')}</div>`;
+  if (i === 10) return `<div class="rb-zelle">${eckBild('turm')}</div><span class="rb-besuch" style="left:6%;top:72%;font-size:calc(var(--fs)*.8)">NUR ZU</span><span class="rb-besuch" style="left:6%;top:84%;font-size:calc(var(--fs)*.8)">BESUCH</span><span class="rb-besuch rb-senk">${E(BG.turm.toUpperCase())}</span>`;
+  if (i === 20) return `<div class="rb-in"><div class="rb-ecke-t auto">${E(BG.pause)}</div><div class="rb-ecke-s">${E(BG.pauseText)}</div>${eckBild('pause', 'width:50%;max-height:34%;margin-top:4%')}</div>`;
+  if (i === 30) return `<div class="rb-in"><div class="rb-ecke-t auto klein">${E(BG.abInTurm)}</div>${eckBild('abInTurm', 'width:30%;max-height:40%;margin-top:3%')}</div>`;
   let h = '';
-  if (f.t === 'strasse') h = `<div class="rb-bar" style="--gc:${G[f.g].farbe}"></div><div class="rb-name">${TRENN[i] || E(f.n)}</div><div class="rb-preis">${euro(f.p)}</div>`;
-  else if (f.t === 'bahnhof') h = `<div class="rb-ico">${ICON.bahn}</div><div class="rb-name">${TRENN[i]}</div>${i !== 35 ? '<div class="rb-sub">Bahnhof</div>' : ''}<div class="rb-preis">${euro(f.p)}</div>`;
-  else if (f.t === 'werk') h = `<div class="rb-ico">${ICON[f.art]}</div><div class="rb-name">${TRENN[i]}</div><div class="rb-preis">${euro(f.p)}</div>`;
-  else if (f.t === 'steuer') h = `<div class="rb-ico">${ICON.steuer}</div><div class="rb-name">${TRENN[i]}</div><div class="rb-preis">${euro(f.betrag)}</div>`;
-  else h = `<div class="rb-ico" style="width:58%;margin-top:16%">${ICON[f.t]}</div><div class="rb-name">${TRENN[i]}</div>`;
+  const nm = `<div class="${nameKlasse(i)}">${anzeigeName(i)}</div>`;
+  if (f.t === 'strasse') h = `<div class="rb-bar" style="--gc:${G[f.g].farbe}"></div>${nm}<div class="rb-preis">${euro(f.p)}</div>`;
+  else if (f.t === 'bahnhof') {
+    // Begriff (Bahnhof, Haltestelle …) unter dem Namen, außer der Name sagt es schon
+    const nmK = anzeigeText(i).replace(/\u00ad/g, '').toLowerCase(), bgK = BG.bahnhof.toLowerCase();
+    const sub = !nmK.includes(bgK) && !nmK.split(/[\s-]+/).some(w => w.length >= 6 && bgK.includes(w));
+    h = `<div class="rb-ico">${ICON.bahn}</div>${nm}${sub ? `<div class="rb-sub auto">${E(BG.bahnhof)}</div>` : ''}<div class="rb-preis">${euro(f.p)}</div>`;
+  }
+  else if (f.t === 'werk') h = `<div class="rb-ico">${ICON[f.art]}</div>${nm}<div class="rb-preis">${euro(f.p)}</div>`;
+  else if (f.t === 'steuer') h = `<div class="rb-ico">${ICON.steuer}</div>${nm}<div class="rb-preis">${euro(f.betrag)}</div>`;
+  else h = `<div class="rb-ico" style="width:58%;margin-top:16%">${ICON[f.t]}</div>${nm}`;
   return `<div class="rb-in">${h}<div class="rb-band"></div></div>`;
+}
+/* Schrift einpassen: das längste Wort passt in die Feldbreite, der Inhalt in die Feldhöhe (Namen der Ausgaben sind
+   verschieden lang). Erst kleiner, dann – ohne Trennstellen der Ausgabe – automatische Silbentrennung. */
+let MESS = null;
+function wortBreite(el, cs) {
+  MESS = MESS || document.createElement('canvas').getContext('2d');
+  MESS.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const t = el.textContent, weich = /\u00ad/.test(t);
+  return Math.max(0, ...t.split(/[\s\u00ad]+|(?<=[-\/])/).filter(Boolean).map(w => MESS.measureText(w + (weich && !/-$/.test(w) ? '-' : '')).width));
+}
+function textEinpassen() {
+  if (!BRETT) return;
+  const MIN = .6;
+  BRETT.querySelectorAll('.rb-name, .rb-sub, .rb-ecke-t, .rb-ecke-s').forEach(el => {
+    if (el.dataset.auto == null) el.dataset.auto = el.classList.contains('auto') ? '1' : '0';   // darf automatisch trennen
+    el.style.fontSize = ''; el.classList.remove('auto');
+    const cs = getComputedStyle(el), basis = parseFloat(cs.fontSize);
+    const frei = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const wb = wortBreite(el, cs);
+    let k = wb > frei && wb > 0 ? Math.max(MIN, frei / wb * .97) : 1;
+    // ohne eigene Trennstellen: lieber mäßig kleiner und automatisch trennen als winzige Schrift
+    if (k < .8 && el.dataset.auto === '1') { el.classList.add('auto'); k = .8; }
+    if (k < 1) el.style.fontSize = (basis * k).toFixed(2) + 'px';
+  });
+  // Höhe: was nicht hineinpasst, wird gemeinsam kleiner
+  BRETT.querySelectorAll('.rb-in').forEach(inn => {
+    const els = [...inn.querySelectorAll('.rb-name, .rb-sub, .rb-ecke-t, .rb-ecke-s')];
+    for (let n = 0; n < 8 && inn.scrollHeight > inn.clientHeight + 1; n++)
+      els.forEach(el => { el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * .9).toFixed(2) + 'px'; });
+  });
+  // senkrechter Name des Gefängnisses
+  BRETT.querySelectorAll('.rb-senk').forEach(el => {
+    el.style.fontSize = '';
+    const frei = GEO.c * .62, hoch = el.offsetHeight;
+    if (hoch > frei) el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * frei / hoch).toFixed(2) + 'px';
+  });
 }
 
 /* Geometrie: Ecke c, Feldbreite w; Seiten u (unten, 1–9), l (links, 11–19), o (oben, 21–29), r (rechts, 31–39) */
@@ -408,6 +546,7 @@ function layout() {
     if (W > H) Object.assign(SEITE.style, {left: (x0 + B + 14) + 'px', top: '16px', width: (W - x0 - B - 30) + 'px', height: (H - 32) + 'px'});
     else Object.assign(SEITE.style, {left: '16px', top: (y0 + B + 14) + 'px', width: (W - 32) + 'px', height: (H - y0 - B - 30) + 'px'});
   } else SEITE.hidden = true;
+  textEinpassen();
   figurenSetzen(true);
 }
 function feldRect(i) {
@@ -456,6 +595,7 @@ function figurenSetzen(sofort) {
   S.spieler.forEach((p, i) => { FIGEL[i].hidden = p.raus; FIGEL[i].classList.toggle('dran', i === S.dran && !S.ende); FIGEL[i].classList.toggle('ich', i === ICH()); });
 }
 addEventListener('resize', () => { if (S && BRETT) { layout(); zeichnen(); } });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S && BRETT) textEinpassen(); });
 
 /* ---------- Zeichnen ---------- */
 function handelnde() {
@@ -491,7 +631,7 @@ function geldText(n) { return `<span class="k-zahl">${euro(n)}</span>`; }
 function mitteZeichnen() {
   const a = S.akt, wer = handelnde(), P = sp(wer);
   const satz = statusSatz();
-  MITTE.innerHTML = `${ZENTRUM ? '' : `${flussSvg()}<div class="rb-titel">RHEINBARON</div>`}
+  MITTE.innerHTML = `${ZENTRUM ? '' : `${flussSvg()}${titelHtml()}`}
     <div class="rb-status" style="--pc:${P.farbe}"><div class="rb-fg">${figurSvg(P.figur, P.farbe)}</div><div><b class="rb-wer">${S.ende ? 'Spiel vorbei' : E(P.name) + (wer === ICH() ? ' <span style="font-weight:400;color:var(--ink2)">(du)</span>' : '')}</b><span class="rb-satz" id="rb-satz">${satz}</span></div></div>
     ${angebotHtml()}
     <div class="rb-aktion" id="rb-aktion"></div>
@@ -499,7 +639,7 @@ function mitteZeichnen() {
     ${a && a.t === 'auktion' || ZENTRUM ? '' : `<div class="rb-spieler" id="rb-spieler"></div>`}`;
   if (ZENTRUM) {   // Telefon: Spielerkarten, Bank und Restzeit in der Brettmitte
     const rest = S.zeit.limit ? Math.max(0, S.zeit.limit - S.zeit.gespielt) : null;
-    ZENTRUM.innerHTML = `${flussSvg()}<div class="rb-titel">RHEINBARON</div><div class="rb-spieler" id="rb-spieler"></div>
+    ZENTRUM.innerHTML = `${flussSvg()}${titelHtml()}<div class="rb-spieler" id="rb-spieler"></div>
       <div class="rb-zinfo"><span>Bank: <b>${S.bank.haeuser}</b> Häuser · <b>${S.bank.hotels}</b> Hotels</span>${rest != null ? `<span>Zeitlimit: <b class="k-zahl" id="rb-rest">${Math.ceil(rest / 60000)} Min.</b></span>` : ''}</div>`;
   }
   const akt = MITTE.querySelector('#rb-aktion');
@@ -511,19 +651,18 @@ function mitteZeichnen() {
   const liste = (ZENTRUM || MITTE).querySelector('#rb-spieler');
   if (liste) S.spieler.forEach((p, i) => {
     const n = R.felderVon(S, i).length;
-    const x = [p.raus ? 'pleite' : null, p.turm && !p.raus ? 'im Hexenturm' : null, n ? `${n} Grundst.` : null, p.karten.length ? `${p.karten.length} Schlüssel` : null].filter(Boolean).join(' · ') || 'noch nichts';
+    const x = [p.raus ? 'pleite' : null, p.turm && !p.raus ? BG.imTurm : null, n ? `${n} Grundst.` : null, p.karten.length ? `${p.karten.length} ${p.karten.length > 1 ? BG.schluesselMz : BG.schluessel}` : null].filter(Boolean).join(' · ') || 'noch nichts';
     const b = Kern.el('button', 'rb-sk' + (i === S.dran && !S.ende ? ' dran' : '') + (p.raus ? ' raus' : '') + (i === ICH() ? ' ich' : ''));
     b.style.setProperty('--pc', p.farbe); b.dataset.sp = i;
-    b.innerHTML = `${figurSvg(p.figur, p.farbe)}<span style="min-width:0;flex:1"><span class="rb-skn">${E(p.name)}${i === ICH() ? '<span class="rb-du">du</span>' : ''}</span><span class="rb-skg">${euro(p.geld)}</span><span class="rb-skx">${x}</span></span>`;
+    b.innerHTML = `${figurSvg(p.figur, p.farbe)}<span style="min-width:0;flex:1"><span class="rb-skn">${E(p.name)}${i === ICH() ? '<span class="rb-du">du</span>' : ''}</span><span class="rb-skg">${euro(p.geld)}</span><span class="rb-skx">${E(x)}</span></span>`;
     b.onclick = () => verwalten(i);
     liste.appendChild(b);
   });
 }
-function flussSvg() {
-  return `<svg id="rb-fluss" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-   <path d="M30 -2C36 14 22 26 30 40S44 58 38 72S30 90 36 102" stroke="rgba(108,199,216,.10)" stroke-width="9" fill="none"/>
-   <path d="M102 44C88 40 78 48 66 46S46 50 36 53" stroke="rgba(108,199,216,.08)" stroke-width="4.5" fill="none"/>
-   <path d="M-2 22C10 26 18 20 28 26" stroke="rgba(108,199,216,.07)" stroke-width="5" fill="none"/></svg>`;
+function flussSvg() { return '<div id="rb-fluss" aria-hidden="true"></div>'; }   // Motiv der Ausgabe (--rb-motiv)
+function titelHtml() {
+  const t = spielname().toUpperCase();
+  return `<div class="rb-titel${t.length > 18 ? ' sehrlang' : t.length > 11 ? ' lang' : ''}">${E(t)}</div>`;
 }
 function statusSatz() {
   const a = S.akt;
@@ -532,17 +671,17 @@ function statusSatz() {
   const P = sp(handelnde());
   switch (a.t) {
     case 'wurf': return S.pasch > 0 ? 'Pasch! Würfle noch einmal.' : 'Würfeln';
-    case 'turm': return `sitzt im Hexenturm · Versuch ${P.versuche + 1} von 3`;
+    case 'turm': return `sitzt ${E(BG.imTurm)} · Versuch ${P.versuche + 1} von 3`;
     case 'kauf': return `${E(F[a.feld].n)}: Kaufen für ${euro(F[a.feld].p)} oder versteigern`;
     case 'auktion': return a.art === 'feld' ? `Versteigerung: ${E(F[a.feld].n)}` : `Versteigerung: das letzte ${a.art === 'hotel' ? 'Hotel' : 'Haus'} der Bank`;
     case 'zahlen': {
       const an = a.an != null ? sp(a.an).name : 'die Bank';
       const was = a.grund === 'miete' ? `Miete ${euro(a.betrag)} an ${E(an)}` : a.grund === 'steuer' ? `${E(F[a.feld].n)}: ${euro(a.betrag)} an die Bank`
-        : a.grund === 'turm' ? `Hexenturm: ${euro(a.betrag)} an die Bank` : a.grund === 'zinsen' ? `Zinsen: ${euro(a.betrag)} an die Bank` : `Zahle ${euro(a.betrag)} an ${E(an)}`;
+        : a.grund === 'turm' ? `${E(BG.turm)}: ${euro(a.betrag)} an die Bank` : a.grund === 'zinsen' ? `Zinsen: ${euro(a.betrag)} an die Bank` : `Zahle ${euro(a.betrag)} an ${E(an)}`;
       return P.geld >= a.betrag ? was : `${was} – dir fehlen ${euro(a.betrag - P.geld)}`;
     }
     case 'werk': return `Würfle die Miete aus: Augen × ${a.faktor} an ${E(sp(a.an).name)}`;
-    case 'karte': return `zieht eine ${R.DECKNAME[a.deck]}karte`;
+    case 'karte': return `zieht eine Karte: ${E(R.DECKNAME[a.deck])}`;
     case 'uebernahme': return `übernimmt ${E(F[a.feld].n)} mit Hypothek: ablösen oder 10 % Zinsen zahlen`;
     case 'gutschein': return `Tippe eine leuchtende Straße für das ersteigerte ${a.art === 'hotel' ? 'Hotel' : 'Haus'}`;
     case 'fertig': return a.nochmal ? 'Pasch! Noch einmal würfeln' : 'Zug beenden';
@@ -581,7 +720,7 @@ function aktionBauen(box) {
       box.append(wuerfelReihe(), kn);
       kn.append(knopf('Pasch versuchen', '', () => sende('turmWurf')));
       kn.append(knopf(`${euro(R.TURM_STRAFE)} zahlen`, 'leise', () => sende('turmZahlen'), P.geld < R.TURM_STRAFE));
-      if (P.karten.length) kn.append(knopf('Schlüssel nutzen', 'leise', () => sende('turmKarte')));
+      if (P.karten.length) kn.append(knopf(`${E(BG.schluessel)} nutzen`, 'leise', () => sende('turmKarte')));
       break;
     case 'kauf': {
       box.append(urkundeEl(a.feld, true), kn);
@@ -598,7 +737,7 @@ function aktionBauen(box) {
         kn.append(knopf('Geld beschaffen', 'leise', () => verwalten(a.von)));
         if (R.kannBankrott(S)) kn.append(knopf('Aufgeben', 'gefahr', aufgeben));
         if (!fremd) box.append(leise(R.kannBankrott(S) ? 'Auch mit allen Verkäufen und Hypotheken reicht es nicht. Du kannst noch handeln – oder aufgeben.' : 'Verkaufe Gebäude oder nimm Hypotheken auf, dann zahle.'));
-      } else if (a.grund === 'miete' && a.doppelt) box.append(leise('Doppelte Bahnhofsmiete wegen der Karte.'));
+      } else if (a.grund === 'miete' && a.doppelt) box.append(leise('Doppelte Miete wegen der Karte.'));
       break;
     }
     case 'werk':
@@ -608,7 +747,7 @@ function aktionBauen(box) {
     case 'karte': {
       const k = Kern.el('div', 'rb-karte');
       k.style.setProperty('--kc', a.deck === 'E' ? '#c86a1e' : '#2a7f8f');
-      k.innerHTML = `<header>${R.DECKNAME[a.deck]}</header><p>${E(R.KARTEN[a.id].text)}</p>`;
+      k.innerHTML = `<header>${E(R.DECKNAME[a.deck])}</header><p>${festBetrag(E(R.KARTEN[a.id].text))}</p>`;
       box.append(k, kn); kn.append(knopf('OK', 'gross', () => sende('karteOk')));
       break;
     }
@@ -637,13 +776,14 @@ function aktionBauen(box) {
   }
   if (fremd) kn.replaceChildren(leise(a.t === 'karte' ? `${E(P.name)} liest die Karte.` : `${E(P.name)} ist dran.`));   // Netzspiel: fremde Entscheidung
 }
+const festBetrag = t => t.replace(/(\d) (€|%)/g, '$1\u00a0$2');   // „10 €“ nicht umbrechen
 function urkundeEl(f, kurz) {
   const d = Kern.el('div', 'rb-urkunde'); d.innerHTML = urkundeHtml(f, kurz); return d;
 }
 function urkundeHtml(f, kurz) {
   const x = F[f], b = S.besitz[f], o = b && b.von != null ? sp(b.von) : null;
   const gc = x.g ? G[x.g].farbe : (x.t === 'bahnhof' ? '#2a3a40' : '#3b5560'), gi = x.g && hellGruppe(x.g) ? '#1b2a2f' : '#fff';
-  const unter = x.g ? G[x.g].name : x.t === 'bahnhof' ? 'Bahnhof' : 'Werk';
+  const unter = x.g ? G[x.g].name : x.t === 'bahnhof' ? BG.bahnhof : BG.werk;
   let z = '';
   const an = (cond) => cond ? ' class="an"' : '';
   if (x.t === 'strasse') {
@@ -654,14 +794,14 @@ function urkundeHtml(f, kurz) {
     z += `<span class="t"></span><span>Haus oder Hotel je</span><b>${euro(x.h)}</b>`;
   } else if (x.t === 'bahnhof') {
     const n = o ? R.BAHNHOEFE.filter(q => S.besitz[q].von === b.von).length : 0;
-    z = [1, 2, 3, 4].map(k => `<span${an(n === k)}>${k} Bahnh${k > 1 ? 'öfe' : 'of'}</span><b${an(n === k)}>${euro(R.BAHN_MIETE[k])}</b>`).join('');
+    z = [1, 2, 3, 4].map(k => `<span${an(n === k)}>${k} ${E(k > 1 ? BG.bahnhoefe : BG.bahnhof)}</span><b${an(n === k)}>${euro(R.BAHN_MIETE[k])}</b>`).join('');
   } else {
     const n = o ? R.WERKE.filter(q => S.besitz[q].von === b.von).length : 0;
-    z = `<span${an(n === 1)}>Ein Werk</span><b${an(n === 1)}>Augen × 4</b><span${an(n === 2)}>Beide Werke</span><b${an(n === 2)}>Augen × 10</b>`;
+    z = `<span${an(n === 1)}>1 ${E(BG.werk)}</span><b${an(n === 1)}>Augen × 4</b><span${an(n === 2)}>Beide ${E(BG.werke)}</span><b${an(n === 2)}>Augen × 10</b>`;
   }
   if (!kurz) z += `<span class="t"></span><span>Hypothek</span><b>${euro(x.hy)}</b><span>Ablösen</span><b>${euro(R.abloesePreis(f))}</b>`;
   const stand = o ? `<span class="t"></span><span>Besitz</span><b>${E(o.name)}${b.hy ? ' · Hypothek' : ''}${b.h ? ' · ' + (b.h === 5 ? 'Hotel' : b.h + (b.h > 1 ? ' Häuser' : ' Haus')) : ''}</b>` : (kurz ? '' : `<span class="t"></span><span>Besitz</span><b>frei · ${euro(x.p)}</b>`);
-  return `<header style="--gc:${gc};--gi:${gi}"><small>${E(unter)}</small><b>${E(x.n)}</b></header><div class="rb-zeilen">${kurz ? `<span>Kaufpreis</span><b>${euro(x.p)}</b>` : ''}${z}${stand}</div>${!kurz && x.ort ? `<div class="rb-ort">${E(x.ort)}</div>` : ''}`;
+  return `<header style="--gc:${gc};--gi:${gi}"><small>${E(unter)}</small><b>${E(x.n)}</b></header><div class="rb-zeilen">${kurz ? `<span>Kaufpreis</span><b>${euro(x.p)}</b>` : ''}${z}${stand}</div>${!kurz && x.ort ? `<div class="rb-ort">${festBetrag(E(x.ort))}</div>` : ''}`;
 }
 function auktionBauen(box) {
   const a = S.akt;
@@ -757,14 +897,15 @@ function feldTippen(i) {
   if (S && S.akt && S.akt.t === 'gutschein' && R.gutscheinFelder(S).includes(i) && darf(S.akt.sp)) { sende('gutschein', {f: i}); return; }
   const f = F[i];
   if (f.p) { Kern.fenster(`<div style="display:grid;place-items:center">${'<div class="rb-urkunde" style="font-size:17px;width:100%;max-width:26em">' + urkundeHtml(i, false) + '</div>'}</div>`); return; }
+  const b = k => E(BG[k]), gross = t => t.charAt(0).toUpperCase() + t.slice(1);
   const text = {
-    start: `Wer über „Leinen los“ zieht oder darauf landet, bekommt ${euro(R.LOS_GELD)}.`,
-    turm: `Im Hexenturm sitzt, wer auf „Ab in den Hexenturm“ kommt, eine Karte zieht oder dreimal hintereinander einen Pasch würfelt. Wer nur hier landet, ist zu Besuch.`,
-    pause: 'Kleine Pause am Ufer. Hier passiert nichts – auch kein Geld.',
-    abInTurm: 'Direkt in den Hexenturm, ohne über „Leinen los“ zu ziehen.',
+    start: `Wer über „${b('start')}“ zieht oder darauf landet, bekommt ${euro(R.LOS_GELD)}.`,
+    turm: `${gross(b('imTurm'))} sitzt, wer auf „${b('abInTurm')}“ kommt, eine Karte zieht oder dreimal hintereinander einen Pasch würfelt. Wer nur hier landet, ist zu Besuch.`,
+    pause: `${E(String(BG.pauseText).replace(/[.!]+$/, ''))}. Geld gibt es hier keins.`,
+    abInTurm: `Direkt ${b('inDenTurm')}, ohne über „${b('start')}“ zu ziehen.`,
     steuer: `Zahle ${euro(f.betrag || 0)} an die Bank.`,
-    ereignis: 'Ziehe eine Ereigniskarte und führe sie sofort aus.',
-    gemeinschaft: 'Ziehe eine Gemeinschaftskarte und führe sie sofort aus.'
+    ereignis: `Ziehe eine Karte „${b('ereignis')}“ und führe sie sofort aus.`,
+    gemeinschaft: `Ziehe eine Karte „${b('gemeinschaft')}“ und führe sie sofort aus.`
   }[f.t];
   Kern.fenster(`<h2>${E(f.n)}</h2><p>${text}</p>`);
 }
@@ -792,11 +933,11 @@ function verwaltenFuellen() {
   const roll = MAN.fenster.fenster.scrollTop;
   const a = S.akt;
   let html = `<h2>Grundstücke</h2><div class="rb-fwahl">${R.aktive(S).map(k => `<button data-wahl="${k}" aria-pressed="${k === i}" style="--pc:${sp(k).farbe}">${figurSvg(sp(k).figur, sp(k).farbe)}${E(sp(k).name)}</button>`).join('')}</div>
-    <p class="rb-info">Bargeld <b class="k-zahl" style="color:var(--ink)">${euro(P.geld)}</b> · Bank: ${S.bank.haeuser} Häuser, ${S.bank.hotels} Hotels${P.karten.length ? ` · ${P.karten.length} Turmschlüssel` : ''}</p>`;
+    <p class="rb-info">Bargeld <b class="k-zahl" style="color:var(--ink)">${euro(P.geld)}</b> · Bank: ${S.bank.haeuser} Häuser, ${S.bank.hotels} Hotels${P.karten.length ? ` · ${P.karten.length} ${E(P.karten.length > 1 ? BG.schluesselMz : BG.schluessel)}` : ''}</p>`;
   if (a && a.t === 'zahlen' && a.von === i && P.geld < a.betrag) html += `<div class="rb-schuld">Offen: ${euro(a.betrag)} an ${E(a.an != null ? sp(a.an).name : 'die Bank')} – dir fehlen noch <b>${euro(a.betrag - P.geld)}</b>.</div>`;
   const meine = R.felderVon(S, i);
   if (!meine.length) html += '<p class="rb-leer">Noch keine Grundstücke.</p>';
-  const gruppen = [...Object.keys(G).map(g => ({g, felder: G[g].felder})), {g: null, name: 'Bahnhöfe', farbe: '#9db8b8', felder: R.BAHNHOEFE}, {g: null, name: 'Werke', farbe: '#9db8b8', felder: R.WERKE}];
+  const gruppen = [...Object.keys(G).map(g => ({g, felder: G[g].felder})), {g: null, name: BG.bahnhoefe, farbe: '#9db8b8', felder: R.BAHNHOEFE}, {g: null, name: BG.werke, farbe: '#9db8b8', felder: R.WERKE}];
   gruppen.forEach(gr => {
     const da = gr.felder.filter(f => S.besitz[f].von === i);
     if (!da.length) return;
@@ -866,7 +1007,7 @@ function handelFenster(a) {
       const felder = R.felderVon(S, wer);
       return `<div class="rb-seiteh" style="--pc:${P.farbe}"><h4>${E(P.name)} gibt</h4>
         <div class="rb-chips">${felder.length ? felder.map(f => `<button data-f="${key}:${f}" aria-pressed="${g.felder.has(f)}" ${R.handelbar(S, wer, f) ? '' : 'disabled title="Gebäude in der Farbgruppe"'} style="--gc:${gruppeFarbe(f)}"><i></i>${E(F[f].n)}${S.besitz[f].hy ? ' (Hyp.)' : ''}</button>`).join('') : '<span class="rb-leer">keine Grundstücke</span>'}
-        ${P.karten.map((k, n) => `<button data-c="${key}:${k}" aria-pressed="${g.karten.has(k)}">Turmschlüssel</button>`).join('')}</div>
+        ${P.karten.map((k, n) => `<button data-c="${key}:${k}" aria-pressed="${g.karten.has(k)}">${E(BG.schluessel)}</button>`).join('')}</div>
         <div class="rb-geld"><button data-g="${key}:-50">−50</button><button data-g="${key}:-10">−10</button><input data-gi="${key}" inputmode="numeric" value="${g.geld}" aria-label="Betrag"><button data-g="${key}:10">+10</button><button data-g="${key}:50">+50</button><span class="rb-leer" style="font-size:14px">von ${euro(P.geld)}</span></div></div>`;
     };
     const w = R.warumNichtHandeln(S, plan());
@@ -915,7 +1056,7 @@ function endeFenster() {
   k.append(knopf('Nochmal', '', () => { fe.schliessen(); sende('neustart'); }), knopf('Neues Spiel', 'leise', () => { fe.schliessen(); if (Netz.aktiv) Netz.verlassen(); startseite(); }), knopf('Brett ansehen', 'leise', () => fe.schliessen()));
 }
 function nochmal() {
-  const alt = S; neuesSpiel(alt.spieler.map(p => p.name), alt.spieler.map(p => p.farbe), {zeit: alt.zeit.limit / 60000});
+  const alt = S; neuesSpiel(alt.spieler.map(p => p.name), alt.spieler.map(p => p.farbe), {zeit: alt.zeit.limit / 60000}, alt.ausgabe || 'rheinlahn');
 }
 
 /* ---------- Zeit ---------- */
@@ -927,8 +1068,9 @@ setInterval(() => {
   const r = document.getElementById('rb-rest'); if (r && S.zeit.limit) r.textContent = Math.ceil(Math.max(0, S.zeit.limit - S.zeit.gespielt) / 60000) + ' Min.';
 }, 1000);
 
-Kern.init({id: 'rheinbaron', name: 'Rheinbaron', akzent: AKZENT, regeln: REGELN, onNeu: () => { Kern.speicher.loeschen(); S = null; startseite(); },
-  menue: [{text: 'Verlauf', aktion: () => { if (S) Kern.fenster(`<h2>Verlauf</h2>${S.log.slice().reverse().map(t => `<p>${E(t)}</p>`).join('')}`); }}]});
+const KERN = {id: 'rheinbaron', onNeu: () => { Kern.speicher.loeschen(); S = null; startseite(); },
+  menue: [{text: 'Verlauf', aktion: () => { if (S) Kern.fenster(`<h2>Verlauf</h2>${S.log.slice().reverse().map(t => `<p>${E(t)}</p>`).join('')}`); }}]};
+ausgabeAnwenden(WAHL);
 /* ---------- Netzspiel: jeder auf seinem Gerät ----------
    Der Gastgeber ist die Bank: nur er würfelt, mischt und rechnet. Jede Entscheidung (würfeln, kaufen oder versteigern,
    zahlen, Karte bestätigen, Hexenturm, Hypothek übernehmen, Gebäude setzen) erscheint nur auf dem Gerät der Person,
@@ -943,7 +1085,7 @@ function meldeFehler(text, sitz) {
 }
 function angebotText(h) {
   const teil = (wer, g) => {
-    const x = [...(g.felder || []).map(f => F[f].n), ...(g.karten || []).map(() => 'Turmschlüssel')];
+    const x = [...(g.felder || []).map(f => F[f].n), ...(g.karten || []).map(() => BG.schluessel)];
     if (g.geld) x.push(euro(g.geld));
     return `<b>${E(sp(wer).name)}</b> gibt ${x.length ? E(x.join(', ')) : 'nichts'}`;
   };
@@ -1043,7 +1185,9 @@ async function standAnwenden(d) {
   if (d.hinweis && d.hinweis.nr > HINW_GESEHEN) { HINW_GESEHEN = d.hinweis.nr; Kern.hinweis(d.hinweis.text, 2800); }
   const alt = S;
   if (SETUP) { SETUP.ziel.remove(); SETUP = null; }
-  if (!alt || alt.netzId !== d.netzId || !BRETT) {   // neues Spiel
+  const wechsel = !!AUSGABEN.length && ausgabeVon(d.ausgabe || 'rheinlahn') !== A;   // Ausgabe des Gastgebers übernehmen
+  if (wechsel) ausgabeAnwenden(d.ausgabe || 'rheinlahn');
+  if (!alt || alt.netzId !== d.netzId || !BRETT || wechsel) {   // neues Spiel
     S = d; ANZEIGE = []; aufbauen(); zeichnen(); if (S.zug === 1 && !S.wurf) startwurfZeigen(); return;
   }
   if (d.angebot && d.angebot.b === Netz.meinSitz && !(alt.angebot && alt.angebot.b === Netz.meinSitz)) { Kern.ton('tipp'); Kern.hinweis(`${d.spieler[d.angebot.a].name} bietet dir einen Handel an.`); }

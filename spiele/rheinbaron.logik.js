@@ -66,6 +66,13 @@
        dann zählt das Vermögen: Bargeld + Kaufpreis unbelasteter Grundstücke + Hypothekenwert belasteter
        + Gebäude zum Kaufpreis (Hotel = 5 Hauspreise). Vorgabe: kein Zeitlimit, Spiel bis eine Person übrig ist.
    A11 Handel ist erlaubt, solange keine Versteigerung läuft und keine Karte offen liegt.
+
+   AUSGABEN (Spielbretter für verschiedene Orte, Format siehe AUSGABEN.md)
+   ausgabeSetzen(daten) tauscht nur Texte: Feldnamen und -beschreibungen, Gruppennamen, Kartentexte, Stapelnamen und
+   die Begriffe (Start, Gefängnis, Frei Parken, Frei-Karte, Bahnhof, Werk …), die auch in Verlauf und Meldungen stehen.
+   Preise, Mieten, Feldarten und Kartenwirkungen bleiben unverändert. Die eingebauten Texte sind die Ausgabe
+   „Rhein & Lahn“ (id rheinlahn); ausgabeSetzen(null) stellt sie wieder her. Ein Spielstand trägt die id in s.ausgabe;
+   Spielstände ohne s.ausgabe gelten als rheinlahn.
 */
 (function () {
   const START_GELD = 1500, LOS_GELD = 200, TURM_STRAFE = 50, MIN_GEBOT = 10, HAEUSER = 32, HOTELS = 12;
@@ -96,7 +103,7 @@
     S('Eschbach', 'hellblau', 120, [8, 40, 100, 300, 450, 600], 50, 'Dorf auf der Höhe zwischen Rhein und Taunus'),
     {n: 'Hexenturm', t: 'turm'},
     S('Dausenau', 'pink', 140, [10, 50, 150, 450, 625, 750], 100, 'Fachwerkort mit schiefem Turm an der Lahn'),
-    {n: 'Stadtwerke', t: 'werk', p: 150, hy: 75, art: 'strom'},
+    {n: 'Stadtwerke', t: 'werk', p: 150, hy: 75, art: 'strom', ort: 'Strom für Lahnstein und das untere Lahntal'},
     S('Nassau', 'pink', 140, [10, 50, 150, 450, 625, 750], 100, 'Stammsitz der Nassauer an der Lahn'),
     S('Bad Ems', 'pink', 160, [12, 60, 180, 500, 700, 900], 100, 'Kurstadt an der Lahn'),
     {n: 'Bahnhof Bad Ems', t: 'bahnhof', p: 200, hy: 100, ort: 'Station der Lahntalbahn'},
@@ -112,7 +119,7 @@
     {n: 'Bahnhof Braubach', t: 'bahnhof', p: 200, hy: 100, ort: 'Station an der rechten Rheinstrecke'},
     S('Ehrenbreitstein', 'gelb', 260, [22, 110, 330, 800, 975, 1150], 150, 'Stadtteil von Koblenz am rechten Rheinufer'),
     S('Rheinseilbahn', 'gelb', 260, [22, 110, 330, 800, 975, 1150], 150, 'Seilbahn über den Rhein in Koblenz'),
-    {n: 'Wasserwerk', t: 'werk', p: 150, hy: 75, art: 'wasser'},
+    {n: 'Wasserwerk', t: 'werk', p: 150, hy: 75, art: 'wasser', ort: 'Trinkwasser aus den Brunnen am Rhein'},
     S('Festung Ehrenbreitstein', 'gelb', 280, [24, 120, 360, 850, 1025, 1200], 150, 'Festung hoch über dem Deutschen Eck'),
     {n: 'Ab in den Hexenturm', t: 'abInTurm'},
     S('Löhrstraße', 'gruen', 300, [26, 130, 390, 900, 1100, 1275], 200, 'Einkaufsstraße in Koblenz'),
@@ -168,6 +175,46 @@
   };
   const DECKNAME = {E: 'Ereignis', G: 'Gemeinschaft'};
 
+  /* ---------- Ausgaben: Begriffe und Texte austauschbar ---------- */
+  const BEGRIFFE = {
+    start: 'Leinen los', turm: 'Hexenturm', imTurm: 'im Hexenturm', inDenTurm: 'in den Hexenturm', ausDemTurm: 'aus dem Hexenturm',
+    abInTurm: 'Ab in den Hexenturm', pause: 'Uferpause', pauseText: 'Hier passiert nichts',
+    schluessel: 'Turmschlüssel', schluesselMz: 'Turmschlüssel', bahnhof: 'Bahnhof', bahnhoefe: 'Bahnhöfe', werk: 'Werk', werke: 'Werke',
+    ereignis: 'Ereignis', gemeinschaft: 'Gemeinschaft', steuer: 'Steuer'
+  };
+  const AUSGABE = {id: 'rheinlahn'};
+  // Abzug der eingebauten Texte (= Ausgabe rheinlahn), damit jede Ausgabe vom selben Grundstand aus gesetzt wird
+  const GRUND = {
+    begriffe: Object.assign({}, BEGRIFFE),
+    felder: FELDER.map(f => ({n: f.n, ort: f.ort})),
+    gruppen: Object.fromEntries(Object.keys(GRUPPEN).map(g => [g, GRUPPEN[g].name])),
+    karten: Object.fromEntries(Object.keys(KARTEN).map(k => [k, KARTEN[k].text]))
+  };
+  const ECKE = {0: 'start', 10: 'turm', 20: 'pause', 30: 'abInTurm'};
+  function ausgabeSetzen(daten) {
+    const d = daten || {};
+    if (daten && (!Array.isArray(d.felder) || d.felder.length !== 40)) throw new Error('Ausgabe ' + (d.id || '?') + ': genau 40 Felder nötig');
+    const txt = (v, alt) => (typeof v === 'string' && v.trim() ? v : alt);
+    Object.keys(GRUND.begriffe).forEach(k => { BEGRIFFE[k] = txt(d.begriffe && d.begriffe[k], GRUND.begriffe[k]); });
+    Object.keys(GRUPPEN).forEach(g => { GRUPPEN[g].name = txt(d.gruppen && d.gruppen[g], GRUND.gruppen[g]); });
+    FELDER.forEach((F, i) => {
+      const a = daten ? (d.felder[i] || {}) : GRUND.felder[i];
+      delete F.kurz; delete F.trenn;
+      if (ECKE[i] != null) F.n = ECKE[i] === 'start' ? txt(a.n, BEGRIFFE.start) : BEGRIFFE[ECKE[i]];
+      else if (F.t === 'ereignis' || F.t === 'gemeinschaft') F.n = BEGRIFFE[F.t];
+      else F.n = txt(a.n, GRUND.felder[i].n);
+      if (F.p) F.ort = txt(a.ort, daten ? '' : GRUND.felder[i].ort); else if (a.ort) F.ort = a.ort; else delete F.ort;
+      if (daten && typeof a.kurz === 'string' && a.kurz.trim()) F.kurz = a.kurz;
+      if (daten && typeof a.trenn === 'string' && a.trenn.trim()) F.trenn = a.trenn;
+    });
+    Object.keys(KARTEN).forEach(k => { KARTEN[k].text = txt(d.karten && d.karten[k], GRUND.karten[k]); });
+    DECKNAME.E = BEGRIFFE.ereignis; DECKNAME.G = BEGRIFFE.gemeinschaft;
+    AUSGABE.id = daten ? String(d.id || 'rheinlahn') : 'rheinlahn';
+    return AUSGABE.id;
+  }
+  const ausgabeId = () => AUSGABE.id;
+  const B = BEGRIFFE;
+
   /* ---------- Hilfen ---------- */
   const euro = n => (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('de-DE') + ' €';
   const fehler = text => { const e = new Error(text); e.regel = true; return e; };
@@ -196,7 +243,7 @@
       stapel: {E: mischen(Object.keys(KARTEN).filter(k => k[0] === 'E'), zufall), G: mischen(Object.keys(KARTEN).filter(k => k[0] === 'G'), zufall)},
       dran: 0, pasch: 0, wurf: null, letzterPasch: false, keinNochmal: false,
       q: [], akt: null, log: [], anim: [], zug: 1,
-      zeit: {limit: (Number(optionen.zeit) || 0) * 60000, gespielt: 0}, ende: null, startwurf: []
+      zeit: {limit: (Number(optionen.zeit) || 0) * 60000, gespielt: 0}, ende: null, startwurf: [], ausgabe: AUSGABE.id
     };
     KAUFBAR.forEach(f => { s.besitz[f] = {von: null, h: 0, hy: false}; });
     // Startspieler auswürfeln (A3)
@@ -271,7 +318,7 @@
         if (P.raus) break;
         if (!it.id) {
           it.id = s.stapel[it.deck].shift();
-          log(s, `${P.name} zieht eine ${DECKNAME[it.deck]}karte.`);
+          log(s, `${P.name} zieht eine Karte: ${DECKNAME[it.deck]}.`);
         }
         blockiere(s, it); break;
       }
@@ -314,7 +361,7 @@
     if (it.an != null) s.spieler[it.an].geld += it.betrag;
     s.anim.push({art: 'geld', von: it.von, an: it.an, betrag: it.betrag});
     const was = {miete: `Miete für ${it.feld != null ? FELDER[it.feld].n : ''}`, steuer: FELDER[it.feld] ? FELDER[it.feld].n : 'Steuer',
-      turm: 'Hexenturm', zinsen: 'Zinsen', karte: 'Karte'}[it.grund] || 'Zahlung';
+      turm: B.turm, zinsen: 'Zinsen', karte: 'Karte'}[it.grund] || 'Zahlung';
     log(s, `${v.name} zahlt ${euro(it.betrag)} an ${nm(s, it.an)} (${was.trim()}).`);
   }
 
@@ -322,7 +369,7 @@
     const P = s.spieler[sp], von = P.pos;
     P.pos = ((von + n) % 40 + 40) % 40;
     s.anim.push({art: 'zug', sp, von, n});
-    if (n > 0 && von + n >= 40) { P.geld += LOS_GELD; log(s, `${P.name} kommt über „Leinen los“ und erhält ${euro(LOS_GELD)}.`); s.anim.push({art: 'los', sp}); }
+    if (n > 0 && von + n >= 40) { P.geld += LOS_GELD; log(s, `${P.name} kommt über „${B.start}“ und erhält ${euro(LOS_GELD)}.`); s.anim.push({art: 'los', sp}); }
     s.q.unshift({t: 'landen', sp, modus});
   }
 
@@ -331,7 +378,7 @@
     P.pos = TURM; P.turm = true; P.versuche = 0;
     s.anim.push({art: 'sprung', sp, nach: TURM});
     if (sp === s.dran) s.keinNochmal = true;
-    log(s, `${P.name} muss in den Hexenturm.`);
+    log(s, `${P.name} muss ${B.inDenTurm}.`);
   }
 
   function landen(s, sp, modus) {
@@ -387,16 +434,16 @@
     if (s.spieler[sp].geld < TURM_STRAFE) throw fehler(`Dir fehlen ${euro(TURM_STRAFE - s.spieler[sp].geld)}.`);
     s.akt = null;
     s.q.push({t: 'zahlen', von: sp, an: null, betrag: TURM_STRAFE, grund: 'turm'}, {t: 'turmFrei', sp}, {t: 'wurf'});
-    log(s, `${nm(s, sp)} kauft sich aus dem Hexenturm frei.`);
+    log(s, `${nm(s, sp)} kauft sich ${B.ausDemTurm} frei.`);
     laufen(s); return s;
   }
   function turmKarte(s) {
     anfang(s); erwarte(s, 'turm');
     const sp = s.dran, P = s.spieler[sp];
-    if (!P.karten.length) throw fehler('Du hast keinen Turmschlüssel.');
+    if (!P.karten.length) throw fehler(`Dir fehlt die Karte „${B.schluessel}“.`);
     const id = P.karten.shift(); s.stapel[id[0]].push(id);
     P.turm = false; P.versuche = 0;
-    log(s, `${P.name} nutzt einen Turmschlüssel.`);
+    log(s, `${P.name} nutzt die Karte „${B.schluessel}“.`);
     s.akt = {t: 'wurf'}; return s;
   }
   function turmWuerfeln(s, w) {
@@ -404,7 +451,7 @@
     const sp = s.dran, P = s.spieler[sp], pasch = w[0] === w[1];
     s.wurf = w.slice(); s.letzterPasch = false; s.keinNochmal = true; s.akt = null;
     P.versuche++;
-    log(s, `${P.name} würfelt im Hexenturm ${w[0]} und ${w[1]}.`);
+    log(s, `${P.name} würfelt ${B.imTurm} ${w[0]} und ${w[1]}.`);
     if (pasch) {
       P.turm = false; P.versuche = 0; log(s, `Pasch – ${P.name} ist frei.`);
       s.q.push({t: 'bewegen', sp, n: w[0] + w[1]}, {t: 'fertig'});
@@ -453,7 +500,7 @@
       case 'werk': neu.push({t: 'ziel', sp, nach: naechstesFeld(P.pos, WERKE), modus: 'werk10'}); break;
       case 'geld': P.geld += w.betrag; s.anim.push({art: 'geld', von: null, an: sp, betrag: w.betrag}); log(s, `${P.name} erhält ${euro(w.betrag)}.`); break;
       case 'zahlen': neu.push({t: 'zahlen', von: sp, an: null, betrag: w.betrag, grund: 'karte'}); break;
-      case 'frei': P.karten.push(it.id); log(s, `${P.name} behält einen Turmschlüssel.`); break;
+      case 'frei': P.karten.push(it.id); log(s, `${P.name} behält die Karte „${B.schluessel}“.`); break;
       case 'zurueck': neu.push({t: 'bewegen', sp, n: -w.n}); break;
       case 'turm': turmRein(s, sp); break;
       case 'reparatur': {
@@ -790,7 +837,7 @@
   }
 
   const R = {
-    FELDER, GRUPPEN, KARTEN, DECKNAME, KAUFBAR, BAHNHOEFE, WERKE, BAHN_MIETE,
+    FELDER, GRUPPEN, KARTEN, DECKNAME, BEGRIFFE, ausgabeSetzen, ausgabeId, KAUFBAR, BAHNHOEFE, WERKE, BAHN_MIETE,
     START_GELD, LOS_GELD, TURM_STRAFE, MIN_GEBOT, HAEUSER, HOTELS, TURM,
     euro, neu, miete, werkFaktor, hatGruppe, felderVon, aktive, zinsen, abloesePreis, mindestGebot,
     wuerfeln, turmZahlen, turmKarte, turmWuerfeln, kaufen, versteigern, zahlen, werkWuerfeln, karteOk, weiter,

@@ -1,7 +1,7 @@
 /* Spieltisch - Service Worker. Offline zuerst: jeder Start kommt aus dem Speicher des Geraets.
    Eine neue Fassung laedt ALLE Dateien in einen eigenen Speicher und gilt ab dem naechsten Start.
    Ein laufendes Spiel wird dabei nie neu geladen. VERSION setzt Werkzeuge/bauen.py. */
-var VERSION = "4c042d3ff388";
+var VERSION = "42e69c261a15";
 var CACHE = "spieltisch-" + VERSION;
 var ASSETS = [
   "./",
@@ -49,6 +49,11 @@ var ASSETS = [
   "./spiele/paare.logik.js",
   "./spiele/poker.html",
   "./spiele/poker.logik.js",
+  "./spiele/rheinbaron.ausgabe-blauesland.js",
+  "./spiele/rheinbaron.ausgabe-eschbach.js",
+  "./spiele/rheinbaron.ausgabe-lahnstein.js",
+  "./spiele/rheinbaron.ausgabe-panzweiler.js",
+  "./spiele/rheinbaron.ausgabe-rheinlahn.js",
   "./spiele/rheinbaron.html",
   "./spiele/rheinbaron.logik.js",
   "./spiele/romme.html",
